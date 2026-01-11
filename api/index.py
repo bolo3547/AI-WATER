@@ -1,19 +1,18 @@
 """
-AquaWatch NRW - Vercel Serverless Dashboard
-============================================
-Complete dashboard with login for Vercel deployment
+AquaWatch NRW - Vercel Dashboard
+Simple HTML-based dashboard for reliable Vercel deployment
 """
 
-import dash
-from dash import dcc, html, callback, Input, Output, State
-import dash_bootstrap_components as dbc
-import plotly.express as px
-import plotly.graph_objects as go
-import pandas as pd
-import numpy as np
-from datetime import datetime, timedelta
-import random
+from flask import Flask, render_template_string, request, redirect, session, jsonify
+from flask_cors import CORS
 import hashlib
+import random
+from datetime import datetime
+import os
+
+app = Flask(__name__)
+app.secret_key = os.environ.get('SECRET_KEY', 'aquawatch-secret-key-2026')
+CORS(app)
 
 # =============================================================================
 # AUTHENTICATION
@@ -33,297 +32,372 @@ def verify_login(username, password):
 # DATA GENERATORS
 # =============================================================================
 
-def generate_sensor_data():
-    zones = ["Zone A - Downtown", "Zone B - Industrial", "Zone C - Residential", "Zone D - Commercial"]
-    sensors = []
-    for i in range(12):
-        zone = zones[i % len(zones)]
-        base_pressure = 45 + random.uniform(-5, 5)
-        has_anomaly = random.random() < 0.15
-        if has_anomaly:
-            base_pressure -= random.uniform(5, 15)
-        sensors.append({
-            "sensor_id": f"SENSOR-{i+1:03d}",
-            "zone": zone,
-            "pressure_psi": round(base_pressure, 2),
-            "flow_rate_gpm": round(100 + random.uniform(-20, 20), 2),
-            "status": "anomaly" if has_anomaly else "normal",
-            "anomaly_score": round(random.uniform(0.7, 0.95), 3) if has_anomaly else round(random.uniform(0.1, 0.3), 3)
-        })
-    return sensors
-
-def generate_alerts():
-    alert_types = [
-        ("Pressure Drop Detected", "critical", "Zone A - Downtown"),
-        ("Unusual Flow Pattern", "warning", "Zone B - Industrial"),
-        ("Acoustic Anomaly", "warning", "Zone C - Residential"),
-    ]
-    alerts = []
-    for i, (title, severity, zone) in enumerate(alert_types):
-        if random.random() < 0.7:
-            alerts.append({
-                "id": f"ALERT-{1000+i}",
-                "title": title,
-                "severity": severity,
-                "zone": zone,
-                "estimated_loss_m3": round(random.uniform(10, 500), 1) if severity == "critical" else round(random.uniform(1, 50), 1)
-            })
-    return alerts
-
 def get_stats():
     return {
-        "total_sensors": 247,
         "sensors_online": 241,
+        "total_sensors": 247,
         "nrw_percentage": round(random.uniform(18, 28), 1),
         "water_saved": round(random.uniform(1500, 3500), 0),
         "active_alerts": random.randint(3, 12),
         "ai_confidence": round(random.uniform(92, 98), 1),
     }
 
-# =============================================================================
-# COLORS
-# =============================================================================
-
-COLORS = {
-    'primary': '#0066CC',
-    'success': '#28A745',
-    'warning': '#FFC107',
-    'danger': '#DC3545',
-    'dark': '#1a1a2e',
-    'light': '#F8F9FA',
-    'text': '#212529',
-}
+def get_alerts():
+    alerts = [
+        {"title": "Pressure Drop Detected", "severity": "critical", "zone": "Zone A - Downtown", "loss": round(random.uniform(100, 500), 1)},
+        {"title": "Unusual Flow Pattern", "severity": "warning", "zone": "Zone B - Industrial", "loss": round(random.uniform(20, 100), 1)},
+        {"title": "Acoustic Anomaly", "severity": "warning", "zone": "Zone C - Residential", "loss": round(random.uniform(10, 50), 1)},
+    ]
+    return [a for a in alerts if random.random() < 0.7]
 
 # =============================================================================
-# APP
+# HTML TEMPLATES
 # =============================================================================
 
-app = dash.Dash(
-    __name__,
-    external_stylesheets=[
-        dbc.themes.BOOTSTRAP,
-        "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
-    ],
-    suppress_callback_exceptions=True,
-    meta_tags=[{"name": "viewport", "content": "width=device-width, initial-scale=1"}]
-)
-app.title = "AquaWatch NRW"
-server = app.server
+LOGIN_HTML = '''
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AquaWatch NRW - Login</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; }
+        .login-card { max-width: 400px; margin: 100px auto; }
+        .logo { color: #0066CC; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="login-card">
+            <div class="card shadow-lg border-0" style="border-radius: 15px;">
+                <div class="card-body p-5">
+                    <div class="text-center mb-4">
+                        <i class="fas fa-water fa-4x logo mb-3"></i>
+                        <h2 class="fw-bold">AquaWatch NRW</h2>
+                        <p class="text-muted">Water Intelligence Platform</p>
+                    </div>
+                    {% if error %}
+                    <div class="alert alert-danger">{{ error }}</div>
+                    {% endif %}
+                    <form method="POST" action="/login">
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Username</label>
+                            <input type="text" name="username" class="form-control form-control-lg" placeholder="Enter username" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Password</label>
+                            <input type="password" name="password" class="form-control form-control-lg" placeholder="Enter password" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-lg w-100">
+                            <i class="fas fa-sign-in-alt me-2"></i>Login
+                        </button>
+                    </form>
+                    <hr class="my-4">
+                    <p class="text-center text-muted small mb-0">© 2026 AquaWatch NRW</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
+'''
 
-# =============================================================================
-# COMPONENTS
-# =============================================================================
+DASHBOARD_HTML = '''
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AquaWatch NRW - Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { background-color: #f5f7fa; }
+        .stat-card { border-radius: 12px; border: none; transition: transform 0.2s; }
+        .stat-card:hover { transform: translateY(-5px); }
+        .alert-critical { border-left: 4px solid #dc3545; }
+        .alert-warning { border-left: 4px solid #ffc107; }
+        .pulse { animation: pulse 2s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        .gauge-container { position: relative; width: 200px; height: 100px; margin: 0 auto; }
+        .gauge-value { font-size: 2.5rem; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
+        <div class="container-fluid">
+            <a class="navbar-brand d-flex align-items-center" href="/">
+                <i class="fas fa-water fa-2x text-primary me-2"></i>
+                <div>
+                    <span class="fw-bold fs-4">AquaWatch NRW</span>
+                    <small class="d-block text-muted" style="font-size: 0.7rem;">Water Intelligence Platform</small>
+                </div>
+            </a>
+            <div class="d-flex align-items-center">
+                <span class="badge bg-success pulse me-2">LIVE</span>
+                <span class="text-muted me-3">{{ time }}</span>
+                <a href="/logout" class="btn btn-outline-secondary btn-sm">
+                    <i class="fas fa-sign-out-alt me-1"></i>Logout
+                </a>
+            </div>
+        </div>
+    </nav>
 
-def stat_card(title, value, icon, color, subtitle=""):
-    return dbc.Card([
-        dbc.CardBody([
-            html.Div([
-                html.I(className=f"fas {icon} fa-2x me-3", style={"color": color}),
-                html.Div([
-                    html.H6(title, className="text-muted mb-1"),
-                    html.H3(value, className="mb-0 fw-bold"),
-                    html.Small(subtitle, className="text-muted") if subtitle else None,
-                ]),
-            ], className="d-flex align-items-center"),
-        ])
-    ], className="shadow-sm h-100", style={"borderRadius": "12px"})
+    <div class="container-fluid py-4">
+        <!-- Stats Cards -->
+        <div class="row g-4 mb-4">
+            <div class="col-md-3">
+                <div class="card stat-card shadow-sm h-100">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-broadcast-tower fa-2x text-primary me-3"></i>
+                            <div>
+                                <h6 class="text-muted mb-1">Active Sensors</h6>
+                                <h3 class="mb-0 fw-bold">{{ stats.sensors_online }}/{{ stats.total_sensors }}</h3>
+                                <small class="text-muted">{{ stats.total_sensors - stats.sensors_online }} offline</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card stat-card shadow-sm h-100">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-tint-slash fa-2x {% if stats.nrw_percentage > 20 %}text-warning{% else %}text-success{% endif %} me-3"></i>
+                            <div>
+                                <h6 class="text-muted mb-1">NRW Rate</h6>
+                                <h3 class="mb-0 fw-bold">{{ stats.nrw_percentage }}%</h3>
+                                <small class="text-muted">Target: &lt;20%</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card stat-card shadow-sm h-100">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-hand-holding-water fa-2x text-success me-3"></i>
+                            <div>
+                                <h6 class="text-muted mb-1">Water Saved Today</h6>
+                                <h3 class="mb-0 fw-bold">{{ "{:,.0f}".format(stats.water_saved) }} m³</h3>
+                                <small class="text-muted">Through leak detection</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card stat-card shadow-sm h-100">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-bell fa-2x {% if stats.active_alerts > 5 %}text-danger{% else %}text-warning{% endif %} me-3"></i>
+                            <div>
+                                <h6 class="text-muted mb-1">Active Alerts</h6>
+                                <h3 class="mb-0 fw-bold">{{ stats.active_alerts }}</h3>
+                                <small class="text-muted">Requires attention</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
 
-def alert_card(alert):
-    colors = {"critical": COLORS['danger'], "warning": COLORS['warning']}
-    return dbc.Card([
-        dbc.CardBody([
-            html.Div([
-                html.I(className="fas fa-exclamation-triangle me-2", style={"color": colors.get(alert['severity'], COLORS['warning'])}),
-                html.Strong(alert['title']),
-                dbc.Badge(alert['severity'].upper(), color="danger" if alert['severity'] == "critical" else "warning", className="ms-2"),
-            ]),
-            html.Small(f"{alert['zone']} | Est. Loss: {alert['estimated_loss_m3']} m³", className="text-muted"),
-        ])
-    ], className="mb-2", style={"borderLeft": f"4px solid {colors.get(alert['severity'], COLORS['warning'])}"})
+        <!-- Charts Row -->
+        <div class="row g-4 mb-4">
+            <div class="col-md-4">
+                <div class="card shadow-sm h-100" style="border-radius: 12px;">
+                    <div class="card-body text-center">
+                        <h5 class="card-title">NRW Rate Gauge</h5>
+                        <div class="gauge-value mt-4 {% if stats.nrw_percentage > 25 %}text-danger{% elif stats.nrw_percentage > 20 %}text-warning{% else %}text-success{% endif %}">
+                            {{ stats.nrw_percentage }}%
+                        </div>
+                        <div class="progress mt-3" style="height: 25px; border-radius: 15px;">
+                            <div class="progress-bar {% if stats.nrw_percentage > 25 %}bg-danger{% elif stats.nrw_percentage > 20 %}bg-warning{% else %}bg-success{% endif %}" 
+                                 style="width: {{ (stats.nrw_percentage / 50) * 100 }}%"></div>
+                        </div>
+                        <small class="text-muted mt-2 d-block">Target: Below 20%</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-8">
+                <div class="card shadow-sm h-100" style="border-radius: 12px;">
+                    <div class="card-body">
+                        <h5 class="card-title">NRW Trend - Last 30 Days</h5>
+                        <canvas id="trendChart" height="150"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
 
-def create_gauge(value, title):
-    color = COLORS['success'] if value < 20 else COLORS['warning'] if value < 30 else COLORS['danger']
-    fig = go.Figure(go.Indicator(
-        mode="gauge+number",
-        value=value,
-        title={'text': title},
-        gauge={
-            'axis': {'range': [0, 50]},
-            'bar': {'color': color},
-            'steps': [
-                {'range': [0, 20], 'color': '#E8F5E9'},
-                {'range': [20, 30], 'color': '#FFF3E0'},
-                {'range': [30, 50], 'color': '#FFEBEE'}
-            ],
+        <!-- Alerts and AI Status -->
+        <div class="row g-4">
+            <div class="col-md-6">
+                <div class="card shadow-sm" style="border-radius: 12px;">
+                    <div class="card-header bg-white">
+                        <i class="fas fa-bell text-danger me-2"></i>
+                        <strong>Active Alerts</strong>
+                    </div>
+                    <div class="card-body" style="max-height: 300px; overflow-y: auto;">
+                        {% for alert in alerts %}
+                        <div class="card mb-2 alert-{{ alert.severity }}" style="border-radius: 8px;">
+                            <div class="card-body py-2">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <i class="fas fa-exclamation-triangle {% if alert.severity == 'critical' %}text-danger{% else %}text-warning{% endif %} me-2"></i>
+                                        <strong>{{ alert.title }}</strong>
+                                        <span class="badge {% if alert.severity == 'critical' %}bg-danger{% else %}bg-warning{% endif %} ms-2">{{ alert.severity|upper }}</span>
+                                    </div>
+                                </div>
+                                <small class="text-muted">
+                                    <i class="fas fa-map-marker-alt me-1"></i>{{ alert.zone }} | 
+                                    <i class="fas fa-tint me-1"></i>Est. Loss: {{ alert.loss }} m³
+                                </small>
+                            </div>
+                        </div>
+                        {% endfor %}
+                        {% if not alerts %}
+                        <p class="text-muted text-center">No active alerts</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card shadow-sm" style="border-radius: 12px;">
+                    <div class="card-header bg-white">
+                        <i class="fas fa-robot text-primary me-2"></i>
+                        <strong>AI System Status</strong>
+                    </div>
+                    <div class="card-body">
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <span><i class="fas fa-brain text-success me-2"></i>Anomaly Detection Model</span>
+                                <span class="badge bg-success">Online</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <span><i class="fas fa-map-marked-alt text-success me-2"></i>Leak Localization</span>
+                                <span class="badge bg-success">Online</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <span><i class="fas fa-volume-up text-success me-2"></i>Acoustic Analysis</span>
+                                <span class="badge bg-success">Online</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <span><i class="fas fa-chart-line text-primary me-2"></i>AI Confidence</span>
+                                <span class="badge bg-primary">{{ stats.ai_confidence }}%</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <span><i class="fas fa-server text-success me-2"></i>System Uptime</span>
+                                <span class="badge bg-success">99.7%</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <hr class="my-4">
+        <p class="text-center text-muted">© 2026 AquaWatch NRW | Powered by AI | <a href="/api/stats">API</a></p>
+    </div>
+
+    <script>
+        // Trend Chart
+        const ctx = document.getElementById('trendChart').getContext('2d');
+        const labels = [];
+        const data = [];
+        for (let i = 29; i >= 0; i--) {
+            const d = new Date();
+            d.setDate(d.getDate() - i);
+            labels.push(d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+            data.push(28 - (29-i) * 0.3 + (Math.random() - 0.5) * 4);
         }
-    ))
-    fig.update_layout(height=250, margin=dict(l=20, r=20, t=50, b=20), paper_bgcolor='rgba(0,0,0,0)')
-    return fig
-
-def create_pressure_chart(sensors):
-    df = pd.DataFrame(sensors)
-    fig = px.bar(df, x='sensor_id', y='pressure_psi', color='status',
-                 color_discrete_map={'normal': COLORS['success'], 'anomaly': COLORS['danger']},
-                 title='Sensor Pressure Readings')
-    fig.add_hline(y=35, line_dash="dash", line_color=COLORS['warning'])
-    fig.add_hline(y=55, line_dash="dash", line_color=COLORS['warning'])
-    fig.update_layout(height=300, margin=dict(l=40, r=20, t=50, b=40), paper_bgcolor='rgba(0,0,0,0)')
-    return fig
-
-def create_trend():
-    dates = pd.date_range(end=datetime.now(), periods=30, freq='D')
-    values = [28 - i*0.3 + random.uniform(-2, 2) for i in range(30)]
-    fig = go.Figure(go.Scatter(x=dates, y=values, mode='lines+markers', fill='tozeroy',
-                               line=dict(color=COLORS['primary'], width=3)))
-    fig.add_hline(y=20, line_dash="dash", line_color=COLORS['success'], annotation_text="Target")
-    fig.update_layout(title='NRW Trend - 30 Days', height=300, margin=dict(l=40, r=20, t=50, b=40),
-                     paper_bgcolor='rgba(0,0,0,0)')
-    return fig
-
-# =============================================================================
-# LOGIN PAGE
-# =============================================================================
-
-login_page = dbc.Container([
-    dbc.Row([
-        dbc.Col([
-            html.Div([
-                html.I(className="fas fa-water fa-4x mb-3", style={"color": COLORS['primary']}),
-                html.H2("AquaWatch NRW", className="fw-bold mb-1"),
-                html.P("Water Intelligence Platform", className="text-muted mb-4"),
-                dbc.Card([
-                    dbc.CardHeader(html.H5("Admin Login", className="mb-0 text-center")),
-                    dbc.CardBody([
-                        dbc.Input(type="text", id="username", placeholder="Username", className="mb-3"),
-                        dbc.Input(type="password", id="password", placeholder="Password", className="mb-3"),
-                        html.Div(id="login-error", className="text-danger mb-3 text-center"),
-                        dbc.Button("Login", id="login-btn", color="primary", className="w-100"),
-                    ])
-                ], className="shadow", style={"borderRadius": "12px"}),
-                html.Hr(className="my-4"),
-                html.Small("© 2026 AquaWatch NRW", className="text-muted"),
-            ], className="text-center", style={"maxWidth": "400px", "margin": "0 auto", "paddingTop": "80px"})
-        ])
-    ])
-], fluid=True, style={"backgroundColor": "#F5F7FA", "minHeight": "100vh"})
-
-# =============================================================================
-# DASHBOARD PAGE
-# =============================================================================
-
-def dashboard_page():
-    stats = get_stats()
-    sensors = generate_sensor_data()
-    alerts = generate_alerts()
-    
-    return dbc.Container([
-        # Header
-        dbc.Row([
-            dbc.Col([
-                html.Div([
-                    html.Div([
-                        html.I(className="fas fa-water fa-2x me-3", style={"color": COLORS['primary']}),
-                        html.Div([
-                            html.H2("AquaWatch NRW", className="mb-0 fw-bold"),
-                            html.Small("Water Intelligence Platform", className="text-muted"),
-                        ]),
-                    ], className="d-flex align-items-center"),
-                    html.Div([
-                        dbc.Badge("LIVE", color="success", className="me-2"),
-                        html.Small(datetime.now().strftime('%H:%M:%S'), className="text-muted me-3"),
-                        dbc.Button([html.I(className="fas fa-sign-out-alt me-1"), "Logout"], 
-                                  id="logout-btn", color="outline-secondary", size="sm"),
-                    ], className="d-flex align-items-center"),
-                ], className="d-flex justify-content-between align-items-center py-3"),
-            ])
-        ], className="mb-4"),
         
-        # Stats
-        dbc.Row([
-            dbc.Col(stat_card("Active Sensors", f"{stats['sensors_online']}/247", "fa-broadcast-tower", COLORS['primary']), md=3, className="mb-3"),
-            dbc.Col(stat_card("NRW Rate", f"{stats['nrw_percentage']}%", "fa-tint-slash", COLORS['warning'] if stats['nrw_percentage'] > 20 else COLORS['success'], "Target: <20%"), md=3, className="mb-3"),
-            dbc.Col(stat_card("Water Saved", f"{stats['water_saved']:,.0f} m³", "fa-hand-holding-water", COLORS['success']), md=3, className="mb-3"),
-            dbc.Col(stat_card("Active Alerts", str(stats['active_alerts']), "fa-bell", COLORS['danger'] if stats['active_alerts'] > 5 else COLORS['warning']), md=3, className="mb-3"),
-        ]),
-        
-        # Charts
-        dbc.Row([
-            dbc.Col(dbc.Card(dbc.CardBody(dcc.Graph(figure=create_gauge(stats['nrw_percentage'], "NRW Rate"), config={'displayModeBar': False})), className="shadow-sm", style={"borderRadius": "12px"}), md=4, className="mb-4"),
-            dbc.Col(dbc.Card(dbc.CardBody(dcc.Graph(figure=create_pressure_chart(sensors), config={'displayModeBar': False})), className="shadow-sm", style={"borderRadius": "12px"}), md=8, className="mb-4"),
-        ]),
-        
-        dbc.Row([
-            dbc.Col(dbc.Card(dbc.CardBody(dcc.Graph(figure=create_trend(), config={'displayModeBar': False})), className="shadow-sm", style={"borderRadius": "12px"}), md=8, className="mb-4"),
-            dbc.Col([
-                dbc.Card([
-                    dbc.CardHeader([html.I(className="fas fa-bell me-2"), "Active Alerts"]),
-                    dbc.CardBody([alert_card(a) for a in alerts] if alerts else html.P("No alerts", className="text-muted"))
-                ], className="shadow-sm", style={"borderRadius": "12px"})
-            ], md=4, className="mb-4"),
-        ]),
-        
-        # Footer
-        html.Hr(),
-        html.Div(html.Small("© 2026 AquaWatch NRW | Powered by AI", className="text-muted"), className="text-center py-3"),
-        
-        dcc.Interval(id='refresh', interval=30000, n_intervals=0),
-    ], fluid=True, style={"backgroundColor": "#F5F7FA", "minHeight": "100vh", "padding": "20px"})
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'NRW %',
+                    data: data,
+                    borderColor: '#0066CC',
+                    backgroundColor: 'rgba(0, 102, 204, 0.1)',
+                    fill: true,
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { display: false },
+                    annotation: {
+                        annotations: {
+                            line1: {
+                                type: 'line',
+                                yMin: 20,
+                                yMax: 20,
+                                borderColor: '#28A745',
+                                borderDash: [5, 5],
+                                label: { content: 'Target', enabled: true }
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: { min: 0, max: 40 }
+                }
+            }
+        });
+
+        // Auto refresh every 30 seconds
+        setTimeout(() => location.reload(), 30000);
+    </script>
+</body>
+</html>
+'''
 
 # =============================================================================
-# LAYOUT
+# ROUTES
 # =============================================================================
 
-app.layout = html.Div([
-    dcc.Location(id='url'),
-    dcc.Store(id='auth', storage_type='session'),
-    html.Div(id='content')
-])
+@app.route('/')
+def index():
+    if 'user' in session:
+        return render_template_string(DASHBOARD_HTML, 
+            stats=get_stats(), 
+            alerts=get_alerts(),
+            time=datetime.now().strftime('%H:%M:%S'))
+    return render_template_string(LOGIN_HTML, error=None)
 
-# =============================================================================
-# CALLBACKS
-# =============================================================================
-
-@callback(
-    Output('content', 'children'),
-    Output('auth', 'data'),
-    Input('url', 'pathname'),
-    Input('login-btn', 'n_clicks'),
-    Input('logout-btn', 'n_clicks'),
-    State('username', 'value'),
-    State('password', 'value'),
-    State('auth', 'data'),
-    prevent_initial_call=False
-)
-def router(path, login_click, logout_click, user, pwd, auth):
-    ctx = dash.callback_context
-    trigger = ctx.triggered[0]['prop_id'].split('.')[0] if ctx.triggered else None
+@app.route('/login', methods=['POST'])
+def login():
+    username = request.form.get('username', '')
+    password = request.form.get('password', '')
     
-    if trigger == 'logout-btn':
-        return login_page, None
+    if verify_login(username, password):
+        session['user'] = username
+        return redirect('/')
     
-    if trigger == 'login-btn' and user and pwd:
-        if verify_login(user, pwd):
-            return dashboard_page(), {'user': user}
-    
-    if auth and auth.get('user'):
-        return dashboard_page(), auth
-    
-    return login_page, None
+    return render_template_string(LOGIN_HTML, error='Invalid username or password')
 
-@callback(
-    Output('login-error', 'children'),
-    Input('login-btn', 'n_clicks'),
-    State('username', 'value'),
-    State('password', 'value'),
-    prevent_initial_call=True
-)
-def login_error(n, user, pwd):
-    if n and user and pwd and not verify_login(user, pwd):
-        return "Invalid credentials"
-    return ""
+@app.route('/logout')
+def logout():
+    session.pop('user', None)
+    return redirect('/')
 
-# For Vercel - this is the handler
-app_handler = server
+@app.route('/api/stats')
+def api_stats():
+    return jsonify(get_stats())
 
-if __name__ == "__main__":
-    app.run_server(debug=True)
+@app.route('/api/alerts')
+def api_alerts():
+    return jsonify(get_alerts())
+
+# For Vercel
+if __name__ == '__main__':
+    app.run(debug=True)
