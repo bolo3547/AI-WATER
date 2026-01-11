@@ -1,0 +1,22 @@
+services:
+  # Main Dashboard Application
+  - type: web
+    name: aquawatch-dashboard
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn src.dashboard.app:server --bind 0.0.0.0:$PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: API_URL
+        value: https://aquawatch-api.onrender.com
+
+  # API Service
+  - type: web
+    name: aquawatch-api
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn src.api.integrated_api:app --bind 0.0.0.0:$PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0

@@ -46,6 +46,9 @@ app = dash.Dash(
     ]
 )
 
+# Expose Flask server for Gunicorn (Render deployment)
+server = app.server
+
 app.title = "AquaWatch NRW - Water Intelligence Platform"
 
 
