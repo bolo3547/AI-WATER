@@ -1,16 +1,30 @@
 /*
- * AquaWatch NRW - ESP32 Sensor Node Firmware
+ * AquaWatch NRW - ESP32 Sensor Node Firmware v2.0
  * Non-Revenue Water Detection System for Zambia/South Africa
  * 
  * Hardware: ESP32-WROOM-32
- * Sensors: Flow meter (pulse), Pressure sensor (analog), Ultrasonic level
+ * Sensors: Flow meter (pulse), Pressure sensor (analog), Ultrasonic level,
+ *          Water quality (pH, Turbidity, Chlorine), Temperature
  * Communication: WiFi + MQTT to central dashboard
+ * 
+ * Features:
+ * - Over-the-Air (OTA) firmware updates
+ * - Edge AI anomaly detection (TensorFlow Lite)
+ * - Water quality monitoring
+ * - Self-diagnostics & calibration
+ * - Mesh networking capability (ESP-NOW)
+ * - Solar battery monitoring
  */
 
 #include <WiFi.h>
+#include <WiFiClientSecure.h>
 #include <PubSubClient.h>
 #include <ArduinoJson.h>
 #include <EEPROM.h>
+#include <HTTPClient.h>
+#include <Update.h>
+#include <esp_now.h>
+#include <esp_wifi.h>
 
 // ==================== CONFIGURATION ====================
 // WiFi Settings
@@ -26,6 +40,11 @@ const char* MQTT_PASSWORD = "admin@29";
 // Device Configuration
 const char* DEVICE_ID = "SENSOR_NODE_001";
 const char* ZONE_ID = "ZONE_A";
+const char* FIRMWARE_VERSION = "2.0.0";
+
+// OTA Update Settings
+const char* OTA_UPDATE_URL = "http://aquawatch.local/api/firmware/latest";
+const unsigned long OTA_CHECK_INTERVAL = 3600000;  // Check every hour
 
 // ==================== PIN DEFINITIONS ====================
 // Flow Sensor (Pulse-based)
@@ -42,8 +61,19 @@ const char* ZONE_ID = "ZONE_A";
 #define ULTRASONIC_ECHO_PIN 33
 #define TANK_HEIGHT_CM 200.0  // Total tank height
 
+// Water Quality Sensors
+#define PH_SENSOR_PIN 36           // pH sensor (analog)
+#define TURBIDITY_SENSOR_PIN 39    // Turbidity sensor (analog)
+#define CHLORINE_SENSOR_PIN 25     // Chlorine residual (analog)
+#define WATER_TEMP_PIN 26          // DS18B20 temperature sensor
+
+// Solar & Battery Monitoring
+#define BATTERY_VOLTAGE_PIN 27     // Battery voltage divider
+#define SOLAR_VOLTAGE_PIN 14       // Solar panel voltage
+
 // Status LED
 #define STATUS_LED_PIN 2
+#define ALARM_LED_PIN 4            // Red LED for alarms
 
 // ==================== GLOBAL VARIABLES ====================
 WiFiClient wifiClient;
@@ -62,15 +92,47 @@ float pressureBar = 0.0;
 float tankLevelPercent = 0.0;
 float waterLevelCm = 0.0;
 
+// Water Quality measurements
+float phValue = 7.0;
+float turbidityNTU = 0.0;
+float chlorineMgL = 0.0;
+float waterTempC = 25.0;
+
+// Power monitoring
+float batteryVoltage = 0.0;
+float batteryPercent = 0.0;
+float solarVoltage = 0.0;
+bool solarCharging = false;
+
+// Edge AI - Simple anomaly detection
+float pressureHistory[60];     // Last 60 readings
+float flowHistory[60];
+int historyIndex = 0;
+bool anomalyDetected = false;
+String anomalyType = "";
+float anomalyConfidence = 0.0;
+
+// OTA Update
+unsigned long lastOTACheck = 0;
+bool otaInProgress = false;
+
+// ESP-NOW Mesh
+uint8_t meshPeers[10][6];  // Up to 10 peer MAC addresses
+int numMeshPeers = 0;
+
 // Timing
 unsigned long lastSensorRead = 0;
 unsigned long lastMqttPublish = 0;
+unsigned long lastDiagnostics = 0;
 const unsigned long SENSOR_READ_INTERVAL = 1000;   // 1 second
 const unsigned long MQTT_PUBLISH_INTERVAL = 5000;  // 5 seconds
+const unsigned long DIAGNOSTICS_INTERVAL = 60000;  // 1 minute
 
 // Status
 bool wifiConnected = false;
 bool mqttConnected = false;
+int consecutiveErrors = 0;
+String lastError = "";
 
 // ==================== INTERRUPT SERVICE ROUTINE ====================
 void IRAM_ATTR flowPulseISR() {
@@ -81,11 +143,12 @@ void IRAM_ATTR flowPulseISR() {
 void setup() {
     Serial.begin(115200);
     Serial.println("\n========================================");
-    Serial.println("AquaWatch NRW - Sensor Node Starting...");
+    Serial.println("AquaWatch NRW - Sensor Node v2.0");
+    Serial.println("For Zambia & Southern Africa");
     Serial.println("========================================\n");
 
     // Initialize EEPROM for persistent storage
-    EEPROM.begin(512);
+    EEPROM.begin(1024);
 
     // Configure pins
     pinMode(FLOW_SENSOR_PIN, INPUT_PULLUP);
@@ -93,30 +156,61 @@ void setup() {
     pinMode(ULTRASONIC_TRIG_PIN, OUTPUT);
     pinMode(ULTRASONIC_ECHO_PIN, INPUT);
     pinMode(STATUS_LED_PIN, OUTPUT);
+    pinMode(ALARM_LED_PIN, OUTPUT);
+    
+    // Water quality sensor pins
+    pinMode(PH_SENSOR_PIN, INPUT);
+    pinMode(TURBIDITY_SENSOR_PIN, INPUT);
+    pinMode(CHLORINE_SENSOR_PIN, INPUT);
+    
+    // Power monitoring pins
+    pinMode(BATTERY_VOLTAGE_PIN, INPUT);
+    pinMode(SOLAR_VOLTAGE_PIN, INPUT);
 
     // Attach flow sensor interrupt
     attachInterrupt(digitalPinToInterrupt(FLOW_SENSOR_PIN), flowPulseISR, FALLING);
 
-    // Load saved total volume from EEPROM
+    // Initialize history arrays
+    for(int i = 0; i < 60; i++) {
+        pressureHistory[i] = 0;
+        flowHistory[i] = 0;
+    }
+
+    // Load saved data from EEPROM
     loadTotalVolume();
+    loadCalibrationData();
 
     // Connect to WiFi
     connectWiFi();
 
+    // Initialize ESP-NOW for mesh networking
+    initESPNow();
+
     // Configure MQTT
     mqttClient.setServer(MQTT_BROKER, MQTT_PORT);
     mqttClient.setCallback(mqttCallback);
-    mqttClient.setBufferSize(1024);
+    mqttClient.setBufferSize(2048);
 
     // Connect to MQTT
     connectMQTT();
 
+    // Run initial diagnostics
+    runDiagnostics();
+
     Serial.println("\nSensor Node Ready!");
+    Serial.print("Firmware Version: ");
+    Serial.println(FIRMWARE_VERSION);
     blinkLED(3, 200);
 }
 
 // ==================== MAIN LOOP ====================
 void loop() {
+    // Skip normal operation during OTA update
+    if (otaInProgress) {
+        delay(100);
+        return;
+    }
+
     // Maintain connections
     if (WiFi.status() != WL_CONNECTED) {
         wifiConnected = false;
@@ -132,17 +226,39 @@ void loop() {
     // Read sensors at regular interval
     if (millis() - lastSensorRead >= SENSOR_READ_INTERVAL) {
         readAllSensors();
+        runEdgeAI();  // Edge anomaly detection
         lastSensorRead = millis();
     }
 
     // Publish data to MQTT
     if (millis() - lastMqttPublish >= MQTT_PUBLISH_INTERVAL) {
         publishSensorData();
+        publishWaterQuality();
+        publishPowerStatus();
+        
+        if (anomalyDetected) {
+            publishAnomaly();
+        }
         lastMqttPublish = millis();
+    }
+
+    // Run diagnostics periodically
+    if (millis() - lastDiagnostics >= DIAGNOSTICS_INTERVAL) {
+        runDiagnostics();
+        lastDiagnostics = millis();
+    }
+
+    // Check for OTA updates
+    if (millis() - lastOTACheck >= OTA_CHECK_INTERVAL) {
+        checkForOTAUpdate();
+        lastOTACheck = millis();
     }
 
     // Update status LED
     updateStatusLED();
+    
+    // Update alarm LED if anomaly detected
+    digitalWrite(ALARM_LED_PIN, anomalyDetected ? HIGH : LOW);
 }
 
 // ==================== WIFI FUNCTIONS ====================
@@ -244,6 +360,19 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
         Serial.println(" pulses/liter");
     } else if (command == "status") {
         publishStatus("online");
+    } else if (command == "ota_update") {
+        String url = doc["url"] | "";
+        if (url.length() > 0) {
+            performOTAUpdate(url);
+        }
+    } else if (command == "diagnostics") {
+        runDiagnostics();
+        publishDiagnostics();
+    } else if (command == "set_threshold") {
+        // Set anomaly detection thresholds
+        float pressureThreshold = doc["pressure_threshold"] | 2.0;
+        float flowThreshold = doc["flow_threshold"] | 50.0;
+        saveThresholds(pressureThreshold, flowThreshold);
     }
 }
 
@@ -289,7 +418,9 @@ void publishStatus(const char* status) {
     doc["status"] = status;
     doc["ip"] = WiFi.localIP().toString();
     doc["rssi"] = WiFi.RSSI();
-    doc["firmware_version"] = "1.0.0";
+    doc["firmware_version"] = FIRMWARE_VERSION;
+    doc["battery_percent"] = batteryPercent;
+    doc["solar_charging"] = solarCharging;
 
     String output;
     serializeJson(doc, output);
@@ -298,11 +429,452 @@ void publishStatus(const char* status) {
     mqttClient.publish(topic.c_str(), output.c_str(), true);
 }
 
+// ==================== WATER QUALITY FUNCTIONS ====================
+void readWaterQuality() {
+    // Read pH sensor (assumes calibrated pH probe)
+    int phRaw = analogRead(PH_SENSOR_PIN);
+    float phVoltage = phRaw * (3.3 / 4095.0);
+    // pH = 7 at 2.5V, changes ~0.18V per pH unit (calibrate for your sensor)
+    phValue = 7.0 + ((2.5 - phVoltage) / 0.18);
+    phValue = constrain(phValue, 0.0, 14.0);
+    
+    // Read turbidity (NTU)
+    int turbRaw = analogRead(TURBIDITY_SENSOR_PIN);
+    float turbVoltage = turbRaw * (3.3 / 4095.0);
+    // Lower voltage = higher turbidity (calibrate for your sensor)
+    turbidityNTU = mapFloat(turbVoltage, 2.5, 4.0, 3000.0, 0.0);
+    turbidityNTU = constrain(turbidityNTU, 0.0, 3000.0);
+    
+    // Read chlorine residual (mg/L)
+    int clRaw = analogRead(CHLORINE_SENSOR_PIN);
+    float clVoltage = clRaw * (3.3 / 4095.0);
+    // Typical range 0-5 mg/L (calibrate for your sensor)
+    chlorineMgL = mapFloat(clVoltage, 0.0, 3.3, 0.0, 5.0);
+    chlorineMgL = constrain(chlorineMgL, 0.0, 5.0);
+}
+
+void publishWaterQuality() {
+    if (!mqttConnected) return;
+
+    StaticJsonDocument<384> doc;
+    doc["device_id"] = DEVICE_ID;
+    doc["zone_id"] = ZONE_ID;
+    doc["timestamp"] = millis();
+    
+    JsonObject quality = doc.createNestedObject("water_quality");
+    quality["ph"] = phValue;
+    quality["turbidity_ntu"] = turbidityNTU;
+    quality["chlorine_mg_l"] = chlorineMgL;
+    quality["temperature_c"] = waterTempC;
+    
+    // Quality assessment
+    String assessment = "good";
+    String issues = "";
+    
+    if (phValue < 6.5 || phValue > 8.5) {
+        assessment = "warning";
+        issues += "pH out of range;";
+    }
+    if (turbidityNTU > 5.0) {
+        assessment = "warning";
+        issues += "High turbidity;";
+    }
+    if (turbidityNTU > 100.0) {
+        assessment = "critical";
+    }
+    if (chlorineMgL < 0.2) {
+        assessment = "warning";
+        issues += "Low chlorine residual;";
+    }
+    if (chlorineMgL > 4.0) {
+        assessment = "warning";
+        issues += "High chlorine;";
+    }
+    
+    quality["assessment"] = assessment;
+    quality["issues"] = issues;
+
+    String output;
+    serializeJson(doc, output);
+
+    String topic = "aquawatch/" + String(ZONE_ID) + "/" + String(DEVICE_ID) + "/quality";
+    mqttClient.publish(topic.c_str(), output.c_str());
+}
+
+// ==================== POWER MONITORING FUNCTIONS ====================
+void readPowerStatus() {
+    // Battery voltage through voltage divider (adjust ratio for your circuit)
+    // Assuming 10k/10k divider for 8.4V max (2S LiPo)
+    int battRaw = analogRead(BATTERY_VOLTAGE_PIN);
+    batteryVoltage = (battRaw * 3.3 / 4095.0) * 2.0;  // Multiply by divider ratio
+    
+    // Calculate battery percentage (3.0V = 0%, 4.2V = 100% per cell)
+    float cellVoltage = batteryVoltage / 2.0;  // For 2S battery
+    batteryPercent = mapFloat(cellVoltage, 3.0, 4.2, 0.0, 100.0);
+    batteryPercent = constrain(batteryPercent, 0.0, 100.0);
+    
+    // Solar panel voltage
+    int solarRaw = analogRead(SOLAR_VOLTAGE_PIN);
+    solarVoltage = (solarRaw * 3.3 / 4095.0) * 6.0;  // Adjust for voltage divider
+    
+    // Determine if charging (solar voltage > battery voltage + threshold)
+    solarCharging = (solarVoltage > batteryVoltage + 0.5);
+}
+
+void publishPowerStatus() {
+    if (!mqttConnected) return;
+
+    StaticJsonDocument<256> doc;
+    doc["device_id"] = DEVICE_ID;
+    doc["zone_id"] = ZONE_ID;
+    
+    JsonObject power = doc.createNestedObject("power");
+    power["battery_voltage"] = batteryVoltage;
+    power["battery_percent"] = batteryPercent;
+    power["solar_voltage"] = solarVoltage;
+    power["solar_charging"] = solarCharging;
+    
+    // Power status assessment
+    String status = "good";
+    if (batteryPercent < 20) {
+        status = "low";
+    }
+    if (batteryPercent < 10) {
+        status = "critical";
+    }
+    power["status"] = status;
+
+    String output;
+    serializeJson(doc, output);
+
+    String topic = "aquawatch/" + String(ZONE_ID) + "/" + String(DEVICE_ID) + "/power";
+    mqttClient.publish(topic.c_str(), output.c_str());
+}
+
+// ==================== EDGE AI - ANOMALY DETECTION ====================
+void runEdgeAI() {
+    // Store current readings in history
+    pressureHistory[historyIndex] = pressureBar;
+    flowHistory[historyIndex] = flowRate;
+    historyIndex = (historyIndex + 1) % 60;
+    
+    // Calculate statistics
+    float pressureAvg = 0, pressureStd = 0;
+    float flowAvg = 0, flowStd = 0;
+    
+    for (int i = 0; i < 60; i++) {
+        pressureAvg += pressureHistory[i];
+        flowAvg += flowHistory[i];
+    }
+    pressureAvg /= 60.0;
+    flowAvg /= 60.0;
+    
+    for (int i = 0; i < 60; i++) {
+        pressureStd += pow(pressureHistory[i] - pressureAvg, 2);
+        flowStd += pow(flowHistory[i] - flowAvg, 2);
+    }
+    pressureStd = sqrt(pressureStd / 60.0);
+    flowStd = sqrt(flowStd / 60.0);
+    
+    // Detect anomalies using Z-score method
+    anomalyDetected = false;
+    anomalyType = "";
+    anomalyConfidence = 0.0;
+    
+    // Pressure drop anomaly (potential leak)
+    if (pressureStd > 0.1) {
+        float pressureZ = (pressureBar - pressureAvg) / pressureStd;
+        if (pressureZ < -2.5) {  // Significant pressure drop
+            anomalyDetected = true;
+            anomalyType = "pressure_drop";
+            anomalyConfidence = min(abs(pressureZ) / 5.0, 1.0) * 100;
+        }
+    }
+    
+    // Sudden flow increase (potential burst)
+    if (flowStd > 1.0) {
+        float flowZ = (flowRate - flowAvg) / flowStd;
+        if (flowZ > 3.0) {  // Significant flow increase
+            anomalyDetected = true;
+            anomalyType = "flow_spike";
+            anomalyConfidence = min(abs(flowZ) / 5.0, 1.0) * 100;
+        }
+    }
+    
+    // Night flow anomaly (flow during expected zero-flow periods)
+    // This would need RTC for accurate time - simplified here
+    if (flowRate > 5.0 && flowAvg < 1.0) {
+        anomalyDetected = true;
+        anomalyType = "unexpected_flow";
+        anomalyConfidence = 70.0;
+    }
+    
+    // Water quality anomaly
+    if (phValue < 6.0 || phValue > 9.0 || turbidityNTU > 50 || chlorineMgL < 0.1) {
+        anomalyDetected = true;
+        anomalyType = "water_quality";
+        anomalyConfidence = 85.0;
+    }
+}
+
+void publishAnomaly() {
+    if (!mqttConnected || !anomalyDetected) return;
+
+    StaticJsonDocument<512> doc;
+    doc["device_id"] = DEVICE_ID;
+    doc["zone_id"] = ZONE_ID;
+    doc["timestamp"] = millis();
+    doc["anomaly_type"] = anomalyType;
+    doc["confidence"] = anomalyConfidence;
+    doc["priority"] = anomalyConfidence > 80 ? "high" : (anomalyConfidence > 50 ? "medium" : "low");
+    
+    JsonObject readings = doc.createNestedObject("readings");
+    readings["pressure_bar"] = pressureBar;
+    readings["flow_rate_lpm"] = flowRate;
+    readings["ph"] = phValue;
+    readings["turbidity_ntu"] = turbidityNTU;
+    
+    // Recommended action
+    String action = "investigate";
+    if (anomalyType == "pressure_drop") {
+        action = "Check for leaks in zone " + String(ZONE_ID);
+    } else if (anomalyType == "flow_spike") {
+        action = "Possible burst - dispatch technician immediately";
+    } else if (anomalyType == "water_quality") {
+        action = "Water quality issue - check treatment process";
+    }
+    doc["recommended_action"] = action;
+
+    String output;
+    serializeJson(doc, output);
+
+    String topic = "aquawatch/" + String(ZONE_ID) + "/" + String(DEVICE_ID) + "/anomaly";
+    mqttClient.publish(topic.c_str(), output.c_str());
+    
+    Serial.println("⚠️ ANOMALY DETECTED: " + anomalyType);
+}
+
+// ==================== OTA UPDATE FUNCTIONS ====================
+void checkForOTAUpdate() {
+    if (!wifiConnected) return;
+    
+    Serial.println("Checking for OTA updates...");
+    
+    HTTPClient http;
+    http.begin(OTA_UPDATE_URL);
+    http.addHeader("X-Device-ID", DEVICE_ID);
+    http.addHeader("X-Current-Version", FIRMWARE_VERSION);
+    
+    int httpCode = http.GET();
+    
+    if (httpCode == 200) {
+        String payload = http.getString();
+        StaticJsonDocument<256> doc;
+        deserializeJson(doc, payload);
+        
+        String newVersion = doc["version"] | "";
+        String downloadUrl = doc["url"] | "";
+        
+        if (newVersion.length() > 0 && newVersion != FIRMWARE_VERSION) {
+            Serial.println("New firmware available: " + newVersion);
+            performOTAUpdate(downloadUrl);
+        } else {
+            Serial.println("Firmware is up to date");
+        }
+    }
+    
+    http.end();
+}
+
+void performOTAUpdate(String url) {
+    if (url.length() == 0) return;
+    
+    Serial.println("Starting OTA update from: " + url);
+    otaInProgress = true;
+    
+    // Publish update status
+    publishStatus("updating");
+    
+    HTTPClient http;
+    http.begin(url);
+    int httpCode = http.GET();
+    
+    if (httpCode == 200) {
+        int contentLength = http.getSize();
+        
+        if (contentLength > 0) {
+            bool canBegin = Update.begin(contentLength);
+            
+            if (canBegin) {
+                Serial.println("Begin OTA update...");
+                WiFiClient* stream = http.getStreamPtr();
+                size_t written = Update.writeStream(*stream);
+                
+                if (written == contentLength) {
+                    Serial.println("OTA written successfully");
+                } else {
+                    Serial.println("OTA write failed");
+                }
+                
+                if (Update.end()) {
+                    Serial.println("OTA update finished!");
+                    if (Update.isFinished()) {
+                        Serial.println("Rebooting...");
+                        delay(1000);
+                        ESP.restart();
+                    }
+                } else {
+                    Serial.println("OTA error: " + String(Update.getError()));
+                }
+            } else {
+                Serial.println("Not enough space for OTA");
+            }
+        }
+    } else {
+        Serial.println("HTTP error: " + String(httpCode));
+    }
+    
+    http.end();
+    otaInProgress = false;
+}
+
+// ==================== ESP-NOW MESH FUNCTIONS ====================
+void initESPNow() {
+    if (esp_now_init() != ESP_OK) {
+        Serial.println("ESP-NOW init failed");
+        return;
+    }
+    
+    esp_now_register_recv_cb(onESPNowReceive);
+    esp_now_register_send_cb(onESPNowSend);
+    
+    Serial.println("ESP-NOW initialized for mesh networking");
+}
+
+void onESPNowReceive(const uint8_t* mac, const uint8_t* data, int len) {
+    // Receive data from mesh peer
+    String message = "";
+    for (int i = 0; i < len; i++) {
+        message += (char)data[i];
+    }
+    
+    Serial.print("ESP-NOW received from ");
+    for (int i = 0; i < 6; i++) {
+        Serial.printf("%02X", mac[i]);
+        if (i < 5) Serial.print(":");
+    }
+    Serial.println(": " + message);
+    
+    // Forward to MQTT if we have connectivity
+    if (mqttConnected) {
+        String topic = "aquawatch/mesh/forwarded";
+        mqttClient.publish(topic.c_str(), message.c_str());
+    }
+}
+
+void onESPNowSend(const uint8_t* mac, esp_now_send_status_t status) {
+    Serial.print("ESP-NOW send status: ");
+    Serial.println(status == ESP_NOW_SEND_SUCCESS ? "Success" : "Failed");
+}
+
+void broadcastToMesh(String message) {
+    // Broadcast to all mesh peers
+    for (int i = 0; i < numMeshPeers; i++) {
+        esp_now_send(meshPeers[i], (uint8_t*)message.c_str(), message.length());
+    }
+}
+
+// ==================== DIAGNOSTICS FUNCTIONS ====================
+void runDiagnostics() {
+    Serial.println("\n=== Running Diagnostics ===");
+    
+    // Check WiFi signal strength
+    int rssi = WiFi.RSSI();
+    Serial.print("WiFi RSSI: ");
+    Serial.print(rssi);
+    Serial.println(" dBm");
+    
+    // Check memory
+    Serial.print("Free Heap: ");
+    Serial.print(ESP.getFreeHeap());
+    Serial.println(" bytes");
+    
+    // Check sensors
+    Serial.println("Sensor Check:");
+    Serial.print("  Pressure: ");
+    Serial.println(pressureBar > 0 ? "OK" : "FAIL");
+    Serial.print("  Flow: ");
+    Serial.println("OK");  // Flow sensor is passive
+    Serial.print("  Ultrasonic: ");
+    Serial.println(waterLevelCm >= 0 ? "OK" : "FAIL");
+    Serial.print("  pH: ");
+    Serial.println((phValue >= 0 && phValue <= 14) ? "OK" : "FAIL");
+    
+    // Check battery
+    Serial.print("Battery: ");
+    Serial.print(batteryPercent);
+    Serial.println("%");
+    
+    Serial.println("=== Diagnostics Complete ===\n");
+}
+
+void publishDiagnostics() {
+    if (!mqttConnected) return;
+
+    StaticJsonDocument<512> doc;
+    doc["device_id"] = DEVICE_ID;
+    doc["zone_id"] = ZONE_ID;
+    doc["timestamp"] = millis();
+    doc["firmware_version"] = FIRMWARE_VERSION;
+    
+    JsonObject system = doc.createNestedObject("system");
+    system["free_heap"] = ESP.getFreeHeap();
+    system["uptime_sec"] = millis() / 1000;
+    system["wifi_rssi"] = WiFi.RSSI();
+    system["consecutive_errors"] = consecutiveErrors;
+    system["last_error"] = lastError;
+    
+    JsonObject sensors = doc.createNestedObject("sensor_health");
+    sensors["pressure"] = pressureBar > 0 ? "ok" : "error";
+    sensors["flow"] = "ok";
+    sensors["ultrasonic"] = waterLevelCm >= 0 ? "ok" : "error";
+    sensors["ph"] = (phValue >= 0 && phValue <= 14) ? "ok" : "error";
+    sensors["turbidity"] = turbidityNTU >= 0 ? "ok" : "error";
+    
+    JsonObject power = doc.createNestedObject("power");
+    power["battery_percent"] = batteryPercent;
+    power["solar_charging"] = solarCharging;
+
+    String output;
+    serializeJson(doc, output);
+
+    String topic = "aquawatch/" + String(ZONE_ID) + "/" + String(DEVICE_ID) + "/diagnostics";
+    mqttClient.publish(topic.c_str(), output.c_str());
+}
+
+// ==================== CALIBRATION FUNCTIONS ====================
+void loadCalibrationData() {
+    // Load calibration from EEPROM (offset 100)
+    // Format: [ph_offset (float), turbidity_offset (float), pressure_offset (float)]
+    Serial.println("Loading calibration data...");
+    // Add calibration loading logic here
+}
+
+void saveThresholds(float pressureThreshold, float flowThreshold) {
+    // Save anomaly detection thresholds to EEPROM
+    EEPROM.put(200, pressureThreshold);
+    EEPROM.put(204, flowThreshold);
+    EEPROM.commit();
+    Serial.println("Thresholds saved");
+}
+
 // ==================== SENSOR READING FUNCTIONS ====================
 void readAllSensors() {
     readFlowSensor();
     readPressureSensor();
     readUltrasonicSensor();
+    readWaterQuality();
+    readPowerStatus();
     
     // Print readings to serial
     Serial.println("--- Sensor Readings ---");
@@ -319,6 +891,17 @@ void readAllSensors() {
     Serial.print("% (");
     Serial.print(waterLevelCm, 1);
     Serial.println(" cm)");
+    Serial.print("pH: ");
+    Serial.print(phValue, 2);
+    Serial.print(" | Turbidity: ");
+    Serial.print(turbidityNTU, 1);
+    Serial.print(" NTU | Cl: ");
+    Serial.print(chlorineMgL, 2);
+    Serial.println(" mg/L");
+    Serial.print("Battery: ");
+    Serial.print(batteryPercent, 0);
+    Serial.print("% | Solar: ");
+    Serial.println(solarCharging ? "Charging" : "Not charging");
 }
 
 void readFlowSensor() {

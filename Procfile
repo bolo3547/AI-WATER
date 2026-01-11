@@ -1,1 +1,1 @@
-web: gunicorn src.api.integrated_api:app --bind 0.0.0.0:$PORT
+web: gunicorn src.dashboard.ai_command_center:server --bind 0.0.0.0:$PORT
