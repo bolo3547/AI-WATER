@@ -1,0 +1,27 @@
+# AquaWatch NRW - Dashboard Service Dockerfile
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    gcc \
+    libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Python dependencies
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy application
+COPY src/ ./src/
+
+# Create non-root user
+RUN useradd -m -u 1000 aquawatch
+USER aquawatch
+
+# Expose port
+EXPOSE 8050
+
+# Run Dashboard
+CMD ["python", "-m", "src.dashboard.monday_style_app"]

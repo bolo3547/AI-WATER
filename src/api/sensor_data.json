@@ -1,0 +1,145 @@
+{
+  "pipes": {
+    "Pipe_A1": {
+      "pressure": 36.9,
+      "flow": 6.0,
+      "status": "normal",
+      "last_update": "2026-01-06T08:30:06.198919",
+      "location": "Lusaka Central"
+    },
+    "Pipe_A2": {
+      "pressure": 47.4,
+      "flow": 26.2,
+      "status": "normal",
+      "last_update": "2026-01-06T08:30:06.198919",
+      "location": "Lusaka Central"
+    },
+    "Pipe_B1": {
+      "pressure": 32.9,
+      "flow": 24.0,
+      "status": "normal",
+      "last_update": "2026-01-06T08:30:06.198919",
+      "location": "Lusaka East"
+    },
+    "Pipe_B2": {
+      "pressure": 39.2,
+      "flow": 5.9,
+      "status": "normal",
+      "last_update": "2026-01-06T08:30:06.198919",
+      "location": "Lusaka East"
+    },
+    "Pipe_K1": {
+      "pressure": 46.3,
+      "flow": 18.7,
+      "status": "normal",
+      "last_update": "2026-01-06T08:30:06.198919",
+      "location": "Kitwe Industrial"
+    },
+    "Pipe_K2": {
+      "pressure": 27.6,
+      "flow": 28.6,
+      "status": "warning",
+      "last_update": "2026-01-06T08:30:06.198919",
+      "location": "Kitwe Industrial"
+    },
+    "Pipe_N1": {
+      "pressure": 16.0,
+      "flow": 22.2,
+      "status": "leak",
+      "last_update": "2026-01-06T08:30:06.198919",
+      "location": "Ndola CBD"
+    },
+    "Pipe_N2": {
+      "pressure": 35.9,
+      "flow": 13.3,
+      "status": "normal",
+      "last_update": "2026-01-06T08:30:06.198919",
+      "location": "Ndola CBD"
+    },
+    "Pipe_J1": {
+      "pressure": 25.2,
+      "flow": 19.4,
+      "status": "warning",
+      "last_update": "2026-01-06T08:30:06.198919",
+      "location": "Johannesburg North"
+    },
+    "Pipe_J2": {
+      "pressure": 29.8,
+      "flow": 28.7,
+      "status": "warning",
+      "last_update": "2026-01-06T08:30:06.198919",
+      "location": "Johannesburg North"
+    },
+    "Pipe_C1": {
+      "pressure": 26.2,
+      "flow": 9.5,
+      "status": "warning",
+      "last_update": "2026-01-06T08:30:06.198919",
+      "location": "Cape Town Metro"
+    },
+    "Pipe_C2": {
+      "pressure": 25.3,
+      "flow": 17.2,
+      "status": "warning",
+      "last_update": "2026-01-06T08:30:06.198919",
+      "location": "Cape Town Metro"
+    },
+    "Pipe_D1": {
+      "pressure": 20.9,
+      "flow": 13.6,
+      "status": "warning",
+      "last_update": "2026-01-06T08:30:06.198919",
+      "location": "Durban South"
+    },
+    "Pipe_D2": {
+      "pressure": 32.8,
+      "flow": 23.7,
+      "status": "normal",
+      "last_update": "2026-01-06T08:30:06.198919",
+      "location": "Durban South"
+    },
+    "Pipe_P1": {
+      "pressure": 35.6,
+      "flow": 18.7,
+      "status": "normal",
+      "last_update": "2026-01-06T08:30:06.198919",
+      "location": "Port Elizabeth"
+    },
+    "Pipe_P2": {
+      "pressure": 46.6,
+      "flow": 15.4,
+      "status": "normal",
+      "last_update": "2026-01-06T08:30:06.198919",
+      "location": "Port Elizabeth"
+    },
+    "Pipe_G1": {
+      "pressure": 27.8,
+      "flow": 15.3,
+      "status": "warning",
+      "last_update": "2026-01-06T08:30:06.198919",
+      "location": "Gaborone"
+    },
+    "Pipe_G2": {
+      "pressure": 41.9,
+      "flow": 19.0,
+      "status": "normal",
+      "last_update": "2026-01-06T08:30:06.198919",
+      "location": "Gaborone"
+    },
+    "Pipe_H1": {
+      "pressure": 27.1,
+      "flow": 16.3,
+      "status": "warning",
+      "last_update": "2026-01-06T08:30:06.198919",
+      "location": "Harare Central"
+    },
+    "Pipe_H2": {
+      "pressure": 31.1,
+      "flow": 23.2,
+      "status": "normal",
+      "last_update": "2026-01-06T08:30:06.198919",
+      "location": "Harare Central"
+    }
+  },
+  "history": []
+}

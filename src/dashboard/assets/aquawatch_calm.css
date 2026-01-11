@@ -1,0 +1,1055 @@
+/* ============================================
+   AQUAWATCH CALM - WATER INTELLIGENCE UI
+   Calm • Professional • Trustworthy
+   World-Class Design for National Utilities
+   ============================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+:root {
+    /* Primary Water Palette */
+    --primary: #1E88E5;
+    --primary-light: #64B5F6;
+    --primary-dark: #1565C0;
+    --primary-gradient: linear-gradient(135deg, #1E88E5 0%, #4DD0E1 100%);
+    
+    /* Aqua Accents */
+    --aqua: #4DD0E1;
+    --aqua-light: #80DEEA;
+    --aqua-glow: rgba(77, 208, 225, 0.15);
+    
+    /* Backgrounds */
+    --bg-main: #F7FAFC;
+    --bg-card: #FFFFFF;
+    --bg-subtle: #EDF2F7;
+    --bg-hover: #F0F4F8;
+    --bg-glass: rgba(255, 255, 255, 0.85);
+    
+    /* Typography */
+    --text-primary: #2D3748;
+    --text-secondary: #4A5568;
+    --text-muted: #718096;
+    --text-light: #A0AEC0;
+    
+    /* Borders */
+    --border: #E2E8F0;
+    --border-light: #EDF2F7;
+    --border-focus: #1E88E5;
+    
+    /* Status Colors - Muted & Professional */
+    --status-normal: #43A047;
+    --status-normal-bg: rgba(67, 160, 71, 0.08);
+    --status-warning: #F9A825;
+    --status-warning-bg: rgba(249, 168, 37, 0.08);
+    --status-leak: #E53935;
+    --status-leak-bg: rgba(229, 57, 53, 0.08);
+    
+    /* Shadows - Soft & Layered */
+    --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.04);
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+    --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.04), 0 2px 4px rgba(0, 0, 0, 0.03);
+    --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.06), 0 4px 6px rgba(0, 0, 0, 0.04);
+    --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.08), 0 10px 10px rgba(0, 0, 0, 0.04);
+    --shadow-glow: 0 0 20px rgba(30, 136, 229, 0.15);
+    --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.06);
+    
+    /* Border Radius */
+    --radius-xs: 4px;
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+    --radius-xl: 20px;
+    --radius-full: 9999px;
+    
+    /* Transitions */
+    --transition-fast: 0.15s ease;
+    --transition: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-slow: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-spring: 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+/* Reset & Base */
+*, *::before, *::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+body, html {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--bg-main);
+    color: var(--text-primary);
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    line-height: 1.6;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+}
+
+/* Subtle Water Pattern Background */
+body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: 
+        radial-gradient(ellipse at 20% 80%, rgba(77, 208, 225, 0.03) 0%, transparent 50%),
+        radial-gradient(ellipse at 80% 20%, rgba(30, 136, 229, 0.03) 0%, transparent 50%),
+        radial-gradient(ellipse at 50% 50%, rgba(100, 181, 246, 0.02) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: -1;
+}
+
+/* Hide all debug/dev tools */
+._dash-loading, ._dash-error, .dash-debug-menu,
+[class*="dash-debug"], .dash-error-card, ._dash-undo-redo,
+.modebar, .plotly-notifier, .js-plotly-plot .plotly .modebar,
+.dash-debug-alert, ._dash-debug-menu, #_dash-global-error-container {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+}
+
+/* Selection Styling */
+::selection {
+    background: rgba(30, 136, 229, 0.2);
+    color: var(--text-primary);
+}
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--bg-subtle);
+    border-radius: var(--radius-full);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: var(--radius-full);
+    border: 2px solid var(--bg-subtle);
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--text-muted);
+}
+
+/* ============================================
+   TOP BAR - Premium Glass Effect
+   ============================================ */
+
+.top-bar {
+    background: var(--bg-glass);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-bottom: 1px solid rgba(226, 232, 240, 0.8);
+    padding: 14px 40px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02), 0 4px 12px rgba(0, 0, 0, 0.02);
+}
+
+.brand {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.brand-icon {
+    width: 42px;
+    height: 42px;
+    background: var(--primary-gradient);
+    border-radius: var(--radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    color: white;
+    box-shadow: 0 4px 12px rgba(30, 136, 229, 0.25), 0 2px 4px rgba(30, 136, 229, 0.15);
+    position: relative;
+    overflow: hidden;
+}
+
+.brand-icon::after {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: linear-gradient(45deg, transparent 40%, rgba(255,255,255,0.15) 50%, transparent 60%);
+    animation: shimmer 3s infinite;
+}
+
+@keyframes shimmer {
+    0% { transform: translateX(-100%) rotate(45deg); }
+    100% { transform: translateX(100%) rotate(45deg); }
+}
+
+.brand-text {
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--text-primary);
+    letter-spacing: -0.4px;
+}
+
+.brand-subtitle {
+    font-size: 11px;
+    color: var(--text-muted);
+    font-weight: 500;
+    letter-spacing: 0.2px;
+    margin-top: 1px;
+}
+
+.location-selector {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--bg-subtle);
+    padding: 10px 18px;
+    border-radius: var(--radius-full);
+    font-size: 13px;
+    color: var(--text-secondary);
+    border: 1px solid transparent;
+    transition: var(--transition);
+    cursor: pointer;
+}
+
+.location-selector:hover {
+    background: var(--bg-hover);
+    border-color: var(--border);
+}
+
+.location-selector i {
+    color: var(--primary);
+    font-size: 12px;
+}
+
+.location-divider {
+    color: var(--text-light);
+    font-size: 11px;
+}
+
+.datetime {
+    text-align: right;
+}
+
+.date-text {
+    font-size: 13px;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.time-text {
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--text-primary);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.5px;
+}
+
+/* ============================================
+   MAIN CONTAINER
+   ============================================ */
+
+.main-container {
+    max-width: 1440px;
+    margin: 0 auto;
+    padding: 28px 40px 60px;
+}
+
+/* ============================================
+   SECTION 1: STATUS OVERVIEW
+   ============================================ */
+
+.status-section {
+    margin-bottom: 32px;
+}
+
+.section-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    color: var(--text-muted);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.section-label::before {
+    content: '';
+    width: 3px;
+    height: 12px;
+    background: var(--primary-gradient);
+    border-radius: 2px;
+}
+
+.status-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+}
+
+.status-card {
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    padding: 22px 26px;
+    box-shadow: var(--shadow-card);
+    border: 1px solid var(--border-light);
+    transition: all var(--transition);
+    position: relative;
+    overflow: hidden;
+}
+
+.status-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: var(--border-light);
+    transition: var(--transition);
+}
+
+.status-card:hover {
+    box-shadow: var(--shadow-lg);
+    transform: translateY(-4px);
+    border-color: var(--border);
+}
+
+.status-card:hover::before {
+    background: var(--primary-gradient);
+}
+
+.status-card.primary {
+    border-left: none;
+}
+
+.status-card.primary::before {
+    background: var(--status-normal);
+}
+
+.status-card.primary.warning::before {
+    background: var(--status-warning);
+}
+
+.status-card.primary.leak::before {
+    background: var(--status-leak);
+}
+
+.status-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 16px;
+}
+
+.status-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: var(--radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    transition: var(--transition);
+}
+
+.status-card:hover .status-icon {
+    transform: scale(1.05);
+}
+
+.status-icon.normal {
+    background: var(--status-normal-bg);
+    color: var(--status-normal);
+}
+
+.status-icon.warning {
+    background: var(--status-warning-bg);
+    color: var(--status-warning);
+}
+
+.status-icon.leak {
+    background: var(--status-leak-bg);
+    color: var(--status-leak);
+}
+
+.status-icon.info {
+    background: rgba(30, 136, 229, 0.08);
+    color: var(--primary);
+}
+
+.status-badge {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 5px 12px;
+    border-radius: var(--radius-full);
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+}
+
+.status-badge.normal {
+    background: var(--status-normal-bg);
+    color: var(--status-normal);
+}
+
+.status-badge.warning {
+    background: var(--status-warning-bg);
+    color: var(--status-warning);
+    animation: gentle-pulse 2s ease-in-out infinite;
+}
+
+.status-badge.leak {
+    background: var(--status-leak-bg);
+    color: var(--status-leak);
+}
+
+@keyframes gentle-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+}
+
+.status-value {
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+    letter-spacing: -1px;
+    line-height: 1.1;
+}
+
+.status-label {
+    font-size: 13px;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.status-sublabel {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 6px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.status-sublabel::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    background: var(--status-normal);
+    border-radius: 50%;
+    animation: status-dot 2s ease-in-out infinite;
+}
+
+@keyframes status-dot {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.8); }
+}
+
+/* ============================================
+   SECTION 2: WATER INTELLIGENCE
+   ============================================ */
+
+.intelligence-section {
+    display: grid;
+    grid-template-columns: 1fr 360px;
+    gap: 24px;
+    margin-bottom: 32px;
+}
+
+.chart-card {
+    background: var(--bg-card);
+    border-radius: var(--radius-xl);
+    padding: 28px;
+    box-shadow: var(--shadow-card);
+    border: 1px solid var(--border-light);
+    transition: var(--transition);
+}
+
+.chart-card:hover {
+    box-shadow: var(--shadow-lg);
+}
+
+.chart-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 24px;
+}
+
+.chart-title {
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--text-primary);
+    letter-spacing: -0.3px;
+}
+
+.chart-subtitle {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-top: 4px;
+}
+
+.chart-period {
+    display: flex;
+    gap: 4px;
+    background: var(--bg-subtle);
+    padding: 4px;
+    border-radius: var(--radius-sm);
+}
+
+.period-btn {
+    padding: 8px 16px;
+    font-size: 12px;
+    font-weight: 500;
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    font-family: inherit;
+}
+
+.period-btn:hover {
+    color: var(--text-primary);
+    background: var(--bg-hover);
+}
+
+.period-btn.active {
+    background: var(--bg-card);
+    color: var(--primary);
+    box-shadow: var(--shadow-sm);
+    font-weight: 600;
+}
+
+/* ============================================
+   LEAK PROBABILITY INDICATOR
+   ============================================ */
+
+.probability-card {
+    background: var(--bg-card);
+    border-radius: var(--radius-xl);
+    padding: 28px;
+    box-shadow: var(--shadow-card);
+    border: 1px solid var(--border-light);
+    text-align: center;
+    transition: var(--transition);
+}
+
+.probability-card:hover {
+    box-shadow: var(--shadow-lg);
+}
+
+.probability-ring {
+    position: relative;
+    width: 160px;
+    height: 160px;
+    margin: 8px auto 24px;
+}
+
+.probability-value {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+}
+
+.probability-number {
+    font-size: 38px;
+    font-weight: 700;
+    color: var(--text-primary);
+    line-height: 1;
+    letter-spacing: -1px;
+}
+
+.probability-label {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 500;
+}
+
+.probability-details {
+    text-align: left;
+    padding-top: 20px;
+    border-top: 1px solid var(--border-light);
+}
+
+.detail-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--bg-subtle);
+    transition: var(--transition-fast);
+}
+
+.detail-row:hover {
+    padding-left: 8px;
+}
+
+.detail-row:last-child {
+    border-bottom: none;
+}
+
+.detail-label {
+    font-size: 13px;
+    color: var(--text-muted);
+}
+
+.detail-value {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.detail-value.category {
+    color: var(--status-warning);
+    background: var(--status-warning-bg);
+    padding: 4px 10px;
+    border-radius: var(--radius-full);
+    font-size: 12px;
+}
+
+/* ============================================
+   SECTION 3: DECISION PANEL
+   ============================================ */
+
+.decision-section {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+}
+
+.decision-card {
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    padding: 24px 28px;
+    box-shadow: var(--shadow-card);
+    border: 1px solid var(--border-light);
+    transition: all var(--transition);
+    position: relative;
+}
+
+.decision-card:hover {
+    box-shadow: var(--shadow-lg);
+    transform: translateY(-2px);
+}
+
+.decision-card.highlight {
+    border: 2px solid var(--primary);
+    background: linear-gradient(135deg, rgba(30, 136, 229, 0.02) 0%, rgba(77, 208, 225, 0.02) 100%);
+}
+
+.decision-card.highlight::before {
+    content: 'Recommended';
+    position: absolute;
+    top: -10px;
+    right: 16px;
+    background: var(--primary-gradient);
+    color: white;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 4px 12px;
+    border-radius: var(--radius-full);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    box-shadow: 0 2px 8px rgba(30, 136, 229, 0.3);
+}
+
+.decision-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 16px;
+}
+
+.decision-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: var(--radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 17px;
+    transition: var(--transition);
+}
+
+.decision-card:hover .decision-icon {
+    transform: scale(1.08);
+}
+
+.decision-icon.priority-high {
+    background: var(--status-leak-bg);
+    color: var(--status-leak);
+}
+
+.decision-icon.priority-medium {
+    background: var(--status-warning-bg);
+    color: var(--status-warning);
+}
+
+.decision-icon.priority-low {
+    background: var(--status-normal-bg);
+    color: var(--status-normal);
+}
+
+.decision-icon.action {
+    background: rgba(30, 136, 229, 0.08);
+    color: var(--primary);
+}
+
+.decision-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.decision-subtitle {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 2px;
+}
+
+.decision-content {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 10px;
+    letter-spacing: -0.5px;
+}
+
+.decision-description {
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.6;
+}
+
+.action-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 20px;
+    padding: 12px 24px;
+    background: var(--primary-gradient);
+    color: white;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all var(--transition);
+    font-family: inherit;
+    box-shadow: 0 4px 12px rgba(30, 136, 229, 0.25);
+}
+
+.action-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(30, 136, 229, 0.35);
+}
+
+.action-button:active {
+    transform: translateY(0);
+}
+
+/* ============================================
+   DMA LIST - Interactive Cards
+   ============================================ */
+
+.dma-section {
+    margin-top: 32px;
+}
+
+.dma-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+}
+
+.dma-card {
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    padding: 18px 22px;
+    box-shadow: var(--shadow-card);
+    border: 1px solid var(--border-light);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    transition: all var(--transition);
+    position: relative;
+    overflow: hidden;
+}
+
+.dma-card::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background: var(--status-normal);
+    opacity: 0;
+    transition: var(--transition);
+}
+
+.dma-card:hover {
+    box-shadow: var(--shadow-lg);
+    transform: translateX(4px);
+    border-color: var(--primary-light);
+}
+
+.dma-card:hover::before {
+    opacity: 1;
+}
+
+.dma-card.warning::before {
+    background: var(--status-warning);
+}
+
+.dma-info {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.dma-status-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    position: relative;
+}
+
+.dma-status-dot::after {
+    content: '';
+    position: absolute;
+    top: -3px;
+    left: -3px;
+    right: -3px;
+    bottom: -3px;
+    border-radius: 50%;
+    animation: ripple 2s ease-out infinite;
+}
+
+@keyframes ripple {
+    0% { box-shadow: 0 0 0 0 currentColor; opacity: 0.4; }
+    100% { box-shadow: 0 0 0 8px currentColor; opacity: 0; }
+}
+
+.dma-status-dot.normal {
+    background: var(--status-normal);
+    color: var(--status-normal);
+}
+
+.dma-status-dot.warning {
+    background: var(--status-warning);
+    color: var(--status-warning);
+}
+
+.dma-status-dot.leak {
+    background: var(--status-leak);
+    color: var(--status-leak);
+}
+
+.dma-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+    letter-spacing: -0.2px;
+}
+
+.dma-location {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 2px;
+}
+
+.dma-metrics {
+    text-align: right;
+    padding-left: 16px;
+}
+
+.dma-nrw {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text-primary);
+    letter-spacing: -0.5px;
+}
+
+.dma-label {
+    font-size: 10px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 500;
+}
+
+/* ============================================
+   MODAL - Premium Styling
+   ============================================ */
+
+.modal-content {
+    border-radius: var(--radius-xl) !important;
+    border: none !important;
+    box-shadow: var(--shadow-xl) !important;
+    overflow: hidden;
+}
+
+.modal-backdrop {
+    background: rgba(45, 55, 72, 0.4) !important;
+    backdrop-filter: blur(4px);
+}
+
+.modal-header {
+    border-bottom: 1px solid var(--border-light) !important;
+    padding: 24px 28px !important;
+    background: var(--bg-subtle);
+}
+
+.modal-title {
+    font-size: 18px !important;
+    font-weight: 600 !important;
+    color: var(--text-primary) !important;
+    letter-spacing: -0.3px;
+}
+
+.modal-body {
+    padding: 28px !important;
+}
+
+.modal-footer {
+    border-top: 1px solid var(--border-light) !important;
+    padding: 16px 28px !important;
+    background: var(--bg-subtle);
+}
+
+.btn-close {
+    opacity: 0.5;
+    transition: var(--transition-fast);
+}
+
+.btn-close:hover {
+    opacity: 1;
+}
+
+/* ============================================
+   RESPONSIVE DESIGN
+   ============================================ */
+
+@media (max-width: 1200px) {
+    .intelligence-section {
+        grid-template-columns: 1fr;
+    }
+    
+    .decision-section {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .probability-card {
+        max-width: 400px;
+        margin: 0 auto;
+    }
+}
+
+@media (max-width: 992px) {
+    .status-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .decision-section {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .top-bar {
+        padding: 12px 20px;
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+    
+    .main-container {
+        padding: 20px;
+    }
+    
+    .status-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .dma-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .status-value {
+        font-size: 26px;
+    }
+    
+    .decision-content {
+        font-size: 18px;
+    }
+}
+
+@media (max-width: 480px) {
+    .location-selector {
+        display: none;
+    }
+    
+    .top-bar {
+        padding: 12px 16px;
+    }
+    
+    .main-container {
+        padding: 16px;
+    }
+    
+    .status-card,
+    .chart-card,
+    .probability-card,
+    .decision-card,
+    .dma-card {
+        padding: 16px;
+    }
+}
+
+/* ============================================
+   PRINT STYLES
+   ============================================ */
+
+@media print {
+    .top-bar {
+        position: static;
+    }
+    
+    .status-card:hover,
+    .decision-card:hover,
+    .dma-card:hover {
+        transform: none;
+        box-shadow: var(--shadow-card);
+    }
+    
+    body::before {
+        display: none;
+    }
+}

@@ -1,0 +1,30 @@
+# AquaWatch NRW - ESP32 Ingestion Service Dockerfile
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    gcc \
+    libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Python dependencies
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy application
+COPY src/ ./src/
+
+# Create non-root user
+RUN useradd -m -u 1000 aquawatch
+USER aquawatch
+
+# Run ingestion service
+CMD ["python", "-c", "from src.iot.esp32_connector import ESP32DataIngestionService, MQTTConfig; \
+    import os; import time; \
+    config = MQTTConfig(broker_host=os.getenv('MQTT_HOST', 'localhost')); \
+    service = ESP32DataIngestionService(config); \
+    service.start(); \
+    print('Ingestion service running...'); \
+    while True: time.sleep(60)"]

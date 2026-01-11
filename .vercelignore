@@ -1,0 +1,20 @@
+# Dependencies
+.venv/
+__pycache__/
+*.pyc
+node_modules/
+
+# Large files not needed for deployment
+firmware/
+mosquitto/
+docs/
+*.db
+*.sqlite
+
+# IDE
+.vscode/
+.idea/
+
+# Test files
+tests/
+*.test.py
