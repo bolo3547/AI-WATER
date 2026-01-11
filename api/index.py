@@ -258,11 +258,8 @@ def nrw_analytics():
     })
 
 
-# Vercel handler
-def handler(request):
-    """Vercel serverless handler."""
-    return app(request)
-
+# Vercel WSGI handler - expose app directly
+# Vercel automatically uses the Flask app object
 
 # For local testing
 if __name__ == "__main__":
