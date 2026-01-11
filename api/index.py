@@ -2,16 +2,24 @@
 AquaWatch NRW - Vercel Serverless API
 =====================================
 Lightweight API wrapper for Vercel deployment
+Serves both API and Dashboard
 """
 
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, redirect
 from flask_cors import CORS
 import json
 import os
+import sys
 from datetime import datetime, timedelta
 import random
 
-app = Flask(__name__)
+# Add api directory to path for imports
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+# Import the Dash app
+from dashboard import app as dash_app, server as dash_server
+
+app = dash_server  # Use Dash's Flask server
 CORS(app)
 
 # =============================================================================
