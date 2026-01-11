@@ -110,6 +110,27 @@ COLORS = {
 }
 
 # =============================================================================
+# AUTHENTICATION
+# =============================================================================
+
+import hashlib
+
+# Admin credentials (username: password)
+# admin: AquaWatch@2026
+# denuel: Water@Admin123
+ADMIN_USERS = {
+    "admin": hashlib.sha256("AquaWatch@2026".encode()).hexdigest(),
+    "denuel": hashlib.sha256("Water@Admin123".encode()).hexdigest(),
+}
+
+def verify_login(username, password):
+    """Verify username and password."""
+    if username in ADMIN_USERS:
+        password_hash = hashlib.sha256(password.encode()).hexdigest()
+        return ADMIN_USERS[username] == password_hash
+    return False
+
+# =============================================================================
 # DASHBOARD APP
 # =============================================================================
 
@@ -321,11 +342,81 @@ def create_trend_chart():
 
 
 # =============================================================================
+# LOGIN PAGE
+# =============================================================================
+
+def create_login_page():
+    """Create login page layout."""
+    return dbc.Container([
+        dbc.Row([
+            dbc.Col([
+                html.Div([
+                    # Logo and Title
+                    html.Div([
+                        html.I(className="fas fa-water fa-4x mb-3", style={"color": COLORS['primary']}),
+                        html.H2("AquaWatch NRW", className="fw-bold mb-1", style={"color": COLORS['dark']}),
+                        html.P("Water Intelligence Platform", className="text-muted mb-4"),
+                    ], className="text-center"),
+                    
+                    # Login Card
+                    dbc.Card([
+                        dbc.CardHeader([
+                            html.H5("Admin Login", className="mb-0 text-center"),
+                        ], style={"backgroundColor": COLORS['light']}),
+                        dbc.CardBody([
+                            dbc.Form([
+                                dbc.Row([
+                                    dbc.Col([
+                                        dbc.Label("Username", className="fw-semibold"),
+                                        dbc.Input(
+                                            type="text",
+                                            id="login-username",
+                                            placeholder="Enter username",
+                                            className="mb-3"
+                                        ),
+                                    ])
+                                ]),
+                                dbc.Row([
+                                    dbc.Col([
+                                        dbc.Label("Password", className="fw-semibold"),
+                                        dbc.Input(
+                                            type="password",
+                                            id="login-password",
+                                            placeholder="Enter password",
+                                            className="mb-3"
+                                        ),
+                                    ])
+                                ]),
+                                html.Div(id="login-error", className="text-danger mb-3 text-center"),
+                                dbc.Button(
+                                    "Login",
+                                    id="login-button",
+                                    color="primary",
+                                    className="w-100 mb-3",
+                                    size="lg"
+                                ),
+                            ])
+                        ])
+                    ], className="shadow", style={"borderRadius": "12px", "border": "none"}),
+                    
+                    # Footer info
+                    html.Div([
+                        html.Hr(className="my-4"),
+                        html.Small("© 2026 AquaWatch NRW | Secure Access", className="text-muted"),
+                    ], className="text-center mt-4"),
+                    
+                ], style={"maxWidth": "400px", "margin": "0 auto", "paddingTop": "80px"})
+            ])
+        ])
+    ], fluid=True, style={"backgroundColor": "#F5F7FA", "minHeight": "100vh"})
+
+
+# =============================================================================
 # LAYOUT
 # =============================================================================
 
-def serve_layout():
-    """Generate layout with fresh data."""
+def serve_dashboard():
+    """Generate dashboard layout with fresh data."""
     stats = get_system_stats()
     sensors = generate_sensor_data()
     alerts = generate_alerts()
@@ -523,18 +614,97 @@ def serve_layout():
             id='interval-component',
             interval=30*1000,  # 30 seconds
             n_intervals=0
-        )
+        ),
+        
+        # Logout button
+        html.Div([
+            dbc.Button(
+                [html.I(className="fas fa-sign-out-alt me-2"), "Logout"],
+                id="logout-button",
+                color="outline-secondary",
+                size="sm",
+                className="position-fixed",
+                style={"top": "20px", "right": "20px", "zIndex": 1000}
+            ),
+        ])
         
     ], fluid=True, style={"backgroundColor": "#F5F7FA", "minHeight": "100vh", "padding": "20px"})
+
+
+def serve_layout():
+    """Main layout function - shows login or dashboard based on auth state."""
+    return html.Div([
+        dcc.Store(id='auth-store', storage_type='session'),
+        dcc.Location(id='url', refresh=False),
+        html.Div(id='page-content')
+    ])
 
 
 app.layout = serve_layout
 
 
+# =============================================================================
+# CALLBACKS
+# =============================================================================
+
+@callback(
+    Output('page-content', 'children'),
+    Output('auth-store', 'data'),
+    Input('url', 'pathname'),
+    Input('login-button', 'n_clicks'),
+    Input('logout-button', 'n_clicks'),
+    State('login-username', 'value'),
+    State('login-password', 'value'),
+    State('auth-store', 'data'),
+    prevent_initial_call=False
+)
+def handle_auth(pathname, login_clicks, logout_clicks, username, password, auth_data):
+    """Handle authentication and page routing."""
+    from dash import ctx
+    
+    triggered_id = ctx.triggered_id if ctx.triggered_id else None
+    
+    # Handle logout
+    if triggered_id == 'logout-button':
+        return create_login_page(), None
+    
+    # Handle login attempt
+    if triggered_id == 'login-button' and username and password:
+        if verify_login(username, password):
+            return serve_dashboard(), {'authenticated': True, 'username': username}
+        else:
+            # Stay on login page with error
+            login_page = create_login_page()
+            return login_page, None
+    
+    # Check existing auth
+    if auth_data and auth_data.get('authenticated'):
+        return serve_dashboard(), auth_data
+    
+    # Default: show login
+    return create_login_page(), None
+
+
+@callback(
+    Output('login-error', 'children'),
+    Input('login-button', 'n_clicks'),
+    State('login-username', 'value'),
+    State('login-password', 'value'),
+    prevent_initial_call=True
+)
+def show_login_error(n_clicks, username, password):
+    """Show login error message."""
+    if n_clicks and username and password:
+        if not verify_login(username, password):
+            return "Invalid username or password"
+    return ""
+
+
 # Callback for auto-refresh (regenerates layout)
 @callback(
     Output('interval-component', 'interval'),
-    Input('interval-component', 'n_intervals')
+    Input('interval-component', 'n_intervals'),
+    prevent_initial_call=True
 )
 def update_data(n):
     return 30*1000
