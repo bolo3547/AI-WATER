@@ -323,5 +323,7 @@ def login_error(n, user, pwd):
     return ""
 
 # For Vercel - this is the handler
+app_handler = server
+
 if __name__ == "__main__":
     app.run_server(debug=True)

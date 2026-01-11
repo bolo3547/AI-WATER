@@ -11,33 +11,14 @@
   ],
   "routes": [
     {
-      "src": "/_dash-component-suites/(.*)",
-      "dest": "api/index.py"
-    },
-    {
-      "src": "/_dash-layout",
-      "dest": "api/index.py"
-    },
-    {
-      "src": "/_dash-dependencies",
-      "dest": "api/index.py"
-    },
-    {
-      "src": "/_dash-update-component",
-      "dest": "api/index.py"
-    },
-    {
-      "src": "/_reload-hash",
-      "dest": "api/index.py"
-    },
-    {
-      "src": "/api/(.*)",
-      "dest": "api/index.py"
-    },
-    {
       "src": "/(.*)",
       "dest": "api/index.py"
     }
+  ],
+  "env": {
+    "PYTHONUNBUFFERED": "1"
+  }
+}
   ],
   "env": {
     "PYTHONUNBUFFERED": "1"
