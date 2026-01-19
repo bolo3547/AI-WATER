@@ -6,6 +6,7 @@ import { Sidebar } from './Sidebar'
 import { TopBar } from './TopBar'
 import { NotificationProvider } from '@/lib/notifications'
 import AIChatAssistant from '@/components/ai/AIChatAssistant'
+import { InstallPrompt } from '@/components/pwa/InstallPrompt'
 
 export function ClientLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
@@ -104,6 +105,9 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
         
         {/* AI Chat Assistant - floating button */}
         <AIChatAssistant />
+        
+        {/* PWA Install Prompt */}
+        <InstallPrompt />
       </div>
     </NotificationProvider>
   )

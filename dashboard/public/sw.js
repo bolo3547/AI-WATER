@@ -1,4 +1,4 @@
-const CACHE_NAME = 'lwsc-nrw-v1';
+const CACHE_NAME = 'lwsc-nrw-v2';
 const OFFLINE_URL = '/offline.html';
 
 // Assets to cache immediately
@@ -6,8 +6,10 @@ const PRECACHE_ASSETS = [
   '/',
   '/login',
   '/manifest.json',
-  '/icons/icon-192x192.png',
-  '/icons/icon-512x512.png'
+  '/lwsc-logo.png',
+  '/icons/icon-192.png',
+  '/icons/icon-512.png',
+  '/offline.html'
 ];
 
 // Install event - cache essential assets
@@ -77,8 +79,8 @@ self.addEventListener('push', (event) => {
   
   const options = {
     body: data.body || 'New notification from LWSC NRW System',
-    icon: '/icons/icon-192x192.png',
-    badge: '/icons/icon-72x72.png',
+    icon: '/icons/icon-192.png',
+    badge: '/lwsc-logo.png',
     vibrate: [100, 50, 100],
     data: {
       url: data.url || '/'
