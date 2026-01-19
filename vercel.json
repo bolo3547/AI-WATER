@@ -2,20 +2,19 @@
   "version": 2,
   "builds": [
     {
-      "src": "api/index.py",
-      "use": "@vercel/python",
+      "src": "dashboard/package.json",
+      "use": "@vercel/next",
       "config": {
-        "maxLambdaSize": "50mb"
+        "projectSettings": {
+          "rootDirectory": "dashboard"
+        }
       }
     }
   ],
   "routes": [
     {
       "src": "/(.*)",
-      "dest": "api/index.py"
+      "dest": "dashboard/$1"
     }
-  ],
-  "env": {
-    "PYTHONUNBUFFERED": "1"
-  }
+  ]
 }
