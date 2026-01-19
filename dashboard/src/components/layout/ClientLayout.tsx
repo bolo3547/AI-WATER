@@ -6,13 +6,12 @@ import { Sidebar } from './Sidebar'
 import { TopBar } from './TopBar'
 import { NotificationProvider } from '@/lib/notifications'
 import AIChatAssistant from '@/components/ai/AIChatAssistant'
-import { Menu, X } from 'lucide-react'
 
 export function ClientLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const isLoginPage = pathname === '/login'
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null)
-  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [sidebarExpanded, setSidebarExpanded] = useState(true)
 
   useEffect(() => {
     // Check authentication on client side
@@ -24,25 +23,24 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
       if (!token && !isLoginPage) {
         window.location.href = '/login'
       }
+      
+      // Load sidebar state from localStorage
+      const savedSidebarState = localStorage.getItem('sidebarExpanded')
+      if (savedSidebarState !== null) {
+        setSidebarExpanded(savedSidebarState === 'true')
+      } else {
+        // Default: expanded on desktop, collapsed on mobile
+        setSidebarExpanded(window.innerWidth >= 768)
+      }
     }
   }, [isLoginPage])
 
-  // Close sidebar when route changes
-  useEffect(() => {
-    setSidebarOpen(false)
-  }, [pathname])
-
-  // Close sidebar when clicking outside on mobile
-  useEffect(() => {
-    const handleResize = () => {
-      // Auto-close on very small screens when resizing
-      if (window.innerWidth < 640 && sidebarOpen) {
-        // Keep open, user will close manually
-      }
-    }
-    window.addEventListener('resize', handleResize)
-    return () => window.removeEventListener('resize', handleResize)
-  }, [sidebarOpen])
+  // Save sidebar state to localStorage
+  const handleSidebarToggle = () => {
+    const newState = !sidebarExpanded
+    setSidebarExpanded(newState)
+    localStorage.setItem('sidebarExpanded', String(newState))
+  }
 
   // Show loading while checking auth
   if (isAuthenticated === null && !isLoginPage) {
@@ -70,40 +68,18 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
   return (
     <NotificationProvider>
       <div className="flex min-h-screen">
-        {/* Menu Toggle Button - Always visible */}
-        <button
-          onClick={() => setSidebarOpen(!sidebarOpen)}
-          className={`fixed top-4 z-50 p-2.5 bg-slate-900 text-white rounded-lg shadow-lg transition-all duration-300 ${
-            sidebarOpen ? 'left-[216px] sm:left-[232px]' : 'left-4'
-          }`}
-          aria-label="Toggle menu"
-        >
-          {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-        </button>
-
-        {/* Overlay - closes sidebar when clicked */}
-        {sidebarOpen && (
-          <div 
-            className="fixed inset-0 bg-black/50 z-30 backdrop-blur-sm"
-            onClick={() => setSidebarOpen(false)}
-          />
-        )}
-
-        {/* Sidebar - Slides in/out on all devices */}
-        <div className={`
-          fixed inset-y-0 left-0 z-40
-          transform transition-transform duration-300 ease-in-out
-          ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
-        `}>
-          <Sidebar onClose={() => setSidebarOpen(false)} />
-        </div>
+        {/* Sidebar - Always visible, expands/collapses like ChatGPT */}
+        <Sidebar isExpanded={sidebarExpanded} onToggle={handleSidebarToggle} />
         
-        {/* Main Content Area - Full width always */}
-        <div className="flex-1 min-w-0 w-full">
+        {/* Main Content Area - Adjusts margin based on sidebar state */}
+        <div 
+          className="flex-1 min-w-0 transition-all duration-300"
+          style={{ marginLeft: sidebarExpanded ? '256px' : '64px' }}
+        >
           {/* Top Status Bar */}
-          <TopBar sidebarOpen={sidebarOpen} />
+          <TopBar />
           
-          {/* Page Content - responsive padding */}
+          {/* Page Content */}
           <main className="mt-16 p-3 sm:p-4 lg:p-6">
             {children}
           </main>

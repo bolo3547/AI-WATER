@@ -8,7 +8,6 @@ import { useNotifications } from '@/lib/notifications'
 
 interface TopBarProps {
   utilityName?: string
-  sidebarOpen?: boolean
 }
 
 interface UserInfo {
@@ -17,7 +16,7 @@ interface UserInfo {
   email?: string
 }
 
-export function TopBar({ utilityName = 'LWSC', sidebarOpen = false }: TopBarProps) {
+export function TopBar({ utilityName = 'LWSC' }: TopBarProps) {
   const [user, setUser] = useState<UserInfo | null>(null)
   const [currentTime, setCurrentTime] = useState(new Date())
   const [systemStatus, setSystemStatus] = useState<'green' | 'amber' | 'red'>('green')
@@ -67,10 +66,10 @@ export function TopBar({ utilityName = 'LWSC', sidebarOpen = false }: TopBarProp
   }
   
   return (
-    <header className="fixed top-0 left-0 right-0 h-16 bg-white/80 backdrop-blur-xl border-b border-slate-200/60 z-10">
+    <header className="fixed top-0 right-0 h-16 bg-white/80 backdrop-blur-xl border-b border-slate-200/60 z-10 transition-all duration-300" style={{ left: 0 }}>
       <div className="h-full px-4 lg:px-6 flex items-center justify-between">
-        {/* Left: Breadcrumb & Utility Name - with space for menu button */}
-        <div className="flex items-center gap-4 ml-14">
+        {/* Left: Breadcrumb & Utility Name */}
+        <div className="flex items-center gap-4">
           <div>
             <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider hidden sm:block">Control Room</p>
             <h2 className="text-sm font-semibold text-slate-900">
