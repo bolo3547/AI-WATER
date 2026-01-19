@@ -23,20 +23,35 @@ import {
   Brain,
   ChevronLeft,
   PanelLeftClose,
-  PanelLeft
+  PanelLeft,
+  Satellite,
+  Bot,
+  DollarSign,
+  UserCheck,
+  MessageSquare,
+  Gauge,
+  CloudRain
 } from 'lucide-react'
 
 // Role-based navigation
 const adminNavigation = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard, badge: null },
   { name: 'AI Intelligence', href: '/ai', icon: Brain, badge: 'AI' },
+  { name: 'Predictions', href: '/predictions', icon: Activity, badge: 'New' },
   { name: 'DMA Management', href: '/dma', icon: Map, badge: '12' },
   { name: 'Alerts Center', href: '/actions', icon: AlertCircle, badge: '3' },
+  { name: 'Satellite/Drone', href: '/satellite', icon: Satellite, badge: 'New' },
+  { name: 'Autonomous Ops', href: '/autonomous', icon: Bot, badge: 'AI' },
+  { name: 'Field Crews', href: '/field', icon: UserCheck, badge: '6' },
+  { name: 'Smart Meters', href: '/meters', icon: Gauge, badge: null },
+  { name: 'Weather Impact', href: '/weather', icon: CloudRain, badge: null },
   { name: 'Analytics', href: '/analytics', icon: Activity, badge: null },
+  { name: 'Revenue Intel', href: '/finance', icon: DollarSign, badge: null },
   { name: 'System Health', href: '/health', icon: Settings, badge: null },
   { name: 'Reports', href: '/reports', icon: FileText, badge: null },
+  { name: 'Community', href: '/community', icon: MessageSquare, badge: '15' },
   { name: 'User Management', href: '/admin/users', icon: Users, badge: null },
-  { name: 'Locations', href: '/admin/locations', icon: Map, badge: 'New' },
+  { name: 'Locations', href: '/admin/locations', icon: Map, badge: null },
   { name: 'System Config', href: '/admin/config', icon: Database, badge: null },
   { name: 'Firmware Generator', href: '/admin/firmware', icon: Cpu, badge: null },
   { name: 'Security', href: '/admin/security', icon: Shield, badge: null },
@@ -46,7 +61,13 @@ const operatorNavigation = [
   { name: 'Control Room', href: '/', icon: LayoutDashboard, badge: null },
   { name: 'DMA Monitoring', href: '/dma', icon: Map, badge: '12' },
   { name: 'Active Alerts', href: '/actions', icon: Bell, badge: '3' },
+  { name: 'Predictions', href: '/predictions', icon: Activity, badge: 'New' },
+  { name: 'Satellite/Drone', href: '/satellite', icon: Satellite, badge: null },
+  { name: 'Field Crews', href: '/field', icon: UserCheck, badge: '6' },
+  { name: 'Smart Meters', href: '/meters', icon: Gauge, badge: null },
+  { name: 'Weather Impact', href: '/weather', icon: CloudRain, badge: null },
   { name: 'Field Reports', href: '/reports', icon: FileText, badge: null },
+  { name: 'Community', href: '/community', icon: MessageSquare, badge: '15' },
   { name: 'System Status', href: '/health', icon: Activity, badge: null },
 ]
 
@@ -55,6 +76,7 @@ const technicianNavigation = [
   { name: 'Field Map', href: '/dma', icon: Map, badge: null },
   { name: 'Alerts', href: '/actions', icon: AlertCircle, badge: '2' },
   { name: 'Reports', href: '/reports', icon: FileText, badge: null },
+  { name: 'Community', href: '/community', icon: MessageSquare, badge: '15' },
 ]
 
 interface SidebarProps {
