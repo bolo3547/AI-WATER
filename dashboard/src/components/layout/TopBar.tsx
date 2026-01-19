@@ -25,11 +25,18 @@ export function TopBar({ utilityName = 'LWSC' }: TopBarProps) {
   const { sensorStatus } = useNotifications()
 
   useEffect(() => {
-    // Load user from localStorage (only on client)
+    // Load user and theme from localStorage (only on client)
     if (typeof window !== 'undefined') {
       const storedUser = localStorage.getItem('user')
       if (storedUser) {
         setUser(JSON.parse(storedUser))
+      }
+      
+      // Load saved theme preference
+      const savedTheme = localStorage.getItem('theme')
+      if (savedTheme === 'dark') {
+        setIsDarkMode(true)
+        document.documentElement.setAttribute('data-theme', 'dark')
       }
     }
   }, [])
@@ -52,8 +59,10 @@ export function TopBar({ utilityName = 'LWSC' }: TopBarProps) {
 
   // Theme toggle
   const toggleDarkMode = () => {
-    setIsDarkMode(!isDarkMode)
-    document.documentElement.setAttribute('data-theme', isDarkMode ? 'light' : 'dark')
+    const newMode = !isDarkMode
+    setIsDarkMode(newMode)
+    document.documentElement.setAttribute('data-theme', newMode ? 'dark' : 'light')
+    localStorage.setItem('theme', newMode ? 'dark' : 'light')
   }
 
   const handleLogout = () => {
@@ -73,7 +82,14 @@ export function TopBar({ utilityName = 'LWSC' }: TopBarProps) {
   }
   
   return (
-    <header className="fixed top-0 right-0 h-14 sm:h-16 bg-white/80 backdrop-blur-xl border-b border-slate-200/60 z-10 transition-all duration-300" style={{ left: 0 }}>
+    <header 
+      className="fixed top-0 right-0 h-14 sm:h-16 backdrop-blur-xl border-b z-10 transition-all duration-300" 
+      style={{ 
+        left: 0,
+        backgroundColor: isDarkMode ? 'rgba(30, 41, 59, 0.9)' : 'rgba(255, 255, 255, 0.8)',
+        borderColor: isDarkMode ? 'rgba(51, 65, 85, 0.6)' : 'rgba(226, 232, 240, 0.6)'
+      }}
+    >
       <div className="h-full px-2 sm:px-4 lg:px-6 flex items-center justify-between">
         {/* Left: Breadcrumb & Utility Name */}
         <div className="flex items-center gap-2 sm:gap-4">

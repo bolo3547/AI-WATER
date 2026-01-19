@@ -689,3 +689,34 @@
     overflow: hidden;
   }
 }
+
+/* ============================================
+   DARK MODE OVERRIDES FOR TAILWIND CLASSES
+   ============================================ */
+[data-theme="dark"] {
+  /* Background overrides */
+  .bg-white { background-color: var(--bg-elevated) !important; }
+  .bg-slate-50, .bg-slate-100 { background-color: var(--bg-secondary) !important; }
+  .bg-slate-200 { background-color: var(--bg-tertiary) !important; }
+  
+  /* Text overrides */
+  .text-slate-900 { color: var(--text-primary) !important; }
+  .text-slate-800, .text-slate-700 { color: var(--text-secondary) !important; }
+  .text-slate-600, .text-slate-500 { color: var(--text-tertiary) !important; }
+  .text-slate-400 { color: var(--text-muted) !important; }
+  
+  /* Border overrides */
+  .border-slate-100, .border-slate-200 { border-color: var(--border-light) !important; }
+  .border-slate-300 { border-color: var(--border-default) !important; }
+  
+  /* Input overrides */
+  input, select, textarea {
+    background-color: var(--bg-tertiary) !important;
+    border-color: var(--border-default) !important;
+    color: var(--text-primary) !important;
+  }
+  
+  input::placeholder, textarea::placeholder {
+    color: var(--text-muted) !important;
+  }
+}
