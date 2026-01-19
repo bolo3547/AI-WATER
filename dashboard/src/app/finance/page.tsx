@@ -68,6 +68,9 @@ export default function FinancePage() {
     setIsLoading(true)
     try {
       const response = await fetch(`/api/finance?months=${timeRange}`)
+      if (!response.ok) {
+        throw new Error('API not available')
+      }
       const data = await response.json()
       
       if (data.totals) {
@@ -84,6 +87,8 @@ export default function FinancePage() {
       }
     } catch (error) {
       console.error('Failed to load finance data:', error)
+      // Keep default zero values - system starts fresh
+      setStatusMessage('No payments received yet. Data will appear once payments are made.')
     } finally {
       setIsLoading(false)
     }

@@ -74,174 +74,19 @@ export default function FieldCrewPage() {
   }, [])
 
   const loadCrews = () => {
-    setCrews([
-      {
-        id: 'CREW-001',
-        name: 'Bwalya Mwamba',
-        role: 'Senior Technician',
-        phone: '+260 97 123 4567',
-        status: 'on_site',
-        currentTask: 'WO-2851 Pipe Repair',
-        location: { lat: -15.4192, lng: 28.3225, address: 'Kabulonga Rd, Near Junction' },
-        lastUpdate: '2 min ago',
-        completedToday: 4,
-        rating: 4.8,
-        battery: 78,
-        signal: 4,
-        vehicle: 'LSK-4521-B',
-        skills: ['Pipe Repair', 'Welding', 'Valve Maintenance']
-      },
-      {
-        id: 'CREW-002',
-        name: 'Grace Tembo',
-        role: 'Field Inspector',
-        phone: '+260 95 234 5678',
-        status: 'en_route',
-        currentTask: 'WO-2853 Inspection',
-        location: { lat: -15.3958, lng: 28.3108, address: 'Roma Township Main' },
-        lastUpdate: '1 min ago',
-        completedToday: 6,
-        rating: 4.9,
-        battery: 92,
-        signal: 5,
-        vehicle: 'LSK-7832-A',
-        skills: ['Inspection', 'Meter Reading', 'Leak Detection']
-      },
-      {
-        id: 'CREW-003',
-        name: 'Joseph Phiri',
-        role: 'Emergency Response',
-        phone: '+260 96 345 6789',
-        status: 'available',
-        currentTask: null,
-        location: { lat: -15.4089, lng: 28.2953, address: 'LWSC Depot, Olympia' },
-        lastUpdate: '5 min ago',
-        completedToday: 3,
-        rating: 4.7,
-        battery: 100,
-        signal: 5,
-        vehicle: 'LSK-1234-E',
-        skills: ['Emergency Repair', 'Heavy Equipment', 'Excavation']
-      },
-      {
-        id: 'CREW-004',
-        name: 'Mary Zulu',
-        role: 'Meter Technician',
-        phone: '+260 97 456 7890',
-        status: 'on_site',
-        currentTask: 'WO-2849 Meter Installation',
-        location: { lat: -15.3605, lng: 28.3517, address: 'Chelstone Shopping Area' },
-        lastUpdate: '8 min ago',
-        completedToday: 8,
-        rating: 4.6,
-        battery: 45,
-        signal: 3,
-        vehicle: null,
-        skills: ['Meter Installation', 'AMR Setup', 'Customer Service']
-      },
-      {
-        id: 'CREW-005',
-        name: 'Peter Banda',
-        role: 'Pipe Layer',
-        phone: '+260 95 567 8901',
-        status: 'break',
-        currentTask: null,
-        location: { lat: -15.3747, lng: 28.2633, address: 'Matero Industrial Zone' },
-        lastUpdate: '30 min ago',
-        completedToday: 2,
-        rating: 4.5,
-        battery: 67,
-        signal: 4,
-        vehicle: 'LSK-9087-B',
-        skills: ['Pipe Installation', 'Excavation', 'Backfilling']
-      },
-      {
-        id: 'CREW-006',
-        name: 'Sarah Mulenga',
-        role: 'Field Supervisor',
-        phone: '+260 96 678 9012',
-        status: 'offline',
-        currentTask: null,
-        location: { lat: -15.4134, lng: 28.3064, address: 'Woodlands Office' },
-        lastUpdate: '2 hours ago',
-        completedToday: 0,
-        rating: 4.9,
-        battery: 0,
-        signal: 0,
-        vehicle: 'LSK-5555-S',
-        skills: ['Supervision', 'Planning', 'Quality Control']
-      }
-    ])
+    // Start with no crews - real crews will be added when staff are registered
+    // This shows the system starting fresh with zero data
+    setCrews([])
   }
 
   const loadTasks = () => {
-    setTasks([
-      {
-        id: 'WO-2854',
-        type: 'emergency',
-        priority: 'critical',
-        location: 'Matero Industrial Zone',
-        dma: 'Matero',
-        description: 'Major pipe burst - Water gushing onto road',
-        assignedTo: null,
-        status: 'pending',
-        estimatedTime: 120,
-        createdAt: '10 min ago'
-      },
-      {
-        id: 'WO-2853',
-        type: 'inspection',
-        priority: 'medium',
-        location: 'Roma Township Block 4',
-        dma: 'Roma',
-        description: 'Routine pipeline inspection',
-        assignedTo: 'CREW-002',
-        status: 'assigned',
-        estimatedTime: 45,
-        createdAt: '1 hour ago'
-      },
-      {
-        id: 'WO-2851',
-        type: 'repair',
-        priority: 'high',
-        location: 'Kabulonga Rd Junction',
-        dma: 'Kabulonga',
-        description: 'Leaking joint repair',
-        assignedTo: 'CREW-001',
-        status: 'in_progress',
-        estimatedTime: 90,
-        createdAt: '2 hours ago'
-      }
-    ])
+    // Start with no tasks - real work orders will appear when created
+    setTasks([])
   }
 
   const loadMessages = () => {
-    setMessages([
-      {
-        id: 'MSG-001',
-        from: 'Control Center',
-        to: 'CREW-001',
-        message: 'Please prioritize the Kabulonga leak. Customer complaints increasing.',
-        timestamp: '10:30 AM',
-        read: true
-      },
-      {
-        id: 'MSG-002',
-        from: 'CREW-001',
-        to: 'Control Center',
-        message: 'Copy that. ETA 45 minutes to complete.',
-        timestamp: '10:35 AM',
-        read: true
-      },
-      {
-        id: 'MSG-003',
-        from: 'CREW-003',
-        to: 'Control Center',
-        message: 'Available for emergency dispatch. Standing by at depot.',
-        timestamp: '10:45 AM',
-        read: false
-      }
-    ])
+    // Start with no messages - real messages will appear as crews communicate
+    setMessages([])
   }
 
   const updateCrewLocations = () => {
