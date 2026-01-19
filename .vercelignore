@@ -4,10 +4,10 @@ __pycache__/
 *.pyc
 node_modules/
 
-# Large files not needed for deployment
-firmware/
-mosquitto/
-docs/
+# Large files not needed for deployment (root level only)
+/firmware/
+/mosquitto/
+/docs/
 *.db
 *.sqlite
 
