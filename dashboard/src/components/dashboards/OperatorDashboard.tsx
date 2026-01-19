@@ -189,80 +189,82 @@ export function OperatorDashboard() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Operator Hero Section */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-cyan-900 via-slate-800 to-slate-900 p-6 text-white">
+      <div className="relative overflow-hidden rounded-xl sm:rounded-2xl bg-gradient-to-br from-cyan-900 via-slate-800 to-slate-900 p-4 sm:p-6 text-white">
         <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-10" />
         <div className="absolute top-0 right-0 w-64 h-64 bg-cyan-500/20 rounded-full blur-3xl" />
         
         <div className="relative z-10">
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4 sm:mb-6">
             <div>
-              <div className="flex items-center gap-3 mb-2">
-                <div className="px-3 py-1 bg-cyan-500/20 rounded-full border border-cyan-400/30">
-                  <span className="text-xs font-semibold text-cyan-300 uppercase tracking-wider">Operator</span>
+              <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-2">
+                <div className="px-2 sm:px-3 py-1 bg-cyan-500/20 rounded-full border border-cyan-400/30">
+                  <span className="text-[10px] sm:text-xs font-semibold text-cyan-300 uppercase tracking-wider">Operator</span>
                 </div>
-                <div className="w-2 h-2 bg-emerald-400 rounded-full pulse-live" />
-                <span className="text-xs font-medium text-emerald-400 uppercase">Live Monitoring</span>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-2 h-2 bg-emerald-400 rounded-full pulse-live" />
+                  <span className="text-[10px] sm:text-xs font-medium text-emerald-400 uppercase">Live</span>
+                </div>
                 {lastUpdate && (
-                  <span className="text-xs text-slate-400">Updated {lastUpdate.toLocaleTimeString()}</span>
+                  <span className="text-[10px] sm:text-xs text-slate-400 hidden sm:inline">Updated {lastUpdate.toLocaleTimeString()}</span>
                 )}
               </div>
-              <h1 className="text-2xl font-bold">Control Room</h1>
-              <p className="text-slate-400 text-sm">Real-time network monitoring & alert management</p>
+              <h1 className="text-xl sm:text-2xl font-bold">Control Room</h1>
+              <p className="text-slate-400 text-xs sm:text-sm">Real-time network monitoring</p>
             </div>
-            <div className="text-right">
-              <div className="text-3xl font-mono font-bold text-white/90">
+            <div className="text-left sm:text-right">
+              <div className="text-xl sm:text-3xl font-mono font-bold text-white/90">
                 {currentTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
               </div>
-              <div className="text-xs text-slate-400 mt-1">
-                {currentTime.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
+              <div className="text-[10px] sm:text-xs text-slate-400 mt-1">
+                {currentTime.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
               </div>
             </div>
           </div>
           
-          {/* Quick Stats */}
-          <div className="grid grid-cols-5 gap-4">
-            <Link href="/analytics" className="bg-white/5 backdrop-blur rounded-xl p-4 border border-white/10 hover:bg-white/10 transition-all cursor-pointer">
-              <div className="flex items-center gap-2 mb-2">
-                <Gauge className="w-5 h-5 text-blue-400" />
-                <span className="text-xs text-slate-400">NRW</span>
+          {/* Quick Stats - Responsive Grid */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-4">
+            <Link href="/analytics" className="bg-white/5 backdrop-blur rounded-lg sm:rounded-xl p-3 sm:p-4 border border-white/10 hover:bg-white/10 transition-all cursor-pointer">
+              <div className="flex items-center gap-1.5 sm:gap-2 mb-1 sm:mb-2">
+                <Gauge className="w-4 sm:w-5 h-4 sm:h-5 text-blue-400" />
+                <span className="text-[10px] sm:text-xs text-slate-400">NRW</span>
               </div>
-              <div className="text-2xl font-bold">{displayMetrics.total_nrw_percent?.toFixed(1)}%</div>
+              <div className="text-lg sm:text-2xl font-bold">{displayMetrics.total_nrw_percent?.toFixed(1)}%</div>
             </Link>
             
-            <Link href="/actions" className="bg-white/5 backdrop-blur rounded-xl p-4 border border-white/10 hover:bg-white/10 transition-all cursor-pointer">
-              <div className="flex items-center gap-2 mb-2">
-                <AlertTriangle className="w-5 h-5 text-red-400" />
-                <span className="text-xs text-slate-400">Active Alerts</span>
+            <Link href="/actions" className="bg-white/5 backdrop-blur rounded-lg sm:rounded-xl p-3 sm:p-4 border border-white/10 hover:bg-white/10 transition-all cursor-pointer">
+              <div className="flex items-center gap-1.5 sm:gap-2 mb-1 sm:mb-2">
+                <AlertTriangle className="w-4 sm:w-5 h-4 sm:h-5 text-red-400" />
+                <span className="text-[10px] sm:text-xs text-slate-400">Alerts</span>
               </div>
-              <div className="text-2xl font-bold text-red-400">{leaks.filter(l => l.status !== 'resolved').length}</div>
+              <div className="text-lg sm:text-2xl font-bold text-red-400">{leaks.filter(l => l.status !== 'resolved').length}</div>
             </Link>
             
-            <Link href="/health" className="bg-white/5 backdrop-blur rounded-xl p-4 border border-white/10 hover:bg-white/10 transition-all cursor-pointer">
-              <div className="flex items-center gap-2 mb-2">
-                <Radio className="w-5 h-5 text-emerald-400" />
-                <span className="text-xs text-slate-400">Sensors Online</span>
+            <Link href="/health" className="bg-white/5 backdrop-blur rounded-lg sm:rounded-xl p-3 sm:p-4 border border-white/10 hover:bg-white/10 transition-all cursor-pointer">
+              <div className="flex items-center gap-1.5 sm:gap-2 mb-1 sm:mb-2">
+                <Radio className="w-4 sm:w-5 h-4 sm:h-5 text-emerald-400" />
+                <span className="text-[10px] sm:text-xs text-slate-400">Sensors</span>
               </div>
-              <div className="text-2xl font-bold text-emerald-400">
+              <div className="text-lg sm:text-2xl font-bold text-emerald-400">
                 {sensors.filter(s => s.status === 'healthy').length}/{sensors.length || displayMetrics.sensor_count}
               </div>
             </Link>
             
-            <Link href="/dma" className="bg-white/5 backdrop-blur rounded-xl p-4 border border-white/10 hover:bg-white/10 transition-all cursor-pointer">
-              <div className="flex items-center gap-2 mb-2">
-                <MapPin className="w-5 h-5 text-purple-400" />
-                <span className="text-xs text-slate-400">DMAs</span>
+            <Link href="/dma" className="bg-white/5 backdrop-blur rounded-lg sm:rounded-xl p-3 sm:p-4 border border-white/10 hover:bg-white/10 transition-all cursor-pointer">
+              <div className="flex items-center gap-1.5 sm:gap-2 mb-1 sm:mb-2">
+                <MapPin className="w-4 sm:w-5 h-4 sm:h-5 text-purple-400" />
+                <span className="text-[10px] sm:text-xs text-slate-400">DMAs</span>
               </div>
-              <div className="text-2xl font-bold">{dmas.length || displayMetrics.dma_count}</div>
+              <div className="text-lg sm:text-2xl font-bold">{dmas.length || displayMetrics.dma_count}</div>
             </Link>
             
-            <Link href="/health" className="bg-white/5 backdrop-blur rounded-xl p-4 border border-white/10 hover:bg-white/10 transition-all cursor-pointer">
-              <div className="flex items-center gap-2 mb-2">
-                <Activity className="w-5 h-5 text-cyan-400" />
-                <span className="text-xs text-slate-400">AI Confidence</span>
+            <Link href="/health" className="bg-white/5 backdrop-blur rounded-lg sm:rounded-xl p-3 sm:p-4 border border-white/10 hover:bg-white/10 transition-all cursor-pointer col-span-2 sm:col-span-1">
+              <div className="flex items-center gap-1.5 sm:gap-2 mb-1 sm:mb-2">
+                <Activity className="w-4 sm:w-5 h-4 sm:h-5 text-cyan-400" />
+                <span className="text-[10px] sm:text-xs text-slate-400">AI Confidence</span>
               </div>
-              <div className="text-2xl font-bold text-cyan-400">{displayMetrics.ai_confidence?.toFixed(0) || 94}%</div>
+              <div className="text-lg sm:text-2xl font-bold text-cyan-400">{displayMetrics.ai_confidence?.toFixed(0) || 94}%</div>
             </Link>
           </div>
         </div>
@@ -276,24 +278,24 @@ export function OperatorDashboard() {
         />
       )}
       
-      {/* Main Operations Grid */}
-      <div className="grid grid-cols-3 gap-6">
+      {/* Main Operations Grid - Responsive */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
         {/* Alert Queue - Main Focus for Operators */}
-        <div className="col-span-2">
+        <div className="lg:col-span-2">
           <SectionCard 
             title="Active Alert Queue"
-            subtitle={leaks.length > 0 ? "Alerts requiring operator action" : "No active leaks - system monitoring"}
+            subtitle={leaks.length > 0 ? "Alerts requiring action" : "No active leaks"}
             action={
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 sm:gap-3">
                 <button 
                   onClick={fetchData}
-                  className="text-sm text-cyan-600 hover:text-cyan-700 font-medium flex items-center gap-1"
+                  className="text-xs sm:text-sm text-cyan-600 hover:text-cyan-700 font-medium flex items-center gap-1"
                 >
-                  <RefreshCw className="w-4 h-4" />
-                  Refresh
+                  <RefreshCw className="w-3 sm:w-4 h-3 sm:h-4" />
+                  <span className="hidden sm:inline">Refresh</span>
                 </button>
-                <Link href="/actions" className="text-sm text-cyan-600 hover:text-cyan-700 font-semibold flex items-center gap-1">
-                  Full Queue <ArrowRight className="w-4 h-4" />
+                <Link href="/actions" className="text-xs sm:text-sm text-cyan-600 hover:text-cyan-700 font-semibold flex items-center gap-1">
+                  <span className="hidden sm:inline">Full Queue</span> <ArrowRight className="w-3 sm:w-4 h-3 sm:h-4" />
                 </Link>
               </div>
             }

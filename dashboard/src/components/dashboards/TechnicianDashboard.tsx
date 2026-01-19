@@ -286,21 +286,21 @@ export function TechnicianDashboard() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Emergency Alert Banner - only if real emergency tasks exist */}
       {emergencyTasks.length > 0 && (
-        <div className="bg-gradient-to-r from-red-600 to-red-700 rounded-xl p-4 text-white animate-pulse">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
-              <AlertTriangle className="w-7 h-7" />
+        <div className="bg-gradient-to-r from-red-600 to-red-700 rounded-xl p-3 sm:p-4 text-white animate-pulse">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white/20 rounded-full flex items-center justify-center flex-shrink-0">
+              <AlertTriangle className="w-5 sm:w-7 h-5 sm:h-7" />
             </div>
             <div className="flex-1">
-              <h3 className="font-bold text-lg">🚨 EMERGENCY TASK ASSIGNED</h3>
-              <p className="text-red-100">{emergencyTasks[0].type} at {emergencyTasks[0].location} - Immediate response required!</p>
+              <h3 className="font-bold text-base sm:text-lg">🚨 EMERGENCY TASK</h3>
+              <p className="text-red-100 text-sm">{emergencyTasks[0].type} at {emergencyTasks[0].location}</p>
             </div>
             <button 
               onClick={() => handleStartTask(emergencyTasks[0])}
-              className="px-6 py-3 bg-white text-red-600 font-bold rounded-lg hover:bg-red-50 transition-colors"
+              className="w-full sm:w-auto px-4 sm:px-6 py-2 sm:py-3 bg-white text-red-600 font-bold rounded-lg hover:bg-red-50 transition-colors text-sm sm:text-base"
             >
               RESPOND NOW
             </button>
@@ -309,74 +309,76 @@ export function TechnicianDashboard() {
       )}
 
       {/* Technician Hero Section */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-orange-800 via-slate-800 to-slate-900 p-6 text-white">
+      <div className="relative overflow-hidden rounded-xl sm:rounded-2xl bg-gradient-to-br from-orange-800 via-slate-800 to-slate-900 p-4 sm:p-6 text-white">
         <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-10" />
         <div className="absolute top-0 right-0 w-64 h-64 bg-orange-500/20 rounded-full blur-3xl" />
         
         <div className="relative z-10">
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-0 mb-4 sm:mb-6">
             <div>
-              <div className="flex items-center gap-3 mb-2">
-                <div className="px-3 py-1 bg-orange-500/20 rounded-full border border-orange-400/30">
-                  <span className="text-xs font-semibold text-orange-300 uppercase tracking-wider">Field Technician</span>
+              <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-2">
+                <div className="px-2 sm:px-3 py-1 bg-orange-500/20 rounded-full border border-orange-400/30">
+                  <span className="text-[10px] sm:text-xs font-semibold text-orange-300 uppercase tracking-wider">Field Tech</span>
                 </div>
-                <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
-                <span className="text-xs text-emerald-400 uppercase">On Duty</span>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
+                  <span className="text-[10px] sm:text-xs text-emerald-400 uppercase">On Duty</span>
+                </div>
               </div>
-              <h1 className="text-2xl font-bold">My Work Orders</h1>
-              <p className="text-slate-400 text-sm">Real-time task assignments from Control Center</p>
+              <h1 className="text-xl sm:text-2xl font-bold">My Work Orders</h1>
+              <p className="text-slate-400 text-xs sm:text-sm">Real-time task assignments</p>
             </div>
-            <div className="text-right">
-              <div className="text-3xl font-mono font-bold text-white/90">
+            <div className="text-left sm:text-right">
+              <div className="text-xl sm:text-3xl font-mono font-bold text-white/90">
                 {currentTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
               </div>
-              <div className="text-xs text-slate-400 mt-1">
-                {currentTime.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
+              <div className="text-[10px] sm:text-xs text-slate-400 mt-1">
+                {currentTime.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
               </div>
             </div>
           </div>
           
-          {/* Quick Stats */}
-          <div className="grid grid-cols-4 gap-4">
-            <div className="bg-white/5 backdrop-blur rounded-xl p-4 border border-white/10">
-              <div className="flex items-center gap-2 mb-2">
-                <ClipboardList className="w-5 h-5 text-blue-400" />
-                <span className="text-xs text-slate-400">Assigned</span>
+          {/* Quick Stats - Responsive Grid */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4">
+            <div className="bg-white/5 backdrop-blur rounded-lg sm:rounded-xl p-3 sm:p-4 border border-white/10">
+              <div className="flex items-center gap-1.5 sm:gap-2 mb-1 sm:mb-2">
+                <ClipboardList className="w-4 sm:w-5 h-4 sm:h-5 text-blue-400" />
+                <span className="text-[10px] sm:text-xs text-slate-400">Assigned</span>
               </div>
-              <div className="text-2xl font-bold">{stats.assigned}</div>
+              <div className="text-lg sm:text-2xl font-bold">{stats.assigned}</div>
             </div>
             
-            <div className="bg-white/5 backdrop-blur rounded-xl p-4 border border-white/10">
-              <div className="flex items-center gap-2 mb-2">
-                <Play className="w-5 h-5 text-amber-400" />
-                <span className="text-xs text-slate-400">In Progress</span>
+            <div className="bg-white/5 backdrop-blur rounded-lg sm:rounded-xl p-3 sm:p-4 border border-white/10">
+              <div className="flex items-center gap-1.5 sm:gap-2 mb-1 sm:mb-2">
+                <Play className="w-4 sm:w-5 h-4 sm:h-5 text-amber-400" />
+                <span className="text-[10px] sm:text-xs text-slate-400">In Progress</span>
               </div>
-              <div className="text-2xl font-bold text-amber-400">{stats.inProgress}</div>
+              <div className="text-lg sm:text-2xl font-bold text-amber-400">{stats.inProgress}</div>
             </div>
             
-            <div className="bg-white/5 backdrop-blur rounded-xl p-4 border border-white/10">
-              <div className="flex items-center gap-2 mb-2">
-                <CheckCircle2 className="w-5 h-5 text-emerald-400" />
-                <span className="text-xs text-slate-400">Completed</span>
+            <div className="bg-white/5 backdrop-blur rounded-lg sm:rounded-xl p-3 sm:p-4 border border-white/10">
+              <div className="flex items-center gap-1.5 sm:gap-2 mb-1 sm:mb-2">
+                <CheckCircle2 className="w-4 sm:w-5 h-4 sm:h-5 text-emerald-400" />
+                <span className="text-[10px] sm:text-xs text-slate-400">Completed</span>
               </div>
-              <div className="text-2xl font-bold text-emerald-400">{stats.completedToday}</div>
+              <div className="text-lg sm:text-2xl font-bold text-emerald-400">{stats.completedToday}</div>
             </div>
             
-            <div className="bg-white/5 backdrop-blur rounded-xl p-4 border border-white/10">
-              <div className="flex items-center gap-2 mb-2">
-                <Bell className="w-5 h-5 text-purple-400" />
-                <span className="text-xs text-slate-400">Notifications</span>
+            <div className="bg-white/5 backdrop-blur rounded-lg sm:rounded-xl p-3 sm:p-4 border border-white/10">
+              <div className="flex items-center gap-1.5 sm:gap-2 mb-1 sm:mb-2">
+                <Bell className="w-4 sm:w-5 h-4 sm:h-5 text-purple-400" />
+                <span className="text-[10px] sm:text-xs text-slate-400">Alerts</span>
               </div>
-              <div className="text-2xl font-bold">{unreadNotifications}</div>
+              <div className="text-lg sm:text-2xl font-bold">{unreadNotifications}</div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Main Content Grid */}
-      <div className="grid grid-cols-3 gap-6">
+      {/* Main Content Grid - Responsive */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
         {/* Current Task */}
-        <div className="col-span-2 space-y-6">
+        <div className="lg:col-span-2 space-y-4 sm:space-y-6">
           {currentTask ? (
             <SectionCard 
               title="Currently Working On"
@@ -420,21 +422,21 @@ export function TechnicianDashboard() {
                       </div>
                     )}
                     
-                    <div className="flex gap-3 mt-6">
+                    <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 mt-4 sm:mt-6">
                       <button 
                         onClick={() => handleCompleteTask(currentTask)}
-                        className="flex-1 px-4 py-3 bg-emerald-600 text-white font-semibold rounded-xl hover:bg-emerald-700 transition-colors flex items-center justify-center gap-2"
+                        className="flex-1 px-3 sm:px-4 py-2.5 sm:py-3 bg-emerald-600 text-white font-semibold rounded-lg sm:rounded-xl hover:bg-emerald-700 transition-colors flex items-center justify-center gap-2 text-sm sm:text-base"
                       >
-                        <CheckCircle2 className="w-5 h-5" />
+                        <CheckCircle2 className="w-4 sm:w-5 h-4 sm:h-5" />
                         Complete & Report
                       </button>
-                      <button className="px-4 py-3 bg-slate-100 text-slate-700 font-semibold rounded-xl hover:bg-slate-200 transition-colors flex items-center gap-2">
-                        <Camera className="w-5 h-5" />
-                        Add Photo
+                      <button className="px-3 sm:px-4 py-2.5 sm:py-3 bg-slate-100 text-slate-700 font-semibold rounded-lg sm:rounded-xl hover:bg-slate-200 transition-colors flex items-center justify-center gap-2 text-sm sm:text-base">
+                        <Camera className="w-4 sm:w-5 h-4 sm:h-5" />
+                        <span className="sm:inline">Photo</span>
                       </button>
-                      <button className="px-4 py-3 bg-slate-100 text-slate-700 font-semibold rounded-xl hover:bg-slate-200 transition-colors flex items-center gap-2">
-                        <MessageSquare className="w-5 h-5" />
-                        Message Control
+                      <button className="px-3 sm:px-4 py-2.5 sm:py-3 bg-slate-100 text-slate-700 font-semibold rounded-lg sm:rounded-xl hover:bg-slate-200 transition-colors flex items-center justify-center gap-2 text-sm sm:text-base">
+                        <MessageSquare className="w-4 sm:w-5 h-4 sm:h-5" />
+                        <span className="sm:inline">Message</span>
                       </button>
                     </div>
                   </div>

@@ -66,20 +66,20 @@ export function TopBar({ utilityName = 'LWSC' }: TopBarProps) {
   }
   
   return (
-    <header className="fixed top-0 left-64 right-0 h-20 bg-white/80 backdrop-blur-xl border-b border-slate-200/60 z-10">
-      <div className="h-full px-6 flex items-center justify-between">
-        {/* Left: Breadcrumb & Utility Name */}
-        <div className="flex items-center gap-4">
+    <header className="fixed top-0 left-0 lg:left-64 right-0 h-16 bg-white/80 backdrop-blur-xl border-b border-slate-200/60 z-10">
+      <div className="h-full px-4 lg:px-6 flex items-center justify-between">
+        {/* Left: Breadcrumb & Utility Name - hidden on mobile to make room for menu button */}
+        <div className="flex items-center gap-4 ml-12 lg:ml-0">
           <div>
-            <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Control Room</p>
+            <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider hidden sm:block">Control Room</p>
             <h2 className="text-sm font-semibold text-slate-900">
               {utilityName}
             </h2>
           </div>
         </div>
         
-        {/* Center: Quick System Status */}
-        <div className="flex items-center gap-3">
+        {/* Center: Quick System Status - hidden on small screens */}
+        <div className="hidden md:flex items-center gap-3">
           <div className="flex items-center gap-2 px-3 py-2 bg-slate-50 rounded-full border border-slate-200">
             <div className="flex items-center gap-1.5">
               {sensorStatus.connected ? (
@@ -108,9 +108,9 @@ export function TopBar({ utilityName = 'LWSC' }: TopBarProps) {
         </div>
         
         {/* Right: Status and Controls */}
-        <div className="flex items-center gap-4">
-          {/* Search */}
-          <div className="relative hidden lg:block">
+        <div className="flex items-center gap-2 sm:gap-4">
+          {/* Search - hidden on mobile */}
+          <div className="relative hidden xl:block">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
             <input 
               type="text" 
@@ -121,7 +121,7 @@ export function TopBar({ utilityName = 'LWSC' }: TopBarProps) {
           
           {/* System Status */}
           <div className={clsx(
-            "flex items-center gap-1.5 px-2.5 py-1 border rounded-full",
+            "flex items-center gap-1.5 px-2 sm:px-2.5 py-1 border rounded-full",
             sensorStatus.connected 
               ? "bg-emerald-50 border-emerald-200" 
               : "bg-amber-50 border-amber-200"
@@ -131,22 +131,22 @@ export function TopBar({ utilityName = 'LWSC' }: TopBarProps) {
               sensorStatus.connected ? 'bg-emerald-500 pulse-live' : 'bg-amber-500'
             )} />
             <span className={clsx(
-              "text-[10px] font-semibold",
+              "text-[10px] font-semibold hidden sm:inline",
               sensorStatus.connected ? "text-emerald-700" : "text-amber-700"
             )}>
-              {sensorStatus.connected ? 'Live' : 'No Sensors'}
+              {sensorStatus.connected ? 'Live' : 'Offline'}
             </span>
           </div>
           
-          {/* Current Time */}
-          <div className="flex flex-col items-end">
+          {/* Current Time - hidden on very small screens */}
+          <div className="hidden sm:flex flex-col items-end">
             <span className="text-xs font-bold text-slate-900 font-mono">
               {currentTime.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
             </span>
           </div>
           
-          {/* Divider */}
-          <div className="w-px h-8 bg-slate-200" />
+          {/* Divider - hidden on mobile */}
+          <div className="hidden sm:block w-px h-8 bg-slate-200" />
           
           {/* Notifications */}
           <NotificationPanel />

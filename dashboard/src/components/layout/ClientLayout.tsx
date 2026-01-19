@@ -6,11 +6,13 @@ import { Sidebar } from './Sidebar'
 import { TopBar } from './TopBar'
 import { NotificationProvider } from '@/lib/notifications'
 import AIChatAssistant from '@/components/ai/AIChatAssistant'
+import { Menu, X } from 'lucide-react'
 
 export function ClientLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const isLoginPage = pathname === '/login'
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null)
+  const [sidebarOpen, setSidebarOpen] = useState(false)
 
   useEffect(() => {
     // Check authentication on client side
@@ -24,6 +26,11 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
       }
     }
   }, [isLoginPage])
+
+  // Close sidebar when route changes on mobile
+  useEffect(() => {
+    setSidebarOpen(false)
+  }, [pathname])
 
   // Show loading while checking auth
   if (isAuthenticated === null && !isLoginPage) {
@@ -51,16 +58,39 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
   return (
     <NotificationProvider>
       <div className="flex min-h-screen">
-        {/* Fixed Left Sidebar */}
-        <Sidebar />
+        {/* Mobile Menu Button */}
+        <button
+          onClick={() => setSidebarOpen(!sidebarOpen)}
+          className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-slate-900 text-white rounded-lg shadow-lg"
+          aria-label="Toggle menu"
+        >
+          {sidebarOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+        </button>
+
+        {/* Mobile Overlay */}
+        {sidebarOpen && (
+          <div 
+            className="lg:hidden fixed inset-0 bg-black/50 z-30"
+            onClick={() => setSidebarOpen(false)}
+          />
+        )}
+
+        {/* Sidebar - hidden on mobile, shown on desktop */}
+        <div className={`
+          fixed lg:fixed inset-y-0 left-0 z-40
+          transform transition-transform duration-300 ease-in-out
+          ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+        `}>
+          <Sidebar />
+        </div>
         
         {/* Main Content Area */}
-        <div className="flex-1 ml-sidebar">
+        <div className="flex-1 lg:ml-64 min-w-0">
           {/* Top Status Bar */}
           <TopBar />
           
-          {/* Page Content */}
-          <main className="mt-topbar p-6">
+          {/* Page Content - responsive padding */}
+          <main className="mt-16 p-3 sm:p-4 lg:p-6">
             {children}
           </main>
         </div>
