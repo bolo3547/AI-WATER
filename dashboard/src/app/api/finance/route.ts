@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 
+// Finance API v2 - Real payment tracking
 // In-memory storage for payments (in production, use a database)
 // This will reset when the server restarts - perfect for demo
 let payments: Payment[] = []
