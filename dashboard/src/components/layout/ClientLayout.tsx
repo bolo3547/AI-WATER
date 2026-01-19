@@ -27,10 +27,22 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
     }
   }, [isLoginPage])
 
-  // Close sidebar when route changes on mobile
+  // Close sidebar when route changes
   useEffect(() => {
     setSidebarOpen(false)
   }, [pathname])
+
+  // Close sidebar when clicking outside on mobile
+  useEffect(() => {
+    const handleResize = () => {
+      // Auto-close on very small screens when resizing
+      if (window.innerWidth < 640 && sidebarOpen) {
+        // Keep open, user will close manually
+      }
+    }
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [sidebarOpen])
 
   // Show loading while checking auth
   if (isAuthenticated === null && !isLoginPage) {
@@ -58,36 +70,38 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
   return (
     <NotificationProvider>
       <div className="flex min-h-screen">
-        {/* Mobile Menu Button */}
+        {/* Menu Toggle Button - Always visible */}
         <button
           onClick={() => setSidebarOpen(!sidebarOpen)}
-          className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-slate-900 text-white rounded-lg shadow-lg"
+          className={`fixed top-4 z-50 p-2.5 bg-slate-900 text-white rounded-lg shadow-lg transition-all duration-300 ${
+            sidebarOpen ? 'left-[216px] sm:left-[232px]' : 'left-4'
+          }`}
           aria-label="Toggle menu"
         >
-          {sidebarOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+          {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
         </button>
 
-        {/* Mobile Overlay */}
+        {/* Overlay - closes sidebar when clicked */}
         {sidebarOpen && (
           <div 
-            className="lg:hidden fixed inset-0 bg-black/50 z-30"
+            className="fixed inset-0 bg-black/50 z-30 backdrop-blur-sm"
             onClick={() => setSidebarOpen(false)}
           />
         )}
 
-        {/* Sidebar - hidden on mobile, shown on desktop */}
+        {/* Sidebar - Slides in/out on all devices */}
         <div className={`
-          fixed lg:fixed inset-y-0 left-0 z-40
+          fixed inset-y-0 left-0 z-40
           transform transition-transform duration-300 ease-in-out
-          ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+          ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
         `}>
-          <Sidebar />
+          <Sidebar onClose={() => setSidebarOpen(false)} />
         </div>
         
-        {/* Main Content Area */}
-        <div className="flex-1 lg:ml-64 min-w-0">
+        {/* Main Content Area - Full width always */}
+        <div className="flex-1 min-w-0 w-full">
           {/* Top Status Bar */}
-          <TopBar />
+          <TopBar sidebarOpen={sidebarOpen} />
           
           {/* Page Content - responsive padding */}
           <main className="mt-16 p-3 sm:p-4 lg:p-6">
