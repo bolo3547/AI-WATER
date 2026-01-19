@@ -58,151 +58,22 @@ export default function PredictionsPage() {
     loadPredictions()
   }, [])
 
-  const loadPredictions = () => {
+  const loadPredictions = async () => {
     setIsAnalyzing(true)
     
-    setTimeout(() => {
-      setPredictions([
-        {
-          id: 'PRED-001',
-          pipeId: 'PIPE-KAB-2847',
-          location: 'Kabulonga Rd, Near Junction',
-          dma: 'Kabulonga',
-          failureProbability: 94,
-          predictedDate: '2026-02-15',
-          riskFactors: ['Age >40 years', 'Cast Iron Corrosion', 'High Pressure Zone', 'Previous Repairs'],
-          pipeAge: 45,
-          pipeMaterial: 'Cast Iron',
-          lastInspection: '2024-06-15',
-          estimatedLoss: 450,
-          repairCost: 15000,
-          priority: 'critical',
-          trend: 'increasing',
-          coordinates: { lat: -15.4192, lng: 28.3225 }
-        },
-        {
-          id: 'PRED-002',
-          pipeId: 'PIPE-ROM-1563',
-          location: 'Roma Township Main',
-          dma: 'Roma',
-          failureProbability: 87,
-          predictedDate: '2026-02-28',
-          riskFactors: ['Pressure Transients', 'Joint Weakness', 'Traffic Vibration'],
-          pipeAge: 32,
-          pipeMaterial: 'Asbestos Cement',
-          lastInspection: '2024-08-20',
-          estimatedLoss: 280,
-          repairCost: 12000,
-          priority: 'critical',
-          trend: 'increasing',
-          coordinates: { lat: -15.3958, lng: 28.3108 }
-        },
-        {
-          id: 'PRED-003',
-          pipeId: 'PIPE-CHE-0892',
-          location: 'Chelstone Shopping Area',
-          dma: 'Chelstone',
-          failureProbability: 72,
-          predictedDate: '2026-03-20',
-          riskFactors: ['Age >30 years', 'Soil Movement', 'Water Hammer Events'],
-          pipeAge: 35,
-          pipeMaterial: 'PVC',
-          lastInspection: '2025-01-10',
-          estimatedLoss: 180,
-          repairCost: 8000,
-          priority: 'high',
-          trend: 'stable',
-          coordinates: { lat: -15.3605, lng: 28.3517 }
-        },
-        {
-          id: 'PRED-004',
-          pipeId: 'PIPE-MAT-2341',
-          location: 'Matero Industrial Zone',
-          dma: 'Matero',
-          failureProbability: 65,
-          predictedDate: '2026-04-05',
-          riskFactors: ['Chemical Exposure', 'High Demand', 'Temperature Stress'],
-          pipeAge: 28,
-          pipeMaterial: 'Ductile Iron',
-          lastInspection: '2025-02-18',
-          estimatedLoss: 320,
-          repairCost: 18000,
-          priority: 'high',
-          trend: 'stable',
-          coordinates: { lat: -15.3747, lng: 28.2633 }
-        },
-        {
-          id: 'PRED-005',
-          pipeId: 'PIPE-WOD-4521',
-          location: 'Woodlands Residential',
-          dma: 'Woodlands',
-          failureProbability: 48,
-          predictedDate: '2026-05-10',
-          riskFactors: ['Minor Corrosion', 'Age >20 years'],
-          pipeAge: 22,
-          pipeMaterial: 'HDPE',
-          lastInspection: '2025-06-05',
-          estimatedLoss: 60,
-          repairCost: 4000,
-          priority: 'medium',
-          trend: 'stable',
-          coordinates: { lat: -15.4134, lng: 28.3064 }
-        },
-        {
-          id: 'PRED-006',
-          pipeId: 'PIPE-CHI-7823',
-          location: 'Chilenje South Block 5',
-          dma: 'Chilenje',
-          failureProbability: 35,
-          predictedDate: '2026-06-20',
-          riskFactors: ['Normal Wear', 'Minor Stress Points'],
-          pipeAge: 15,
-          pipeMaterial: 'HDPE',
-          lastInspection: '2025-09-12',
-          estimatedLoss: 40,
-          repairCost: 3000,
-          priority: 'low',
-          trend: 'decreasing',
-          coordinates: { lat: -15.4433, lng: 28.2925 }
-        },
-        {
-          id: 'PRED-007',
-          pipeId: 'PIPE-KAL-9012',
-          location: 'Kalingalinga Main Road',
-          dma: 'Kalingalinga',
-          failureProbability: 78,
-          predictedDate: '2026-03-01',
-          riskFactors: ['Illegal Connections', 'Shallow Depth', 'Heavy Traffic'],
-          pipeAge: 38,
-          pipeMaterial: 'Cast Iron',
-          lastInspection: '2024-11-30',
-          estimatedLoss: 220,
-          repairCost: 9500,
-          priority: 'high',
-          trend: 'increasing',
-          coordinates: { lat: -15.4028, lng: 28.3350 }
-        },
-        {
-          id: 'PRED-008',
-          pipeId: 'PIPE-OLY-3456',
-          location: 'Olympia Park Estate',
-          dma: 'Olympia',
-          failureProbability: 25,
-          predictedDate: '2026-08-15',
-          riskFactors: ['Normal Aging'],
-          pipeAge: 12,
-          pipeMaterial: 'HDPE',
-          lastInspection: '2025-12-01',
-          estimatedLoss: 25,
-          repairCost: 2500,
-          priority: 'low',
-          trend: 'stable',
-          coordinates: { lat: -15.4089, lng: 28.2953 }
-        }
-      ])
-      setIsAnalyzing(false)
+    try {
+      const response = await fetch('/api/predictions')
+      const data = await response.json()
+      
+      if (data.predictions) {
+        setPredictions(data.predictions)
+      }
       setLastAnalysis(new Date())
-    }, 2000)
+    } catch (error) {
+      console.error('Failed to load predictions:', error)
+    } finally {
+      setIsAnalyzing(false)
+    }
   }
 
   const filteredPredictions = predictions.filter(p => {

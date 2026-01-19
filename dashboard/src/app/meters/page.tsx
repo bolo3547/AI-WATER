@@ -55,179 +55,33 @@ export default function SmartMeterPage() {
 
   useEffect(() => {
     loadData()
-    // Simulate real-time updates
-    const interval = setInterval(updateMeterReadings, 30000)
+    // Real-time updates every 30 seconds
+    const interval = setInterval(loadData, 30000)
     return () => clearInterval(interval)
   }, [])
 
-  const loadData = () => {
+  const loadData = async () => {
     setIsLoading(true)
-    setTimeout(() => {
-      setMeters([
-        {
-          id: 'MTR-001',
-          accountNumber: 'ACC-KAB-12345',
-          customerName: 'Mwamba Enterprises',
-          location: 'Plot 5, Kabulonga Rd',
-          dma: 'Kabulonga',
-          meterType: 'ultrasonic',
-          status: 'online',
-          lastReading: 15234.5,
-          previousReading: 15180.2,
-          consumption: 54.3,
-          avgConsumption: 48.5,
-          battery: 92,
-          signalStrength: 4,
-          lastContact: '2 min ago',
-          alerts: [],
-          anomalyScore: 12,
-          coordinates: { lat: -15.4192, lng: 28.3225 }
-        },
-        {
-          id: 'MTR-002',
-          accountNumber: 'ACC-ROM-23456',
-          customerName: 'Roma Shopping Complex',
-          location: 'Roma Main Road',
-          dma: 'Roma',
-          meterType: 'electromagnetic',
-          status: 'warning',
-          lastReading: 89456.8,
-          previousReading: 88890.2,
-          consumption: 566.6,
-          avgConsumption: 420.0,
-          battery: 78,
-          signalStrength: 3,
-          lastContact: '15 min ago',
-          alerts: ['High consumption detected'],
-          anomalyScore: 68,
-          coordinates: { lat: -15.3958, lng: 28.3108 }
-        },
-        {
-          id: 'MTR-003',
-          accountNumber: 'ACC-CHE-34567',
-          customerName: 'Chelstone Primary School',
-          location: 'Off Chelstone Main',
-          dma: 'Chelstone',
-          meterType: 'amr',
-          status: 'online',
-          lastReading: 45678.2,
-          previousReading: 45650.8,
-          consumption: 27.4,
-          avgConsumption: 32.0,
-          battery: 85,
-          signalStrength: 5,
-          lastContact: '5 min ago',
-          alerts: [],
-          anomalyScore: 8,
-          coordinates: { lat: -15.3605, lng: 28.3517 }
-        },
-        {
-          id: 'MTR-004',
-          accountNumber: 'ACC-MAT-45678',
-          customerName: 'Matero Industrial Ltd',
-          location: 'Industrial Zone Block A',
-          dma: 'Matero',
-          meterType: 'electromagnetic',
-          status: 'tampered',
-          lastReading: 234567.0,
-          previousReading: 234800.5,
-          consumption: -233.5,
-          avgConsumption: 850.0,
-          battery: 45,
-          signalStrength: 2,
-          lastContact: '2 hours ago',
-          alerts: ['Reverse flow detected', 'Possible tampering'],
-          anomalyScore: 95,
-          coordinates: { lat: -15.3747, lng: 28.2633 }
-        },
-        {
-          id: 'MTR-005',
-          accountNumber: 'ACC-WDL-56789',
-          customerName: 'Woodlands Residence 42',
-          location: '42 Woodlands Close',
-          dma: 'Woodlands',
-          meterType: 'mechanical',
-          status: 'offline',
-          lastReading: 1234.6,
-          previousReading: 1234.6,
-          consumption: 0,
-          avgConsumption: 12.5,
-          battery: 5,
-          signalStrength: 0,
-          lastContact: '3 days ago',
-          alerts: ['No communication', 'Battery critical'],
-          anomalyScore: 78,
-          coordinates: { lat: -15.4134, lng: 28.3064 }
-        },
-        {
-          id: 'MTR-006',
-          accountNumber: 'ACC-CHI-67890',
-          customerName: 'Chilenje Health Center',
-          location: 'Chilenje South',
-          dma: 'Chilenje',
-          meterType: 'ultrasonic',
-          status: 'online',
-          lastReading: 78901.3,
-          previousReading: 78845.7,
-          consumption: 55.6,
-          avgConsumption: 52.0,
-          battery: 88,
-          signalStrength: 4,
-          lastContact: '1 min ago',
-          alerts: [],
-          anomalyScore: 5,
-          coordinates: { lat: -15.4433, lng: 28.2925 }
-        }
-      ])
-
-      setAnomalies([
-        {
-          meterId: 'MTR-004',
-          accountNumber: 'ACC-MAT-45678',
-          customerName: 'Matero Industrial Ltd',
-          anomalyType: 'reverse_flow',
-          severity: 'critical',
-          detectedAt: '2026-01-29 08:15',
-          currentConsumption: -233.5,
-          expectedConsumption: 850.0,
-          deviation: -127,
-          status: 'new'
-        },
-        {
-          meterId: 'MTR-002',
-          accountNumber: 'ACC-ROM-23456',
-          customerName: 'Roma Shopping Complex',
-          anomalyType: 'sudden_increase',
-          severity: 'high',
-          detectedAt: '2026-01-29 06:30',
-          currentConsumption: 566.6,
-          expectedConsumption: 420.0,
-          deviation: 35,
-          status: 'investigating'
-        },
-        {
-          meterId: 'MTR-005',
-          accountNumber: 'ACC-WDL-56789',
-          customerName: 'Woodlands Residence 42',
-          anomalyType: 'zero_consumption',
-          severity: 'medium',
-          detectedAt: '2026-01-26 14:00',
-          currentConsumption: 0,
-          expectedConsumption: 12.5,
-          deviation: -100,
-          status: 'new'
-        }
-      ])
-
+    try {
+      const response = await fetch('/api/meters')
+      const data = await response.json()
+      
+      if (data.meters) {
+        setMeters(data.meters)
+      }
+      if (data.anomalies) {
+        setAnomalies(data.anomalies)
+      }
+    } catch (error) {
+      console.error('Failed to load meter data:', error)
+    } finally {
       setIsLoading(false)
-    }, 1500)
+    }
   }
 
   const updateMeterReadings = () => {
-    setMeters(prev => prev.map(meter => ({
-      ...meter,
-      lastContact: meter.status === 'online' ? 'Just now' : meter.lastContact
-    })))
+    // Refresh data from API
+    loadData()
   }
 
   const getStatusColor = (status: string) => {
