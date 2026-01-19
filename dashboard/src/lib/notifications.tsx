@@ -5,6 +5,17 @@ import { createContext, useContext, useState, useEffect, useCallback, ReactNode 
 // Notification types
 export type NotificationType = 'alert' | 'warning' | 'success' | 'info'
 export type NotificationPriority = 'high' | 'medium' | 'low'
+export type NotificationCategory = 
+  | 'leak' 
+  | 'prediction' 
+  | 'satellite' 
+  | 'autonomous' 
+  | 'field' 
+  | 'weather' 
+  | 'meter' 
+  | 'finance' 
+  | 'community'
+  | 'system'
 
 export interface Notification {
   id: string
@@ -16,6 +27,7 @@ export interface Notification {
   read: boolean
   source?: string
   actionUrl?: string
+  category?: NotificationCategory
 }
 
 // Sensor status interface
@@ -322,4 +334,234 @@ export function useNotifications() {
     throw new Error('useNotifications must be used within NotificationProvider')
   }
   return context
+}
+
+// Push notification helper functions
+export async function requestPushPermission(): Promise<boolean> {
+  if (!('Notification' in window)) {
+    console.warn('Push notifications not supported')
+    return false
+  }
+  
+  const permission = await Notification.requestPermission()
+  return permission === 'granted'
+}
+
+export async function subscribeToPush(): Promise<PushSubscription | null> {
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+    console.warn('Push messaging not supported')
+    return null
+  }
+  
+  try {
+    const registration = await navigator.serviceWorker.ready
+    
+    // Check if already subscribed
+    let subscription = await registration.pushManager.getSubscription()
+    
+    if (!subscription) {
+      // Subscribe to push
+      // Note: In production, get VAPID public key from server
+      subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(
+          process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || 
+          'BEl62iUYgUivxIkv69yViEuiBIa-Ib9-SkvMeAtA3LFgDzkrxZJjSgSnfckjBJuBkr3qBUYIHBQFLXYp5Nksh8U'
+        )
+      })
+      
+      // Send subscription to server
+      await fetch('/api/notifications/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ subscription })
+      })
+    }
+    
+    return subscription
+  } catch (error) {
+    console.error('Failed to subscribe to push:', error)
+    return null
+  }
+}
+
+export async function unsubscribeFromPush(): Promise<boolean> {
+  try {
+    const registration = await navigator.serviceWorker.ready
+    const subscription = await registration.pushManager.getSubscription()
+    
+    if (subscription) {
+      await subscription.unsubscribe()
+      return true
+    }
+    return false
+  } catch (error) {
+    console.error('Failed to unsubscribe:', error)
+    return false
+  }
+}
+
+// Show a native browser notification
+export function showBrowserNotification(
+  title: string, 
+  options?: NotificationOptions & { onClick?: () => void }
+): void {
+  if (!('Notification' in window) || Notification.permission !== 'granted') {
+    return
+  }
+  
+  const notification = new Notification(title, {
+    icon: '/icons/icon-192.png',
+    badge: '/lwsc-logo.png',
+    ...options
+  })
+  
+  if (options?.onClick) {
+    notification.onclick = () => {
+      options.onClick?.()
+      notification.close()
+    }
+  }
+}
+
+// Helper to convert VAPID key
+function urlBase64ToUint8Array(base64String: string): ArrayBuffer {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4)
+  const base64 = (base64String + padding)
+    .replace(/-/g, '+')
+    .replace(/_/g, '/')
+  
+  const rawData = window.atob(base64)
+  const outputArray = new Uint8Array(rawData.length)
+  
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i)
+  }
+  
+  return outputArray.buffer as ArrayBuffer
+}
+
+// Notification factory functions for different AI systems
+export function createLeakNotification(
+  severity: 'critical' | 'high' | 'medium' | 'low',
+  location: string,
+  details: string
+): Omit<Notification, 'id' | 'timestamp' | 'read'> {
+  return {
+    type: severity === 'critical' || severity === 'high' ? 'alert' : 'warning',
+    priority: severity === 'critical' || severity === 'high' ? 'high' : severity === 'medium' ? 'medium' : 'low',
+    title: `🚨 ${severity.toUpperCase()} Leak Detected - ${location}`,
+    message: details,
+    source: 'AI Leak Detection',
+    actionUrl: '/actions',
+    category: 'leak'
+  }
+}
+
+export function createPredictionNotification(
+  pipeId: string,
+  probability: number,
+  daysUntilFailure: number
+): Omit<Notification, 'id' | 'timestamp' | 'read'> {
+  const priority = probability > 80 ? 'high' : probability > 50 ? 'medium' : 'low'
+  return {
+    type: probability > 80 ? 'alert' : 'warning',
+    priority,
+    title: `⚠️ Pipe Failure Prediction - ${pipeId}`,
+    message: `AI predicts ${probability}% probability of failure within ${daysUntilFailure} days. Preventive maintenance recommended.`,
+    source: 'Predictive AI',
+    actionUrl: '/predictions',
+    category: 'prediction'
+  }
+}
+
+export function createAutonomousNotification(
+  action: 'valve_closed' | 'pressure_adjusted' | 'flow_diverted',
+  details: string
+): Omit<Notification, 'id' | 'timestamp' | 'read'> {
+  const actionText = {
+    valve_closed: '🔧 Valve Automatically Closed',
+    pressure_adjusted: '📊 Pressure Zone Adjusted',
+    flow_diverted: '🔄 Flow Automatically Diverted'
+  }
+  return {
+    type: 'success',
+    priority: 'medium',
+    title: actionText[action],
+    message: details,
+    source: 'Autonomous System',
+    actionUrl: '/autonomous',
+    category: 'autonomous'
+  }
+}
+
+export function createFieldNotification(
+  type: 'dispatch' | 'arrival' | 'completion',
+  crewName: string,
+  location: string
+): Omit<Notification, 'id' | 'timestamp' | 'read'> {
+  const messages = {
+    dispatch: `👷 ${crewName} dispatched to ${location}`,
+    arrival: `📍 ${crewName} arrived at ${location}`,
+    completion: `✅ ${crewName} completed work at ${location}`
+  }
+  return {
+    type: type === 'completion' ? 'success' : 'info',
+    priority: type === 'dispatch' ? 'medium' : 'low',
+    title: messages[type],
+    message: `Field operation update for ${location}`,
+    source: 'Field Operations',
+    actionUrl: '/field',
+    category: 'field'
+  }
+}
+
+export function createWeatherNotification(
+  alert: 'storm' | 'drought' | 'flood' | 'heat',
+  impact: string
+): Omit<Notification, 'id' | 'timestamp' | 'read'> {
+  const icons = { storm: '🌧️', drought: '☀️', flood: '🌊', heat: '🔥' }
+  return {
+    type: alert === 'flood' || alert === 'storm' ? 'warning' : 'info',
+    priority: alert === 'flood' ? 'high' : 'medium',
+    title: `${icons[alert]} Weather Alert - ${alert.charAt(0).toUpperCase() + alert.slice(1)} Warning`,
+    message: impact,
+    source: 'Weather Correlation',
+    actionUrl: '/weather',
+    category: 'weather'
+  }
+}
+
+export function createMeterNotification(
+  issue: 'battery' | 'signal' | 'anomaly' | 'tamper',
+  meterCount: number,
+  details: string
+): Omit<Notification, 'id' | 'timestamp' | 'read'> {
+  const icons = { battery: '🔋', signal: '📶', anomaly: '📊', tamper: '⚠️' }
+  return {
+    type: issue === 'tamper' ? 'alert' : issue === 'anomaly' ? 'warning' : 'info',
+    priority: issue === 'tamper' ? 'high' : 'medium',
+    title: `${icons[issue]} Smart Meter Alert - ${meterCount} meter${meterCount > 1 ? 's' : ''}`,
+    message: details,
+    source: 'AMI Network',
+    actionUrl: '/meters',
+    category: 'meter'
+  }
+}
+
+export function createCommunityNotification(
+  reportType: 'leak' | 'quality' | 'pressure' | 'other',
+  location: string,
+  source: 'ussd' | 'app' | 'web'
+): Omit<Notification, 'id' | 'timestamp' | 'read'> {
+  const sourceText = { ussd: 'USSD', app: 'Mobile App', web: 'Web Portal' }
+  return {
+    type: 'info',
+    priority: reportType === 'leak' ? 'medium' : 'low',
+    title: `📱 Community Report - ${reportType.charAt(0).toUpperCase() + reportType.slice(1)}`,
+    message: `New ${reportType} report from ${location} via ${sourceText[source]}`,
+    source: 'Community Reports',
+    actionUrl: '/community',
+    category: 'community'
+  }
 }

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { User, Clock, ChevronDown, Wifi, WifiOff, Database, Cpu, Search, LogOut } from 'lucide-react'
+import { User, Clock, ChevronDown, Wifi, WifiOff, Database, Cpu, Search, LogOut, Moon, Sun, Command } from 'lucide-react'
 import { clsx } from 'clsx'
 import { NotificationPanel } from '@/components/notifications/NotificationPanel'
 import { useNotifications } from '@/lib/notifications'
@@ -21,6 +21,7 @@ export function TopBar({ utilityName = 'LWSC' }: TopBarProps) {
   const [currentTime, setCurrentTime] = useState(new Date())
   const [systemStatus, setSystemStatus] = useState<'green' | 'amber' | 'red'>('green')
   const [showUserMenu, setShowUserMenu] = useState(false)
+  const [isDarkMode, setIsDarkMode] = useState(false)
   const { sensorStatus } = useNotifications()
 
   useEffect(() => {
@@ -48,6 +49,12 @@ export function TopBar({ utilityName = 'LWSC' }: TopBarProps) {
       setSystemStatus('green')
     }
   }, [sensorStatus.connected])
+
+  // Theme toggle
+  const toggleDarkMode = () => {
+    setIsDarkMode(!isDarkMode)
+    document.documentElement.setAttribute('data-theme', isDarkMode ? 'light' : 'dark')
+  }
 
   const handleLogout = () => {
     if (typeof window !== 'undefined') {
@@ -115,9 +122,25 @@ export function TopBar({ utilityName = 'LWSC' }: TopBarProps) {
             <input 
               type="text" 
               placeholder="Search..." 
-              className="w-48 pl-9 pr-4 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+              className="w-52 pl-9 pr-4 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
             />
+            <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-0.5 px-1.5 py-0.5 bg-slate-100 rounded text-[10px] text-slate-400 font-medium">
+              <Command className="w-3 h-3" />K
+            </div>
           </div>
+          
+          {/* Theme Toggle */}
+          <button
+            onClick={toggleDarkMode}
+            className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+            title={isDarkMode ? 'Light mode' : 'Dark mode'}
+          >
+            {isDarkMode ? (
+              <Sun className="w-4 h-4 text-amber-500" />
+            ) : (
+              <Moon className="w-4 h-4 text-slate-500" />
+            )}
+          </button>
           
           {/* System Status */}
           <div className={clsx(

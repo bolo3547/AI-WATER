@@ -73,36 +73,131 @@ self.addEventListener('fetch', (event) => {
   );
 });
 
-// Handle push notifications
+// Handle push notifications with enhanced options
 self.addEventListener('push', (event) => {
   const data = event.data?.json() || {};
   
+  // Determine notification priority and styling
+  const priority = data.priority || 'medium';
+  const type = data.type || 'info';
+  
+  // Different vibration patterns for different priorities
+  const vibrationPatterns = {
+    high: [200, 100, 200, 100, 200], // Urgent triple buzz
+    medium: [100, 50, 100],          // Standard double buzz  
+    low: [100]                        // Single soft buzz
+  };
+  
+  // Notification icons based on type
+  const iconMap = {
+    alert: '/icons/alert-icon.png',
+    warning: '/icons/warning-icon.png', 
+    success: '/icons/success-icon.png',
+    info: '/icons/icon-192.png'
+  };
+  
   const options = {
     body: data.body || 'New notification from LWSC NRW System',
-    icon: '/icons/icon-192.png',
+    icon: iconMap[type] || '/icons/icon-192.png',
     badge: '/lwsc-logo.png',
-    vibrate: [100, 50, 100],
+    vibrate: vibrationPatterns[priority] || vibrationPatterns.medium,
+    tag: data.tag || `lwsc-${Date.now()}`, // Prevents duplicate notifications
+    renotify: data.renotify || false,
+    requireInteraction: priority === 'high', // High priority stays until dismissed
+    silent: data.silent || false,
     data: {
-      url: data.url || '/'
+      url: data.url || '/notifications',
+      type: type,
+      priority: priority,
+      id: data.id,
+      source: data.source
     },
-    actions: [
-      { action: 'view', title: 'View' },
-      { action: 'dismiss', title: 'Dismiss' }
+    actions: data.actions || [
+      { action: 'view', title: '👁️ View Details', icon: '/icons/view.png' },
+      { action: 'action', title: '⚡ Take Action', icon: '/icons/action.png' },
+      { action: 'dismiss', title: '✖️ Dismiss', icon: '/icons/dismiss.png' }
     ]
   };
+  
+  // For critical alerts, add extra emphasis
+  if (priority === 'high' && type === 'alert') {
+    options.body = `🚨 CRITICAL: ${data.body}`;
+    options.requireInteraction = true;
+  }
 
   event.waitUntil(
     self.registration.showNotification(data.title || 'LWSC NRW Alert', options)
   );
 });
 
-// Handle notification click
+// Handle notification click with action routing
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-
+  
+  const notificationData = event.notification.data || {};
+  
+  // Handle different actions
   if (event.action === 'dismiss') return;
+  
+  let targetUrl = '/notifications';
+  
+  if (event.action === 'view' || event.action === '') {
+    targetUrl = notificationData.url || '/notifications';
+  } else if (event.action === 'action') {
+    // Route to actions page for the specific alert
+    targetUrl = `/actions?id=${notificationData.id || ''}`;
+  }
 
   event.waitUntil(
-    clients.openWindow(event.notification.data?.url || '/')
+    clients.matchAll({ type: 'window', includeUncontrolled: true })
+      .then((windowClients) => {
+        // Check if a window is already open
+        for (const client of windowClients) {
+          if (client.url.includes(self.location.origin)) {
+            client.focus();
+            return client.navigate(targetUrl);
+          }
+        }
+        // No window open, open new one
+        return clients.openWindow(targetUrl);
+      })
   );
 });
+
+// Background sync for offline notifications
+self.addEventListener('sync', (event) => {
+  if (event.tag === 'sync-notifications') {
+    event.waitUntil(syncNotifications());
+  }
+});
+
+async function syncNotifications() {
+  try {
+    const response = await fetch('/api/notifications/pending');
+    const data = await response.json();
+    
+    if (data.notifications && data.notifications.length > 0) {
+      // Show batch notification for multiple pending alerts
+      if (data.notifications.length > 3) {
+        await self.registration.showNotification('LWSC NRW - Multiple Alerts', {
+          body: `You have ${data.notifications.length} pending notifications`,
+          icon: '/icons/icon-192.png',
+          badge: '/lwsc-logo.png',
+          data: { url: '/notifications' }
+        });
+      } else {
+        // Show individual notifications
+        for (const notification of data.notifications) {
+          await self.registration.showNotification(notification.title, {
+            body: notification.message,
+            icon: '/icons/icon-192.png',
+            badge: '/lwsc-logo.png',
+            data: { url: notification.actionUrl || '/notifications' }
+          });
+        }
+      }
+    }
+  } catch (error) {
+    console.log('Background sync failed:', error);
+  }
+}
