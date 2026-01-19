@@ -15,21 +15,21 @@ export default function SystemConfigPage() {
   })
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">System Configuration</h1>
-          <p className="text-sm text-slate-500 mt-1">Configure system settings and integrations</p>
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900">System Configuration</h1>
+          <p className="text-xs sm:text-sm text-slate-500 mt-0.5 sm:mt-1">Configure system settings and integrations</p>
         </div>
-        <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors shadow-lg shadow-blue-500/25">
+        <button className="flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors shadow-lg shadow-blue-500/25">
           <Save className="w-4 h-4" />
           Save Changes
         </button>
       </div>
 
       {/* Config Sections */}
-      <div className="grid grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
         {/* API Settings */}
         <div className="bg-white rounded-xl border border-slate-200 p-6">
           <div className="flex items-center gap-3 mb-6">

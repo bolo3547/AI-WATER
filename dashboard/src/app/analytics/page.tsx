@@ -141,12 +141,12 @@ export default function AnalyticsPage() {
   ]
   
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Page Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
         <div>
-          <h1 className="text-display font-bold text-text-primary">Analytics</h1>
-          <p className="text-body text-text-secondary mt-1">
+          <h1 className="text-xl sm:text-2xl lg:text-display font-bold text-text-primary">Analytics</h1>
+          <p className="text-xs sm:text-sm lg:text-body text-text-secondary mt-0.5 sm:mt-1">
             In-depth analysis of network performance and NRW trends
           </p>
         </div>
@@ -182,7 +182,7 @@ export default function AnalyticsPage() {
       <Tabs tabs={tabs} activeTab={activeTab} onChange={setActiveTab} />
       
       {/* Key Metrics */}
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
         <KPICard
           label="Average NRW"
           value={`${displayMetrics.total_nrw_percent.toFixed(1)}%`}
@@ -215,7 +215,7 @@ export default function AnalyticsPage() {
       </div>
       
       {/* Main Charts */}
-      <div className="grid grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         <SectionCard title="NRW Trend Analysis" subtitle="Network-wide NRW percentage over time">
           <NRWTrendChart data={displayTrend} height={350} showLegend />
         </SectionCard>
@@ -271,7 +271,7 @@ export default function AnalyticsPage() {
       </SectionCard>
       
       {/* AI Insights */}
-      <div className="grid grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
         <div className="card p-6">
           <h3 className="font-semibold text-slate-900 mb-3">Top Anomalies</h3>
           <div className="space-y-3">

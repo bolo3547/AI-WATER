@@ -510,18 +510,19 @@ ${dmas.map(d => `• ${d.name}: ${d.nrw_percent}% NRW`).join('\n')}
   }
   
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Page Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
         <div>
-          <h1 className="text-display font-bold text-text-primary">Reports</h1>
-          <p className="text-body text-text-secondary mt-1">
+          <h1 className="text-xl sm:text-2xl lg:text-display font-bold text-text-primary">Reports</h1>
+          <p className="text-xs sm:text-sm lg:text-body text-text-secondary mt-0.5 sm:mt-1">
             Generate and download real system reports using AI analysis
           </p>
         </div>
         <Button variant="secondary" onClick={fetchData}>
           <RefreshCw className="w-4 h-4" />
-          Refresh Data
+          <span className="hidden sm:inline">Refresh Data</span>
+          <span className="sm:hidden">Refresh</span>
         </Button>
       </div>
       
@@ -559,7 +560,7 @@ ${dmas.map(d => `• ${d.name}: ${d.nrw_percent}% NRW`).join('\n')}
             </div>
           )}
           
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {REPORT_TEMPLATES.map((template) => (
               <div 
                 key={template.id}

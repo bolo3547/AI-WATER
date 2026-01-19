@@ -521,7 +521,7 @@ export default function FirmwareGeneratorPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         {/* Configuration Panel */}
         <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
           <div className="px-6 py-4 border-b border-slate-100 bg-slate-50">
@@ -533,7 +533,7 @@ export default function FirmwareGeneratorPage() {
           
           <div className="p-6 space-y-5">
             {/* Device Info */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1.5">Device ID</label>
                 <div className="flex gap-2">
@@ -567,7 +567,7 @@ export default function FirmwareGeneratorPage() {
             {/* Sensor Type */}
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">Sensor Type</label>
-              <div className="grid grid-cols-5 gap-2">
+              <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
                 {SENSOR_TYPES.map((type) => {
                   const Icon = type.icon
                   return (
@@ -640,7 +640,7 @@ export default function FirmwareGeneratorPage() {
                     className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm font-mono"
                   />
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-slate-700 mb-1.5">MQTT Broker</label>
                     <input
@@ -670,7 +670,7 @@ export default function FirmwareGeneratorPage() {
                 <MapPin className="w-4 h-4" />
                 Location
               </h3>
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1.5">Latitude</label>
                   <input
@@ -718,7 +718,7 @@ export default function FirmwareGeneratorPage() {
                 <Zap className="w-4 h-4" />
                 Advanced Settings
               </h3>
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1.5">Reading Interval (s)</label>
                   <input

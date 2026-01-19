@@ -243,21 +243,22 @@ export default function ActionsPage() {
       </div>
       
       {/* Page Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
         <div>
-          <h1 className="text-display font-bold text-text-primary">Actions & Work Orders</h1>
-          <p className="text-body text-text-secondary mt-1">
+          <h1 className="text-xl sm:text-2xl lg:text-display font-bold text-text-primary">Actions & Work Orders</h1>
+          <p className="text-xs sm:text-sm lg:text-body text-text-secondary mt-0.5 sm:mt-1">
             Manage leak investigations and repair tasks
           </p>
         </div>
         <Button variant="primary" onClick={() => setShowCreateModal(true)}>
           <Plus className="w-4 h-4" />
-          Create Work Order
+          <span className="hidden sm:inline">Create Work Order</span>
+          <span className="sm:hidden">Create</span>
         </Button>
       </div>
       
       {/* Summary Stats */}
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
         <div className="card p-4">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg bg-red-100 flex items-center justify-center">

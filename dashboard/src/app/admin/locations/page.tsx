@@ -217,14 +217,14 @@ export default function LocationManagementPage() {
   const getDMAsByTown = (townId: string) => dmaLocations.filter(d => d.town_id === townId)
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Location Management</h1>
-          <p className="text-sm text-slate-500 mt-1">Manage countries, towns, and DMA zones</p>
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900">Location Management</h1>
+          <p className="text-xs sm:text-sm text-slate-500 mt-0.5 sm:mt-1">Manage countries, towns, and DMA zones</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <button 
             onClick={() => { setEditingCountry(null); setCountryForm({ name: '', code: '', region: 'Southern Africa' }); setShowCountryModal(true) }}
             className="flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-700 rounded-xl hover:bg-slate-200 transition-colors"
@@ -250,7 +250,7 @@ export default function LocationManagementPage() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
         <div className="bg-white rounded-xl border border-slate-200 p-4">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">

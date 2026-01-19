@@ -221,16 +221,16 @@ export default function SystemHealthPage() {
   }
   
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Page Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
         <div>
-          <h1 className="text-display font-bold text-text-primary">System Health</h1>
-          <p className="text-body text-text-secondary mt-1">
+          <h1 className="text-xl sm:text-2xl lg:text-display font-bold text-text-primary">System Health</h1>
+          <p className="text-xs sm:text-sm lg:text-body text-text-secondary mt-0.5 sm:mt-1">
             Infrastructure status, sensor network, and AI engine monitoring
           </p>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 sm:gap-4 flex-wrap">
           {lastUpdate && (
             <span className="text-caption text-text-tertiary">
               Last update: {lastUpdate.toLocaleTimeString()}
@@ -248,7 +248,7 @@ export default function SystemHealthPage() {
       </div>
       
       {/* Overall Health Summary */}
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
         <div className="card p-5">
           <div className="flex items-center justify-between">
             <div>

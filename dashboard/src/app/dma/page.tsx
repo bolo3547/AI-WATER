@@ -108,14 +108,14 @@ export default function DMAIntelligencePage() {
   return (
     <div className="space-y-6">
       {/* Page Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
         <div>
-          <h1 className="text-display font-bold text-text-primary">DMA Intelligence</h1>
-          <p className="text-body text-text-secondary mt-1">
+          <h1 className="text-xl sm:text-2xl lg:text-display font-bold text-text-primary">DMA Intelligence</h1>
+          <p className="text-xs sm:text-sm lg:text-body text-text-secondary mt-0.5 sm:mt-1">
             District Metered Area analysis and priority ranking
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
           {lastUpdate && (
             <span className="text-caption text-text-tertiary">
               Updated: {lastUpdate.toLocaleTimeString()}
@@ -129,9 +129,9 @@ export default function DMAIntelligencePage() {
       </div>
       
       {/* Main Layout: Map + List */}
-      <div className="grid grid-cols-5 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 sm:gap-6">
         {/* GIS Map - 3 columns */}
-        <div className="col-span-3">
+        <div className="lg:col-span-3">
           <SectionCard title="Lusaka Network Map" subtitle="Click a DMA to view details • LWSC Coverage Area" noPadding>
             <div className="h-[600px] relative">
               {/* Real GIS Map */}
@@ -205,7 +205,7 @@ export default function DMAIntelligencePage() {
         </div>
         
         {/* DMA List - 2 columns */}
-        <div className="col-span-2">
+        <div className="lg:col-span-2">
           <SectionCard 
             title="Priority Ranking" 
             subtitle="DMAs sorted by intervention priority"
@@ -265,7 +265,7 @@ export default function DMAIntelligencePage() {
       </div>
       
       {/* Summary Statistics */}
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
         <div className="card p-4">
           <p className="text-label text-text-tertiary uppercase">Network Average NRW</p>
           <p className="text-metric font-bold text-text-primary mt-1">

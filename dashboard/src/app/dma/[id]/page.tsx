@@ -91,32 +91,33 @@ export default function DMADeepDivePage({ params }: PageProps) {
   }
   
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Page Header */}
-      <div className="flex items-start justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 sm:gap-4">
         <div>
           <Link href="/dma" className="inline-flex items-center gap-1 text-caption text-text-secondary hover:text-text-primary mb-2">
             <ArrowLeft className="w-4 h-4" />
             Back to DMA List
           </Link>
-          <div className="flex items-center gap-3">
-            <h1 className="text-display font-bold text-text-primary">{displayDMA.name}</h1>
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+            <h1 className="text-xl sm:text-2xl lg:text-display font-bold text-text-primary">{displayDMA.name}</h1>
             <StatusBadge status={displayDMA.status} />
           </div>
-          <p className="text-body text-text-secondary mt-1">
+          <p className="text-xs sm:text-sm lg:text-body text-text-secondary mt-0.5 sm:mt-1">
             DMA ID: {displayDMA.dma_id} • Last updated: {formatRelativeTime(displayDMA.last_updated)}
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
           <PriorityScore score={displayDMA.priority_score} />
           <Button variant="primary">
-            Create Work Order
+            <span className="hidden sm:inline">Create Work Order</span>
+            <span className="sm:hidden">Create</span>
           </Button>
         </div>
       </div>
       
       {/* Primary KPIs */}
-      <div className="grid grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-4">
         <KPICard
           label="NRW Rate"
           value={displayDMA.nrw_percent}
@@ -160,9 +161,9 @@ export default function DMADeepDivePage({ params }: PageProps) {
       />
       
       {/* Main Content */}
-      <div className="grid grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
         {/* Flow Chart - 2 columns */}
-        <div className="col-span-2">
+        <div className="lg:col-span-2">
           <SectionCard 
             title="Flow Analysis"
             subtitle="Inflow vs metered consumption showing loss patterns"
@@ -171,7 +172,7 @@ export default function DMADeepDivePage({ params }: PageProps) {
             <FlowComparisonChart data={displayFlowData} height={320} />
             
             {/* Flow Insights */}
-            <div className="mt-4 pt-4 border-t border-surface-border grid grid-cols-4 gap-4">
+            <div className="mt-4 pt-4 border-t border-surface-border grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
               <div>
                 <p className="text-label text-text-tertiary uppercase">Avg Inflow</p>
                 <p className="text-body font-semibold text-text-primary">52.1 m³/h</p>
@@ -193,7 +194,7 @@ export default function DMADeepDivePage({ params }: PageProps) {
         </div>
         
         {/* NRW Trend - 1 column */}
-        <div className="col-span-1">
+        <div className="lg:col-span-1">
           <SectionCard title="NRW Trend" subtitle="30-day historical">
             <NRWTrendChart data={MOCK_NRW_TREND} height={200} />
             
