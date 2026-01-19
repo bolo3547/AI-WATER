@@ -278,7 +278,7 @@ export default function SmartMeterPage() {
     anomalies: anomalies.filter(a => a.status === 'new').length
   }
 
-  const uniqueDMAs = [...new Set(meters.map(m => m.dma))]
+  const uniqueDMAs = Array.from(new Set(meters.map(m => m.dma)))
 
   return (
     <div className="space-y-4 sm:space-y-6">

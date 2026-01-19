@@ -6,7 +6,14 @@ export async function GET(request: NextRequest) {
   // In a real implementation, this would check the database for
   // notifications that were queued while the user was offline
   
-  const pendingNotifications = [
+  const pendingNotifications: Array<{
+    id: string
+    title: string
+    message: string
+    type: string
+    priority: string
+    actionUrl: string
+  }> = [
     // Example pending notifications that would be synced
     // In production, these would come from a database queue
   ]

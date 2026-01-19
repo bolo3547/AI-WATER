@@ -236,7 +236,7 @@ export default function PredictionsPage() {
     avgProbability: Math.round(predictions.reduce((sum, p) => sum + p.failureProbability, 0) / predictions.length)
   }
 
-  const uniqueDMAs = [...new Set(predictions.map(p => p.dma))]
+  const uniqueDMAs = Array.from(new Set(predictions.map(p => p.dma)))
 
   return (
     <div className="space-y-4 sm:space-y-6">
