@@ -11,7 +11,8 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const isLoginPage = pathname === '/login'
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null)
-  const [sidebarExpanded, setSidebarExpanded] = useState(true)
+  const [sidebarExpanded, setSidebarExpanded] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
 
   useEffect(() => {
     // Check authentication on client side
@@ -24,14 +25,23 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
         window.location.href = '/login'
       }
       
-      // Load sidebar state from localStorage
+      // Check if mobile
+      const checkMobile = () => {
+        setIsMobile(window.innerWidth < 768)
+      }
+      checkMobile()
+      window.addEventListener('resize', checkMobile)
+      
+      // Load sidebar state from localStorage (only for desktop)
       const savedSidebarState = localStorage.getItem('sidebarExpanded')
-      if (savedSidebarState !== null) {
+      if (savedSidebarState !== null && window.innerWidth >= 768) {
         setSidebarExpanded(savedSidebarState === 'true')
       } else {
-        // Default: expanded on desktop, collapsed on mobile
-        setSidebarExpanded(window.innerWidth >= 768)
+        // Default: collapsed on all devices initially
+        setSidebarExpanded(false)
       }
+      
+      return () => window.removeEventListener('resize', checkMobile)
     }
   }, [isLoginPage])
 
@@ -39,7 +49,9 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
   const handleSidebarToggle = () => {
     const newState = !sidebarExpanded
     setSidebarExpanded(newState)
-    localStorage.setItem('sidebarExpanded', String(newState))
+    if (!isMobile) {
+      localStorage.setItem('sidebarExpanded', String(newState))
+    }
   }
 
   // Show loading while checking auth
@@ -64,23 +76,28 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
     return null
   }
 
+  // Calculate sidebar width based on state and device
+  const sidebarWidth = isMobile 
+    ? (sidebarExpanded ? 240 : 56)  // Smaller on mobile
+    : (sidebarExpanded ? 256 : 64)  // Normal on desktop
+
   // Dashboard pages - with sidebar/topbar and notifications
   return (
     <NotificationProvider>
       <div className="flex min-h-screen">
         {/* Sidebar - Always visible, expands/collapses like ChatGPT */}
-        <Sidebar isExpanded={sidebarExpanded} onToggle={handleSidebarToggle} />
+        <Sidebar isExpanded={sidebarExpanded} onToggle={handleSidebarToggle} isMobile={isMobile} />
         
         {/* Main Content Area - Adjusts margin based on sidebar state */}
         <div 
           className="flex-1 min-w-0 transition-all duration-300"
-          style={{ marginLeft: sidebarExpanded ? '256px' : '64px' }}
+          style={{ marginLeft: `${sidebarWidth}px` }}
         >
           {/* Top Status Bar */}
           <TopBar />
           
-          {/* Page Content */}
-          <main className="mt-16 p-3 sm:p-4 lg:p-6">
+          {/* Page Content - tighter padding on mobile */}
+          <main className="mt-14 sm:mt-16 p-2 sm:p-4 lg:p-6">
             {children}
           </main>
         </div>

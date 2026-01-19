@@ -60,9 +60,10 @@ const technicianNavigation = [
 interface SidebarProps {
   isExpanded: boolean
   onToggle: () => void
+  isMobile?: boolean
 }
 
-export function Sidebar({ isExpanded, onToggle }: SidebarProps) {
+export function Sidebar({ isExpanded, onToggle, isMobile = false }: SidebarProps) {
   const pathname = usePathname()
   const [userRole, setUserRole] = useState<string>('operator')
   const [username, setUsername] = useState<string>('')
@@ -93,11 +94,15 @@ export function Sidebar({ isExpanded, onToggle }: SidebarProps) {
   const navigation = getNavigation()
   const roleLabel = userRole === 'admin' ? 'Administrator' : userRole === 'technician' ? 'Field Tech' : 'Operator'
   const roleColor = userRole === 'admin' ? 'text-purple-400' : userRole === 'technician' ? 'text-orange-400' : 'text-cyan-400'
+
+  // Widths based on device and state
+  const expandedWidth = isMobile ? 'w-60' : 'w-64'
+  const collapsedWidth = isMobile ? 'w-14' : 'w-16'
   
   return (
     <aside className={clsx(
       "fixed left-0 top-0 bottom-0 bg-gradient-to-b from-slate-900 via-slate-900 to-slate-800 flex flex-col shadow-xl z-40 transition-all duration-300 ease-in-out",
-      isExpanded ? "w-64" : "w-16"
+      isExpanded ? expandedWidth : collapsedWidth
     )}>
       {/* Logo - LWSC Branding */}
       <div className={clsx(

@@ -66,13 +66,13 @@ export function TopBar({ utilityName = 'LWSC' }: TopBarProps) {
   }
   
   return (
-    <header className="fixed top-0 right-0 h-16 bg-white/80 backdrop-blur-xl border-b border-slate-200/60 z-10 transition-all duration-300" style={{ left: 0 }}>
-      <div className="h-full px-4 lg:px-6 flex items-center justify-between">
+    <header className="fixed top-0 right-0 h-14 sm:h-16 bg-white/80 backdrop-blur-xl border-b border-slate-200/60 z-10 transition-all duration-300" style={{ left: 0 }}>
+      <div className="h-full px-2 sm:px-4 lg:px-6 flex items-center justify-between">
         {/* Left: Breadcrumb & Utility Name */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 sm:gap-4">
           <div>
-            <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider hidden sm:block">Control Room</p>
-            <h2 className="text-sm font-semibold text-slate-900">
+            <p className="text-[9px] sm:text-[10px] font-semibold text-slate-400 uppercase tracking-wider hidden sm:block">Control Room</p>
+            <h2 className="text-xs sm:text-sm font-semibold text-slate-900">
               {utilityName}
             </h2>
           </div>
@@ -155,10 +155,10 @@ export function TopBar({ utilityName = 'LWSC' }: TopBarProps) {
           <div className="relative">
             <button 
               onClick={() => setShowUserMenu(!showUserMenu)}
-              className="flex items-center gap-2 pl-2 pr-3 py-1.5 hover:bg-slate-100 rounded-xl transition-colors"
+              className="flex items-center gap-1 sm:gap-2 pl-1.5 sm:pl-2 pr-2 sm:pr-3 py-1 sm:py-1.5 hover:bg-slate-100 rounded-xl transition-colors"
             >
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center shadow-sm">
-                <span className="text-xs font-bold text-white">
+              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center shadow-sm">
+                <span className="text-[10px] sm:text-xs font-bold text-white">
                   {user?.username?.substring(0, 2).toUpperCase() || 'U'}
                 </span>
               </div>
@@ -166,24 +166,24 @@ export function TopBar({ utilityName = 'LWSC' }: TopBarProps) {
                 <p className="text-xs font-semibold text-slate-900">{user?.username || 'User'}</p>
                 <p className="text-[10px] text-slate-400 capitalize">{user?.role || 'Operator'}</p>
               </div>
-              <ChevronDown className="w-4 h-4 text-slate-400" />
+              <ChevronDown className="w-3 h-3 sm:w-4 sm:h-4 text-slate-400" />
             </button>
 
             {/* User Dropdown Menu */}
             {showUserMenu && (
-              <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-xl shadow-lg border border-slate-200 py-2 z-50">
-                <div className="px-4 py-2 border-b border-slate-100">
-                  <p className="text-sm font-medium text-slate-900">{user?.username}</p>
-                  <p className="text-xs text-slate-500">{user?.email || `${user?.username}@aquawatch.local`}</p>
+              <div className="absolute right-0 top-full mt-2 w-44 sm:w-48 bg-white rounded-xl shadow-lg border border-slate-200 py-2 z-50">
+                <div className="px-3 sm:px-4 py-2 border-b border-slate-100">
+                  <p className="text-xs sm:text-sm font-medium text-slate-900">{user?.username}</p>
+                  <p className="text-[10px] sm:text-xs text-slate-500 truncate">{user?.email || `${user?.username}@lwsc.local`}</p>
                 </div>
                 <button
                   onClick={() => {
                     setShowUserMenu(false)
                     handleLogout()
                   }}
-                  className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                  className="w-full flex items-center gap-2 px-3 sm:px-4 py-2 text-xs sm:text-sm text-red-600 hover:bg-red-50 transition-colors"
                 >
-                  <LogOut className="w-4 h-4" />
+                  <LogOut className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                   Sign Out
                 </button>
               </div>
