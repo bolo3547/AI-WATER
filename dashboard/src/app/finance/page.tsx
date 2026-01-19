@@ -6,103 +6,91 @@ import {
   PieChart, Target, AlertTriangle, CheckCircle,
   Calendar, Download, RefreshCw, ArrowUp, ArrowDown,
   Wallet, CreditCard, Receipt, Banknote, Clock,
-  Users, Building, Factory, Droplets, Zap
+  Users, Building, Factory, Droplets, Zap, Info,
+  AlertCircle, MapPin
 } from 'lucide-react'
 import { SectionCard } from '@/components/ui/Cards'
 import { Button, Tabs, Select } from '@/components/ui/Controls'
 
 interface RevenueData {
-  month: string
-  billed: number
-  collected: number
-  nrwLoss: number
-  recovered: number
+  date: string
+  amount: number
+  paymentCount: number
 }
 
-interface PredictionData {
-  category: string
-  currentLoss: number
-  predictedRecovery: number
-  investmentNeeded: number
-  roi: number
-  timeToRecovery: number
-}
-
-interface CustomerSegment {
-  type: string
-  count: number
-  revenue: number
-  nrwImpact: number
+interface FinanceSummary {
+  totalCollected: number
+  totalBilled: number
   collectionRate: number
+  paymentCount: number
+  todayPayments: number
+  averagePayment: number
+  byMethod: Record<string, { count: number; total: number }>
+  byDMA: Record<string, { count: number; total: number }>
+}
+
+interface RecentPayment {
+  id: string
+  accountNumber: string
+  customerName: string
+  amount: number
+  method: string
+  timestamp: string
+  dma: string
 }
 
 export default function FinancePage() {
   const [activeTab, setActiveTab] = useState('overview')
   const [revenueData, setRevenueData] = useState<RevenueData[]>([])
-  const [predictions, setPredictions] = useState<PredictionData[]>([])
-  const [segments, setSegments] = useState<CustomerSegment[]>([])
-  const [timeRange, setTimeRange] = useState('12')
-  const [currency] = useState('ZMW')
+  const [summary, setSummary] = useState<FinanceSummary>({
+    totalCollected: 0,
+    totalBilled: 0,
+    collectionRate: 0,
+    paymentCount: 0,
+    todayPayments: 0,
+    averagePayment: 0,
+    byMethod: {},
+    byDMA: {}
+  })
+  const [recentPayments, setRecentPayments] = useState<RecentPayment[]>([])
+  const [timeRange, setTimeRange] = useState('6')
+  const [isLoading, setIsLoading] = useState(true)
+  const [statusMessage, setStatusMessage] = useState('')
 
   useEffect(() => {
     loadData()
+    // Refresh every 30 seconds to catch new payments
+    const interval = setInterval(loadData, 30000)
+    return () => clearInterval(interval)
   }, [timeRange])
 
-  const loadData = () => {
-    setRevenueData([
-      { month: 'Jan', billed: 12500000, collected: 10625000, nrwLoss: 3750000, recovered: 450000 },
-      { month: 'Feb', billed: 13200000, collected: 11220000, nrwLoss: 3960000, recovered: 520000 },
-      { month: 'Mar', billed: 13800000, collected: 12006000, nrwLoss: 4140000, recovered: 680000 },
-      { month: 'Apr', billed: 14100000, collected: 12408000, nrwLoss: 4230000, recovered: 750000 },
-      { month: 'May', billed: 14500000, collected: 13050000, nrwLoss: 4350000, recovered: 890000 },
-      { month: 'Jun', billed: 15200000, collected: 13832000, nrwLoss: 4560000, recovered: 1020000 }
-    ])
-
-    setPredictions([
-      {
-        category: 'Physical Losses (Leaks)',
-        currentLoss: 28000000,
-        predictedRecovery: 19600000,
-        investmentNeeded: 8500000,
-        roi: 230,
-        timeToRecovery: 18
-      },
-      {
-        category: 'Commercial Losses (Theft)',
-        currentLoss: 12000000,
-        predictedRecovery: 9600000,
-        investmentNeeded: 2800000,
-        roi: 343,
-        timeToRecovery: 12
-      },
-      {
-        category: 'Meter Inaccuracy',
-        currentLoss: 8500000,
-        predictedRecovery: 6800000,
-        investmentNeeded: 4200000,
-        roi: 162,
-        timeToRecovery: 24
-      },
-      {
-        category: 'Unbilled Connections',
-        currentLoss: 6200000,
-        predictedRecovery: 5580000,
-        investmentNeeded: 1500000,
-        roi: 372,
-        timeToRecovery: 8
+  const loadData = async () => {
+    setIsLoading(true)
+    try {
+      const response = await fetch(`/api/finance?months=${timeRange}`)
+      const data = await response.json()
+      
+      if (data.totals) {
+        setSummary(data.totals)
       }
-    ])
-
-    setSegments([
-      { type: 'Residential', count: 185000, revenue: 95000000, nrwImpact: 38, collectionRate: 82 },
-      { type: 'Commercial', count: 12500, revenue: 45000000, nrwImpact: 22, collectionRate: 91 },
-      { type: 'Industrial', count: 850, revenue: 28000000, nrwImpact: 15, collectionRate: 95 },
-      { type: 'Government', count: 420, revenue: 18000000, nrwImpact: 12, collectionRate: 68 },
-      { type: 'Institutional', count: 680, revenue: 12000000, nrwImpact: 8, collectionRate: 78 }
-    ])
+      if (data.revenueData) {
+        setRevenueData(data.revenueData)
+      }
+      if (data.recentPayments) {
+        setRecentPayments(data.recentPayments)
+      }
+      if (data.message) {
+        setStatusMessage(data.message)
+      }
+    } catch (error) {
+      console.error('Failed to load finance data:', error)
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const formatCurrency = (amount: number) => {
+    if (amount === 0) return 'K0'
     if (amount >= 1000000) {
       return `K${(amount / 1000000).toFixed(1)}M`
     } else if (amount >= 1000) {
@@ -111,13 +99,7 @@ export default function FinancePage() {
     return `K${amount.toLocaleString()}`
   }
 
-  const totalBilled = revenueData.reduce((sum, d) => sum + d.billed, 0)
-  const totalCollected = revenueData.reduce((sum, d) => sum + d.collected, 0)
-  const totalNRWLoss = revenueData.reduce((sum, d) => sum + d.nrwLoss, 0)
-  const totalRecovered = revenueData.reduce((sum, d) => sum + d.recovered, 0)
-  const collectionRate = Math.round((totalCollected / totalBilled) * 100)
-  const predictedAnnualRecovery = predictions.reduce((sum, p) => sum + p.predictedRecovery, 0)
-  const totalInvestment = predictions.reduce((sum, p) => sum + p.investmentNeeded, 0)
+  // paymentCount used for conditional rendering
 
   return (
     <div className="space-y-4 sm:space-y-6">
@@ -129,65 +111,74 @@ export default function FinancePage() {
             Revenue Intelligence
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 mt-1">
-            AI-powered revenue recovery and financial forecasting
+            Real-time payment tracking and financial analytics
           </p>
         </div>
         <div className="flex items-center gap-2">
           <Select
             value={timeRange}
             options={[
+              { value: '3', label: 'Last 3 Months' },
               { value: '6', label: 'Last 6 Months' },
-              { value: '12', label: 'Last 12 Months' },
-              { value: '24', label: 'Last 2 Years' }
+              { value: '12', label: 'Last 12 Months' }
             ]}
             onChange={setTimeRange}
           />
-          <Button variant="secondary">
-            <Download className="w-4 h-4" />
-            <span className="hidden sm:inline">Export</span>
+          <Button variant="secondary" onClick={loadData}>
+            <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
           </Button>
         </div>
       </div>
 
-      {/* Key Metrics */}
+      {/* Status Message */}
+      {summary.paymentCount === 0 && (
+        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex items-start gap-3">
+          <Info className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+          <div>
+            <p className="text-sm font-medium text-blue-900">No Payments Recorded Yet</p>
+            <p className="text-sm text-blue-700 mt-1">
+              Revenue data will appear here once customers start making payments. 
+              The system is ready to track all incoming payments in real-time.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Key Metrics - Real Data from API */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
         <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-xl p-4 text-white">
           <div className="flex items-center justify-between">
             <Wallet className="w-8 h-8 opacity-80" />
-            <span className="flex items-center gap-1 text-green-200 text-xs">
-              <ArrowUp className="w-3 h-3" /> 8.2%
-            </span>
+            {summary.paymentCount > 0 && (
+              <span className="flex items-center gap-1 text-green-200 text-xs">
+                <ArrowUp className="w-3 h-3" /> New
+              </span>
+            )}
           </div>
-          <p className="text-2xl sm:text-3xl font-bold mt-2">{formatCurrency(totalBilled)}</p>
-          <p className="text-green-200 text-xs sm:text-sm">Total Billed (6M)</p>
+          <p className="text-2xl sm:text-3xl font-bold mt-2">{formatCurrency(summary.totalCollected)}</p>
+          <p className="text-green-200 text-xs sm:text-sm">Total Collected</p>
         </div>
         <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-4 text-white">
           <div className="flex items-center justify-between">
             <CreditCard className="w-8 h-8 opacity-80" />
-            <span className="text-blue-200 text-xs">{collectionRate}%</span>
+            <span className="text-blue-200 text-xs">{summary.paymentCount} payments</span>
           </div>
-          <p className="text-2xl sm:text-3xl font-bold mt-2">{formatCurrency(totalCollected)}</p>
-          <p className="text-blue-200 text-xs sm:text-sm">Collected</p>
-        </div>
-        <div className="bg-gradient-to-br from-red-500 to-red-600 rounded-xl p-4 text-white">
-          <div className="flex items-center justify-between">
-            <AlertTriangle className="w-8 h-8 opacity-80" />
-            <span className="flex items-center gap-1 text-red-200 text-xs">
-              <ArrowDown className="w-3 h-3" /> 3.1%
-            </span>
-          </div>
-          <p className="text-2xl sm:text-3xl font-bold mt-2">{formatCurrency(totalNRWLoss)}</p>
-          <p className="text-red-200 text-xs sm:text-sm">NRW Loss</p>
+          <p className="text-2xl sm:text-3xl font-bold mt-2">{summary.paymentCount}</p>
+          <p className="text-blue-200 text-xs sm:text-sm">Transactions</p>
         </div>
         <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl p-4 text-white">
           <div className="flex items-center justify-between">
             <Target className="w-8 h-8 opacity-80" />
-            <span className="flex items-center gap-1 text-purple-200 text-xs">
-              <ArrowUp className="w-3 h-3" /> 127%
-            </span>
           </div>
-          <p className="text-2xl sm:text-3xl font-bold mt-2">{formatCurrency(totalRecovered)}</p>
-          <p className="text-purple-200 text-xs sm:text-sm">Recovered</p>
+          <p className="text-2xl sm:text-3xl font-bold mt-2">{formatCurrency(summary.averagePayment)}</p>
+          <p className="text-purple-200 text-xs sm:text-sm">Avg Payment</p>
+        </div>
+        <div className="bg-gradient-to-br from-cyan-500 to-cyan-600 rounded-xl p-4 text-white">
+          <div className="flex items-center justify-between">
+            <TrendingUp className="w-8 h-8 opacity-80" />
+          </div>
+          <p className="text-2xl sm:text-3xl font-bold mt-2">{summary.todayPayments}</p>
+          <p className="text-cyan-200 text-xs sm:text-sm">Today's Payments</p>
         </div>
       </div>
 
@@ -195,8 +186,8 @@ export default function FinancePage() {
       <Tabs
         tabs={[
           { id: 'overview', label: 'Overview' },
-          { id: 'predictions', label: 'AI Predictions' },
-          { id: 'segments', label: 'Customer Segments' }
+          { id: 'payments', label: 'Recent Payments' },
+          { id: 'analytics', label: 'Analytics' }
         ]}
         activeTab={activeTab}
         onChange={setActiveTab}
@@ -204,85 +195,93 @@ export default function FinancePage() {
 
       {activeTab === 'overview' && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {/* Revenue Trend Chart */}
-          <SectionCard title="Revenue Trend" subtitle="Monthly billed vs collected">
-            <div className="h-64 flex items-end gap-2 px-2">
-              {revenueData.map((data, idx) => (
-                <div key={idx} className="flex-1 flex flex-col items-center gap-1">
-                  <div className="w-full flex gap-0.5 h-48">
-                    <div className="flex-1 bg-slate-100 rounded-t relative overflow-hidden">
-                      <div 
-                        className="absolute bottom-0 w-full bg-green-500 rounded-t"
-                        style={{ height: `${(data.billed / 16000000) * 100}%` }}
-                      />
+          {/* Revenue Collection Chart */}
+          <SectionCard title="Revenue Collection" subtitle="Daily collection trend">
+            {revenueData.length === 0 ? (
+              <div className="h-64 flex items-center justify-center text-slate-400">
+                <div className="text-center">
+                  <Wallet className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                  <p>No payment data yet</p>
+                  <p className="text-sm">Chart will appear once payments are recorded</p>
+                </div>
+              </div>
+            ) : (
+              <>
+                <div className="h-64 flex items-end gap-2 px-2">
+                  {revenueData.slice(-7).map((data, idx) => {
+                    const maxAmount = Math.max(...revenueData.map(d => d.amount), 1)
+                    return (
+                      <div key={idx} className="flex-1 flex flex-col items-center gap-1">
+                        <div className="w-full bg-slate-100 rounded-t relative overflow-hidden h-48">
+                          <div 
+                            className="absolute bottom-0 w-full bg-green-500 rounded-t"
+                            style={{ height: `${(data.amount / maxAmount) * 100}%` }}
+                          />
+                        </div>
+                        <span className="text-xs text-slate-500">{data.date}</span>
+                        <span className="text-xs font-semibold text-green-600">{formatCurrency(data.amount)}</span>
+                      </div>
+                    )
+                  })}
+                </div>
+                <div className="flex justify-center gap-6 mt-4 text-sm">
+                  <span className="flex items-center gap-2">
+                    <span className="w-3 h-3 bg-green-500 rounded" />
+                    Collected
+                  </span>
+                </div>
+              </>
+            )}
+          </SectionCard>
+
+          {/* Payment Methods Breakdown */}
+          <SectionCard title="Payment Methods" subtitle="Collection by payment channel">
+            {summary.paymentCount === 0 ? (
+              <div className="h-64 flex items-center justify-center text-slate-400">
+                <div className="text-center">
+                  <CreditCard className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                  <p>No payments recorded</p>
+                  <p className="text-sm">Payment method breakdown will appear here</p>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {summary.byMethod && Object.entries(summary.byMethod).map(([method, data]: [string, any], idx) => {
+                  const colors: Record<string, string> = {
+                    mobile_money: 'bg-green-500',
+                    bank_transfer: 'bg-blue-500',
+                    cash: 'bg-yellow-500',
+                    card: 'bg-purple-500'
+                  }
+                  const labels: Record<string, string> = {
+                    mobile_money: 'Mobile Money',
+                    bank_transfer: 'Bank Transfer',
+                    cash: 'Cash',
+                    card: 'Card'
+                  }
+                  const percent = summary.totalCollected > 0 ? (data.total / summary.totalCollected) * 100 : 0
+                  return (
+                    <div key={idx}>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-sm text-slate-700">{labels[method] || method}</span>
+                        <span className="text-sm font-semibold text-slate-900">{formatCurrency(data.total)}</span>
+                      </div>
+                      <div className="h-3 bg-slate-100 rounded-full overflow-hidden">
+                        <div 
+                          className={`h-full ${colors[method] || 'bg-slate-500'} rounded-full`}
+                          style={{ width: `${percent}%` }}
+                        />
+                      </div>
+                      <p className="text-xs text-slate-500 mt-0.5">{data.count} payments ({percent.toFixed(1)}%)</p>
                     </div>
-                    <div className="flex-1 bg-slate-100 rounded-t relative overflow-hidden">
-                      <div 
-                        className="absolute bottom-0 w-full bg-blue-500 rounded-t"
-                        style={{ height: `${(data.collected / 16000000) * 100}%` }}
-                      />
-                    </div>
-                  </div>
-                  <span className="text-xs text-slate-500">{data.month}</span>
-                </div>
-              ))}
-            </div>
-            <div className="flex justify-center gap-6 mt-4 text-sm">
-              <span className="flex items-center gap-2">
-                <span className="w-3 h-3 bg-green-500 rounded" />
-                Billed
-              </span>
-              <span className="flex items-center gap-2">
-                <span className="w-3 h-3 bg-blue-500 rounded" />
-                Collected
-              </span>
-            </div>
+                  )
+                })}
+              </div>
+            )}
           </SectionCard>
 
-          {/* NRW Loss Breakdown */}
-          <SectionCard title="NRW Financial Impact" subtitle="Revenue lost to non-revenue water">
-            <div className="space-y-4">
-              {[
-                { label: 'Physical Losses', amount: 28000000, percent: 52, color: 'bg-red-500' },
-                { label: 'Commercial Losses', amount: 12000000, percent: 22, color: 'bg-orange-500' },
-                { label: 'Meter Inaccuracy', amount: 8500000, percent: 16, color: 'bg-yellow-500' },
-                { label: 'Unbilled Connections', amount: 6200000, percent: 11, color: 'bg-blue-500' }
-              ].map((item, idx) => (
-                <div key={idx}>
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-sm text-slate-700">{item.label}</span>
-                    <span className="text-sm font-semibold text-slate-900">{formatCurrency(item.amount)}</span>
-                  </div>
-                  <div className="h-3 bg-slate-100 rounded-full overflow-hidden">
-                    <div 
-                      className={`h-full ${item.color} rounded-full`}
-                      style={{ width: `${item.percent}%` }}
-                    />
-                  </div>
-                  <p className="text-xs text-slate-500 mt-0.5">{item.percent}% of total NRW loss</p>
-                </div>
-              ))}
-            </div>
-          </SectionCard>
-
-          {/* Recovery Progress */}
-          <SectionCard title="Recovery Progress" subtitle="Month-over-month recovery trends">
-            <div className="h-48 flex items-end gap-4 px-2">
-              {revenueData.map((data, idx) => (
-                <div key={idx} className="flex-1 flex flex-col items-center">
-                  <div 
-                    className="w-full bg-gradient-to-t from-purple-600 to-purple-400 rounded-t"
-                    style={{ height: `${(data.recovered / 1200000) * 100}%` }}
-                  />
-                  <span className="text-xs text-slate-500 mt-1">{data.month}</span>
-                  <span className="text-xs font-semibold text-purple-600">{formatCurrency(data.recovered)}</span>
-                </div>
-              ))}
-            </div>
-          </SectionCard>
-
-          {/* Collection Rate */}
-          <SectionCard title="Collection Performance" subtitle="Bill collection efficiency">
+          {/* Collection Summary */}
+          <SectionCard title="Collection Summary" subtitle="Revenue totals">
             <div className="flex items-center justify-center py-8">
               <div className="relative w-48 h-48">
                 <svg className="w-48 h-48 -rotate-90">
@@ -290,210 +289,180 @@ export default function FinancePage() {
                     cx="96" cy="96" r="80"
                     stroke="#e2e8f0" strokeWidth="16" fill="none"
                   />
-                  <circle
-                    cx="96" cy="96" r="80"
-                    stroke="url(#gradient)" strokeWidth="16" fill="none"
-                    strokeDasharray={`${collectionRate * 5.02} 502`}
-                    strokeLinecap="round"
-                  />
+                  {summary.paymentCount > 0 && (
+                    <circle
+                      cx="96" cy="96" r="80"
+                      stroke="url(#gradient)" strokeWidth="16" fill="none"
+                      strokeDasharray={`${Math.min(100, summary.paymentCount) * 5.02} 502`}
+                      strokeLinecap="round"
+                    />
+                  )}
                   <defs>
                     <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                      <stop offset="0%" stopColor="#3b82f6" />
-                      <stop offset="100%" stopColor="#8b5cf6" />
+                      <stop offset="0%" stopColor="#22c55e" />
+                      <stop offset="100%" stopColor="#10b981" />
                     </linearGradient>
                   </defs>
                 </svg>
                 <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <span className="text-4xl font-bold text-slate-900">{collectionRate}%</span>
-                  <span className="text-sm text-slate-500">Collection Rate</span>
+                  <span className="text-3xl font-bold text-slate-900">{formatCurrency(summary.totalCollected)}</span>
+                  <span className="text-sm text-slate-500">Total Collected</span>
                 </div>
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4 mt-4">
               <div className="text-center p-3 bg-green-50 rounded-xl">
-                <p className="text-2xl font-bold text-green-600">{formatCurrency(totalCollected)}</p>
-                <p className="text-xs text-green-700">Collected</p>
+                <p className="text-2xl font-bold text-green-600">{summary.paymentCount}</p>
+                <p className="text-xs text-green-700">Total Payments</p>
               </div>
-              <div className="text-center p-3 bg-red-50 rounded-xl">
-                <p className="text-2xl font-bold text-red-600">{formatCurrency(totalBilled - totalCollected)}</p>
-                <p className="text-xs text-red-700">Outstanding</p>
+              <div className="text-center p-3 bg-blue-50 rounded-xl">
+                <p className="text-2xl font-bold text-blue-600">{formatCurrency(summary.averagePayment)}</p>
+                <p className="text-xs text-blue-700">Average Payment</p>
               </div>
             </div>
+          </SectionCard>
+
+          {/* DMA Collection */}
+          <SectionCard title="Collection by DMA" subtitle="Revenue per district metered area">
+            {!summary.byDMA || Object.keys(summary.byDMA).length === 0 ? (
+              <div className="h-64 flex items-center justify-center text-slate-400">
+                <div className="text-center">
+                  <MapPin className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                  <p>No DMA data yet</p>
+                  <p className="text-sm">DMA collection breakdown will appear here</p>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-3 max-h-64 overflow-y-auto">
+                {Object.entries(summary.byDMA).map(([dma, data]: [string, any], idx) => (
+                  <div key={idx} className="flex items-center justify-between p-2 bg-slate-50 rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <MapPin className="w-4 h-4 text-slate-400" />
+                      <span className="text-sm font-medium text-slate-700">{dma}</span>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-bold text-slate-900">{formatCurrency(data.total)}</p>
+                      <p className="text-xs text-slate-500">{data.count} payments</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </SectionCard>
         </div>
       )}
 
-      {activeTab === 'predictions' && (
+      {activeTab === 'payments' && (
         <div className="space-y-4">
-          {/* AI Prediction Summary */}
-          <div className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl p-4 sm:p-6 text-white">
+          {/* Recent Payments */}
+          <SectionCard title="Recent Payments" subtitle="Latest payment transactions" noPadding>
+            {recentPayments.length === 0 ? (
+              <div className="p-12 text-center text-slate-400">
+                <CreditCard className="w-16 h-16 mx-auto mb-4 opacity-50" />
+                <p className="text-lg font-medium">No Payments Yet</p>
+                <p className="text-sm mt-2">
+                  When customers make payments, they will appear here in real-time.
+                </p>
+              </div>
+            ) : (
+              <div className="divide-y divide-slate-100">
+                {recentPayments.map((payment, idx) => (
+                  <div key={idx} className="p-4 hover:bg-slate-50">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                          payment.method === 'mobile_money' ? 'bg-green-100' :
+                          payment.method === 'bank_transfer' ? 'bg-blue-100' :
+                          payment.method === 'cash' ? 'bg-yellow-100' : 'bg-purple-100'
+                        }`}>
+                          <CreditCard className={`w-5 h-5 ${
+                            payment.method === 'mobile_money' ? 'text-green-600' :
+                            payment.method === 'bank_transfer' ? 'text-blue-600' :
+                            payment.method === 'cash' ? 'text-yellow-600' : 'text-purple-600'
+                          }`} />
+                        </div>
+                        <div>
+                          <p className="font-medium text-slate-900">{payment.accountNumber}</p>
+                          <p className="text-sm text-slate-500">{payment.dma} • {payment.method.replace('_', ' ')}</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-bold text-green-600">{formatCurrency(payment.amount)}</p>
+                        <p className="text-xs text-slate-400">{new Date(payment.timestamp).toLocaleString()}</p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </SectionCard>
+        </div>
+      )}
+
+      {activeTab === 'analytics' && (
+        <div className="space-y-4">
+          {/* System Status */}
+          <div className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl p-4 sm:p-6 text-white">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
                 <h3 className="text-lg font-bold flex items-center gap-2">
                   <Zap className="w-5 h-5" />
-                  AI Revenue Recovery Forecast
+                  LWSC Revenue Collection System
                 </h3>
-                <p className="text-indigo-200 text-sm mt-1">
-                  Based on current NRW reduction initiatives
+                <p className="text-blue-200 text-sm mt-1">
+                  Real-time payment tracking and analytics
                 </p>
               </div>
               <div className="grid grid-cols-3 gap-4">
                 <div className="text-center">
                   <p className="text-2xl sm:text-3xl font-bold text-green-300">
-                    {formatCurrency(predictedAnnualRecovery)}
+                    {summary.paymentCount}
                   </p>
-                  <p className="text-xs text-indigo-200">Annual Recovery</p>
+                  <p className="text-xs text-blue-200">Total Payments</p>
                 </div>
                 <div className="text-center">
                   <p className="text-2xl sm:text-3xl font-bold text-yellow-300">
-                    {formatCurrency(totalInvestment)}
+                    {formatCurrency(summary.totalCollected)}
                   </p>
-                  <p className="text-xs text-indigo-200">Investment Needed</p>
+                  <p className="text-xs text-blue-200">Revenue</p>
                 </div>
                 <div className="text-center">
                   <p className="text-2xl sm:text-3xl font-bold text-cyan-300">
-                    {Math.round((predictedAnnualRecovery / totalInvestment) * 100)}%
+                    {summary.todayPayments}
                   </p>
-                  <p className="text-xs text-indigo-200">Avg ROI</p>
+                  <p className="text-xs text-blue-200">Today</p>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Prediction Details */}
-          <SectionCard title="Recovery Opportunities" subtitle="AI-identified revenue recovery potential" noPadding>
-            <div className="divide-y divide-slate-100">
-              {predictions.map((pred, idx) => (
-                <div key={idx} className="p-4 hover:bg-slate-50">
-                  <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-                    <div className="flex-1">
-                      <h4 className="font-semibold text-slate-900">{pred.category}</h4>
-                      <div className="flex flex-wrap items-center gap-4 mt-2 text-sm">
-                        <span className="text-red-600">
-                          Loss: {formatCurrency(pred.currentLoss)}/yr
-                        </span>
-                        <span className="text-green-600">
-                          Recoverable: {formatCurrency(pred.predictedRecovery)}/yr
-                        </span>
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-3 gap-4 text-center">
-                      <div className="bg-slate-50 rounded-lg p-2">
-                        <p className="text-lg font-bold text-slate-900">{formatCurrency(pred.investmentNeeded)}</p>
-                        <p className="text-xs text-slate-500">Investment</p>
-                      </div>
-                      <div className="bg-green-50 rounded-lg p-2">
-                        <p className="text-lg font-bold text-green-600">{pred.roi}%</p>
-                        <p className="text-xs text-slate-500">ROI</p>
-                      </div>
-                      <div className="bg-blue-50 rounded-lg p-2">
-                        <p className="text-lg font-bold text-blue-600">{pred.timeToRecovery}</p>
-                        <p className="text-xs text-slate-500">Months</p>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="mt-3">
-                    <div className="flex items-center justify-between text-xs mb-1">
-                      <span className="text-slate-500">Recovery Progress</span>
-                      <span className="font-semibold">{Math.round((pred.predictedRecovery / pred.currentLoss) * 100)}%</span>
-                    </div>
-                    <div className="h-2 bg-slate-200 rounded-full overflow-hidden">
-                      <div 
-                        className="h-full bg-gradient-to-r from-green-500 to-emerald-500 rounded-full"
-                        style={{ width: `${(pred.predictedRecovery / pred.currentLoss) * 100}%` }}
-                      />
-                    </div>
-                  </div>
+          {/* Analytics Info */}
+          <SectionCard title="Analytics Overview" subtitle="Payment insights and trends">
+            <div className="text-center py-8 text-slate-400">
+              <TrendingUp className="w-16 h-16 mx-auto mb-4 opacity-50" />
+              <p className="text-lg font-medium">Building Analytics</p>
+              <p className="text-sm mt-2 max-w-md mx-auto">
+                As more payments are collected, detailed analytics including trends, 
+                forecasts, and customer insights will become available here.
+              </p>
+              <div className="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-4 max-w-2xl mx-auto">
+                <div className="p-3 bg-slate-50 rounded-lg">
+                  <Users className="w-6 h-6 mx-auto text-slate-400 mb-1" />
+                  <p className="text-xs text-slate-500">Customer Analytics</p>
                 </div>
-              ))}
-            </div>
-          </SectionCard>
-        </div>
-      )}
-
-      {activeTab === 'segments' && (
-        <div className="space-y-4">
-          {/* Segment Overview */}
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-            {segments.map((seg, idx) => (
-              <div key={idx} className="bg-white rounded-xl border border-slate-200 p-3 sm:p-4">
-                <div className="flex items-center gap-2 mb-2">
-                  {seg.type === 'Residential' && <Users className="w-5 h-5 text-blue-600" />}
-                  {seg.type === 'Commercial' && <Building className="w-5 h-5 text-green-600" />}
-                  {seg.type === 'Industrial' && <Factory className="w-5 h-5 text-orange-600" />}
-                  {seg.type === 'Government' && <Building className="w-5 h-5 text-purple-600" />}
-                  {seg.type === 'Institutional' && <Building className="w-5 h-5 text-cyan-600" />}
-                  <span className="text-sm font-medium text-slate-900">{seg.type}</span>
+                <div className="p-3 bg-slate-50 rounded-lg">
+                  <Building className="w-6 h-6 mx-auto text-slate-400 mb-1" />
+                  <p className="text-xs text-slate-500">DMA Performance</p>
                 </div>
-                <p className="text-xl font-bold text-slate-900">{seg.count.toLocaleString()}</p>
-                <p className="text-xs text-slate-500">Customers</p>
+                <div className="p-3 bg-slate-50 rounded-lg">
+                  <Target className="w-6 h-6 mx-auto text-slate-400 mb-1" />
+                  <p className="text-xs text-slate-500">Collection Targets</p>
+                </div>
+                <div className="p-3 bg-slate-50 rounded-lg">
+                  <AlertTriangle className="w-6 h-6 mx-auto text-slate-400 mb-1" />
+                  <p className="text-xs text-slate-500">Defaulter Tracking</p>
+                </div>
               </div>
-            ))}
-          </div>
-
-          {/* Detailed Segment Analysis */}
-          <SectionCard title="Segment Performance" subtitle="Revenue and NRW impact by customer type" noPadding>
-            <div className="divide-y divide-slate-100">
-              {segments.map((seg, idx) => (
-                <div key={idx} className="p-4">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    <div className="flex items-center gap-3">
-                      <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
-                        seg.type === 'Residential' ? 'bg-blue-100' :
-                        seg.type === 'Commercial' ? 'bg-green-100' :
-                        seg.type === 'Industrial' ? 'bg-orange-100' :
-                        seg.type === 'Government' ? 'bg-purple-100' : 'bg-cyan-100'
-                      }`}>
-                        {seg.type === 'Residential' && <Users className="w-6 h-6 text-blue-600" />}
-                        {seg.type === 'Commercial' && <Building className="w-6 h-6 text-green-600" />}
-                        {seg.type === 'Industrial' && <Factory className="w-6 h-6 text-orange-600" />}
-                        {seg.type === 'Government' && <Building className="w-6 h-6 text-purple-600" />}
-                        {seg.type === 'Institutional' && <Building className="w-6 h-6 text-cyan-600" />}
-                      </div>
-                      <div>
-                        <p className="font-semibold text-slate-900">{seg.type}</p>
-                        <p className="text-sm text-slate-500">{seg.count.toLocaleString()} customers</p>
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-3 gap-4">
-                      <div className="text-center">
-                        <p className="text-lg font-bold text-slate-900">{formatCurrency(seg.revenue)}</p>
-                        <p className="text-xs text-slate-500">Annual Revenue</p>
-                      </div>
-                      <div className="text-center">
-                        <p className="text-lg font-bold text-red-600">{seg.nrwImpact}%</p>
-                        <p className="text-xs text-slate-500">NRW Impact</p>
-                      </div>
-                      <div className="text-center">
-                        <p className={`text-lg font-bold ${seg.collectionRate >= 90 ? 'text-green-600' : seg.collectionRate >= 75 ? 'text-yellow-600' : 'text-red-600'}`}>
-                          {seg.collectionRate}%
-                        </p>
-                        <p className="text-xs text-slate-500">Collection</p>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="mt-3 grid grid-cols-2 gap-2">
-                    <div>
-                      <div className="flex items-center justify-between text-xs mb-1">
-                        <span className="text-slate-500">NRW Impact</span>
-                        <span>{seg.nrwImpact}%</span>
-                      </div>
-                      <div className="h-2 bg-slate-200 rounded-full overflow-hidden">
-                        <div className="h-full bg-red-500 rounded-full" style={{ width: `${seg.nrwImpact}%` }} />
-                      </div>
-                    </div>
-                    <div>
-                      <div className="flex items-center justify-between text-xs mb-1">
-                        <span className="text-slate-500">Collection Rate</span>
-                        <span>{seg.collectionRate}%</span>
-                      </div>
-                      <div className="h-2 bg-slate-200 rounded-full overflow-hidden">
-                        <div className="h-full bg-green-500 rounded-full" style={{ width: `${seg.collectionRate}%` }} />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
             </div>
           </SectionCard>
         </div>
