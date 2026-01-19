@@ -6,12 +6,13 @@ interface Message {
 }
 
 // AI Provider configurations (in order of preference)
+// Groq is FREE and fast - recommended for production
 const AI_PROVIDERS = [
   {
     name: 'groq',
     url: 'https://api.groq.com/openai/v1/chat/completions',
     key: process.env.GROQ_API_KEY || '',
-    model: 'llama-3.3-70b-versatile'
+    model: 'llama-3.3-70b-versatile' // Fast, free, powerful
   },
   {
     name: 'together',
@@ -27,6 +28,11 @@ const AI_PROVIDERS = [
   }
 ]
 
+// Check which providers are available
+function getAvailableProviders() {
+  return AI_PROVIDERS.filter(p => p.key && p.key.length > 10)
+}
+
 export async function POST(request: Request) {
   try {
     const body = await request.json()
@@ -39,12 +45,14 @@ export async function POST(request: Request) {
       )
     }
 
+    const availableProviders = getAvailableProviders()
+    console.log(`Available AI providers: ${availableProviders.map(p => p.name).join(', ') || 'NONE - using local fallback'}`)
+
     // Try each AI provider in order
-    for (const provider of AI_PROVIDERS) {
-      if (!provider.key) continue
-      
+    for (const provider of availableProviders) {
       try {
-        console.log(`Trying ${provider.name}...`)
+        console.log(`Trying ${provider.name} with model ${provider.model}...`)
+        
         const response = await fetch(provider.url, {
           method: 'POST',
           headers: {
@@ -54,8 +62,9 @@ export async function POST(request: Request) {
           body: JSON.stringify({
             model: provider.model,
             messages: messages,
-            max_tokens: 1000,
-            temperature: 0.7
+            max_tokens: 2000,
+            temperature: 0.7,
+            top_p: 0.9
           })
         })
 
@@ -63,11 +72,17 @@ export async function POST(request: Request) {
           const data = await response.json()
           const content = data.choices?.[0]?.message?.content || 'No response generated'
           
+          console.log(`✅ ${provider.name} responded successfully`)
+          
           return NextResponse.json({
             content,
             model: provider.model,
-            source: provider.name
+            source: provider.name,
+            isAI: true
           })
+        } else {
+          const errorText = await response.text()
+          console.error(`${provider.name} API error (${response.status}):`, errorText)
         }
       } catch (apiError) {
         console.error(`${provider.name} API error:`, apiError)
@@ -76,14 +91,17 @@ export async function POST(request: Request) {
     }
 
     // Fallback: Generate intelligent local response
+    console.log('⚠️ All AI providers failed or unavailable, using local fallback')
     const userMessage = messages.filter(m => m.role === 'user').pop()?.content || ''
     const localResponse = generateIntelligentResponse(userMessage, systemData)
     
     return NextResponse.json({
       content: localResponse.content,
       suggestions: localResponse.suggestions,
-      model: 'local',
-      source: 'local'
+      model: 'local-fallback',
+      source: 'local',
+      isAI: false,
+      note: 'AI API not configured. Add GROQ_API_KEY to environment variables for real AI responses.'
     })
 
   } catch (error) {
@@ -91,7 +109,8 @@ export async function POST(request: Request) {
     return NextResponse.json(
       { 
         error: 'Failed to process request',
-        content: 'I apologize, but I encountered an error. Please try again.'
+        content: 'I apologize, but I encountered an error. Please try again.',
+        isAI: false
       },
       { status: 500 }
     )
