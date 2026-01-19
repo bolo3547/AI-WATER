@@ -961,6 +961,12 @@ def get_maintenance_engine() -> PredictiveMaintenanceEngine:
     return maintenance_engine
 
 
+# Alias for compatibility
+def get_maintenance_system() -> PredictiveMaintenanceEngine:
+    """Get global maintenance system instance (alias for get_maintenance_engine)"""
+    return maintenance_engine
+
+
 if __name__ == "__main__":
     # Demo
     engine = PredictiveMaintenanceEngine()

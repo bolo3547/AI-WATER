@@ -588,6 +588,101 @@ def initialize_database(config: DatabaseConfig = None):
 
 
 # =============================================================================
+# DATABASE HANDLER (Convenience Wrapper)
+# =============================================================================
+
+class DatabaseHandler:
+    """
+    High-level database handler wrapping DatabasePool.
+    
+    Provides a simplified interface for system components.
+    """
+    
+    def __init__(self, config: DatabaseConfig = None):
+        self.config = config or DatabaseConfig.from_env()
+        self._pool = DatabasePool(self.config)
+        self._initialized = False
+    
+    def initialize(self) -> bool:
+        """Initialize the database connection."""
+        if self._initialized:
+            return True
+        self._initialized = self._pool.initialize()
+        return self._initialized
+    
+    def health_check(self) -> Dict[str, Any]:
+        """Perform a health check on the database."""
+        import time
+        start = time.time()
+        try:
+            with self._pool.get_connection() as conn:
+                with conn.cursor() as cur:
+                    cur.execute("SELECT 1")
+                    cur.fetchone()
+            latency_ms = (time.time() - start) * 1000
+            return {
+                'healthy': True,
+                'latency_ms': round(latency_ms, 2),
+                'message': 'Database connection OK'
+            }
+        except Exception as e:
+            return {
+                'healthy': False,
+                'latency_ms': None,
+                'message': str(e)
+            }
+    
+    def get_connection(self):
+        """Get a database connection."""
+        if not self._initialized:
+            self.initialize()
+        return self._pool.get_connection()
+    
+    def get_session(self):
+        """Get a SQLAlchemy session."""
+        if not self._initialized:
+            self.initialize()
+        return self._pool.get_session()
+    
+    def store_sensor_reading(self, reading: Dict) -> bool:
+        """Store a sensor reading."""
+        if not self._initialized:
+            self.initialize()
+        try:
+            repo = SensorReadingRepository(self._pool)
+            repo.insert_reading(
+                device_id=reading.get('device_id', 'unknown'),
+                dma_id=reading.get('dma_id', 'unknown'),
+                sensor_type=reading.get('sensor_type', 'unknown'),
+                value=reading.get('value', 0.0),
+                unit=reading.get('unit', ''),
+                quality=reading.get('quality', 100)
+            )
+            return True
+        except Exception as e:
+            logging.warning(f"Failed to store sensor reading: {e}")
+            return False
+    
+    def close(self):
+        """Close database connections."""
+        if self._pool:
+            self._pool.close()
+        self._initialized = False
+
+
+# Global instance
+_db_handler: Optional[DatabaseHandler] = None
+
+
+def get_database_handler() -> DatabaseHandler:
+    """Get or create the global database handler."""
+    global _db_handler
+    if _db_handler is None:
+        _db_handler = DatabaseHandler()
+    return _db_handler
+
+
+# =============================================================================
 # EXAMPLE USAGE
 # =============================================================================
 

@@ -404,36 +404,36 @@ export function OperatorDashboard() {
         </div>
         
         {/* Sensor Status Panel */}
-        <div className="col-span-1">
+        <div className="lg:col-span-1">
           <SectionCard 
             title="Sensor Network"
             subtitle="Live sensor status"
             action={
-              <Link href="/health" className="text-sm text-cyan-600 hover:text-cyan-700 font-semibold flex items-center gap-1">
-                Details <ArrowRight className="w-4 h-4" />
+              <Link href="/health" className="text-xs sm:text-sm text-cyan-600 hover:text-cyan-700 font-semibold flex items-center gap-1">
+                Details <ArrowRight className="w-3 h-3 sm:w-4 sm:h-4" />
               </Link>
             }
             noPadding
           >
-            <div className="divide-y divide-slate-100 max-h-[400px] overflow-y-auto">
+            <div className="divide-y divide-slate-100 max-h-[300px] sm:max-h-[400px] overflow-y-auto">
               {(sensorsDisplay.length > 0 ? sensorsDisplay : [
                 { id: 'Loading...', name: 'Fetching sensor data', status: 'online', value: null, unit: '-', lastSeen: 'now' }
               ]).map((sensor) => (
-                <Link key={sensor.id} href="/health" className="block p-3 hover:bg-slate-50/50 transition-colors cursor-pointer">
-                  <div className="flex items-center gap-3">
-                    <div className={`w-2 h-2 rounded-full ${getStatusColor(sensor.status)}`} />
+                <Link key={sensor.id} href="/health" className="block p-2 sm:p-3 hover:bg-slate-50/50 transition-colors cursor-pointer">
+                  <div className="flex items-center gap-2 sm:gap-3">
+                    <div className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full flex-shrink-0 ${getStatusColor(sensor.status)}`} />
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-slate-900 truncate">{sensor.name}</p>
-                      <p className="text-xs text-slate-500">{sensor.id}</p>
+                      <p className="text-xs sm:text-sm font-medium text-slate-900 truncate">{sensor.name}</p>
+                      <p className="text-[10px] sm:text-xs text-slate-500 truncate">{sensor.id}</p>
                     </div>
-                    <div className="text-right">
+                    <div className="text-right flex-shrink-0">
                       {sensor.value !== null ? (
                         <>
-                          <p className="text-sm font-bold text-slate-900">{typeof sensor.value === 'number' ? sensor.value.toFixed(1) : sensor.value}</p>
-                          <p className="text-xs text-slate-500">{sensor.unit}</p>
+                          <p className="text-xs sm:text-sm font-bold text-slate-900">{typeof sensor.value === 'number' ? sensor.value.toFixed(1) : sensor.value}</p>
+                          <p className="text-[10px] sm:text-xs text-slate-500">{sensor.unit}</p>
                         </>
                       ) : (
-                        <span className="text-xs text-slate-400">{sensor.lastSeen}</span>
+                        <span className="text-[10px] sm:text-xs text-slate-400">{sensor.lastSeen}</span>
                       )}
                     </div>
                   </div>
@@ -444,35 +444,35 @@ export function OperatorDashboard() {
         </div>
       </div>
       
-      {/* DMA Monitoring Grid */}
+      {/* DMA Monitoring Grid - Responsive */}
       <SectionCard 
         title="DMA Status Overview"
         subtitle="Real-time district metered area monitoring"
         action={
-          <Link href="/dma" className="text-sm text-cyan-600 hover:text-cyan-700 font-semibold flex items-center gap-1">
-            DMA Intelligence <ArrowRight className="w-4 h-4" />
+          <Link href="/dma" className="text-xs sm:text-sm text-cyan-600 hover:text-cyan-700 font-semibold flex items-center gap-1">
+            DMA Intelligence <ArrowRight className="w-3 h-3 sm:w-4 sm:h-4" />
           </Link>
         }
       >
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-4">
           {displayDMAs.map((dma: any) => (
             <Link 
               key={dma.dma_id}
               href={`/dma/${dma.dma_id}`}
-              className="bg-slate-50 rounded-xl p-4 border border-slate-200 hover:border-cyan-300 hover:shadow-md transition-all cursor-pointer group"
+              className="bg-slate-50 rounded-lg sm:rounded-xl p-3 sm:p-4 border border-slate-200 hover:border-cyan-300 hover:shadow-md transition-all cursor-pointer group"
             >
-              <div className="flex items-center justify-between mb-3">
-                <span className="font-semibold text-slate-900 group-hover:text-cyan-600 truncate">{dma.name}</span>
-                <div className={`w-3 h-3 rounded-full ${getStatusColor(dma.status)}`} />
+              <div className="flex items-center justify-between mb-2 sm:mb-3">
+                <span className="font-semibold text-xs sm:text-sm text-slate-900 group-hover:text-cyan-600 truncate">{dma.name}</span>
+                <div className={`w-2 h-2 sm:w-3 sm:h-3 rounded-full flex-shrink-0 ${getStatusColor(dma.status)}`} />
               </div>
               <div className="flex items-end justify-between">
                 <div>
-                  <div className="text-2xl font-bold text-slate-900">{dma.nrw_percent}%</div>
-                  <div className="text-xs text-slate-500">NRW Rate</div>
+                  <div className="text-lg sm:text-2xl font-bold text-slate-900">{dma.nrw_percent}%</div>
+                  <div className="text-[10px] sm:text-xs text-slate-500">NRW Rate</div>
                 </div>
                 <div className="text-right">
-                  <div className="text-lg font-semibold text-slate-700">{dma.priority_score}</div>
-                  <div className="text-xs text-slate-500">Priority</div>
+                  <div className="text-base sm:text-lg font-semibold text-slate-700">{dma.priority_score}</div>
+                  <div className="text-[10px] sm:text-xs text-slate-500">Priority</div>
                 </div>
               </div>
             </Link>
@@ -485,11 +485,11 @@ export function OperatorDashboard() {
         title="NRW Performance Trend" 
         subtitle="30-day network performance tracking"
       >
-        <NRWTrendChart data={displayTrend as any} height={250} showLegend />
+        <NRWTrendChart data={displayTrend as any} height={220} showLegend />
       </SectionCard>
 
-      {/* AI Operational Insights */}
-      <div className="grid grid-cols-2 gap-6">
+      {/* AI Operational Insights - Responsive */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         <AIInsightsPanel 
           type="leak_analysis"
           title="AI Leak Priority Analysis"
@@ -511,22 +511,22 @@ export function OperatorDashboard() {
         />
       </div>
       
-      {/* Footer Stats */}
-      <div className="flex items-center justify-between py-3 px-5 bg-cyan-50 rounded-xl border border-cyan-200">
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            <div className="w-2 h-2 bg-emerald-500 rounded-full pulse-live" />
-            <span className="text-sm font-medium text-cyan-700">Operator Session Active</span>
+      {/* Footer Stats - Responsive */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between py-2 sm:py-3 px-3 sm:px-5 bg-cyan-50 rounded-lg sm:rounded-xl border border-cyan-200 gap-2 sm:gap-0">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-4">
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-emerald-500 rounded-full pulse-live" />
+            <span className="text-[10px] sm:text-sm font-medium text-cyan-700">Operator Session</span>
           </div>
-          <div className="h-4 w-px bg-cyan-300" />
-          <span className="text-sm text-slate-600">
-            Data refresh: {formatRelativeTime(displayMetrics.last_data_received)}
+          <div className="hidden sm:block h-4 w-px bg-cyan-300" />
+          <span className="text-[10px] sm:text-sm text-slate-600">
+            Refresh: {formatRelativeTime(displayMetrics.last_data_received)}
           </span>
         </div>
-        <div className="flex items-center gap-3">
-          <button className="px-3 py-1.5 bg-cyan-600 text-white text-sm font-medium rounded-lg hover:bg-cyan-700 transition-colors flex items-center gap-1">
-            <Bell className="w-4 h-4" />
-            Sound Alerts On
+        <div className="flex items-center gap-2 sm:gap-3">
+          <button className="px-2 sm:px-3 py-1 sm:py-1.5 bg-cyan-600 text-white text-[10px] sm:text-sm font-medium rounded-lg hover:bg-cyan-700 transition-colors flex items-center gap-1">
+            <Bell className="w-3 h-3 sm:w-4 sm:h-4" />
+            <span className="hidden sm:inline">Sound</span> Alerts On
           </button>
         </div>
       </div>

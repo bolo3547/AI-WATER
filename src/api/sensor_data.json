@@ -1,11 +1,12 @@
 {
   "pipes": {
     "Pipe_A1": {
-      "pressure": 36.9,
-      "flow": 6.0,
-      "status": "normal",
-      "last_update": "2026-01-06T08:30:06.198919",
-      "location": "Lusaka Central"
+      "pressure": 45.2,
+      "flow": 12.5,
+      "status": "warning",
+      "last_update": "2026-01-17T08:07:51.142344",
+      "location": "Lusaka Central",
+      "device_id": "ESP32_001"
     },
     "Pipe_A2": {
       "pressure": 47.4,
@@ -139,7 +140,60 @@
       "status": "normal",
       "last_update": "2026-01-06T08:30:06.198919",
       "location": "Harare Central"
+    },
+    "Pipe_TEST": {
+      "location": "Unknown",
+      "pressure": 42.5,
+      "flow": 15.3,
+      "status": "warning",
+      "last_update": "2026-01-17T02:30:22.811440",
+      "device_id": "ESP32_TEST"
     }
   },
-  "history": []
+  "history": [
+    {
+      "pipe_id": "Pipe_TEST",
+      "pressure": 42.5,
+      "flow": 15.3,
+      "status": "warning",
+      "timestamp": "2026-01-17T02:30:22.811440"
+    },
+    {
+      "pipe_id": "Pipe_A1",
+      "pressure": 45.2,
+      "flow": 12.5,
+      "status": "warning",
+      "timestamp": "2026-01-17T08:07:43.157703"
+    },
+    {
+      "pipe_id": "Pipe_A1",
+      "pressure": 45.2,
+      "flow": 12.5,
+      "status": "warning",
+      "timestamp": "2026-01-17T08:07:51.142344"
+    }
+  ],
+  "alerts": [
+    {
+      "alert_id": "ALT-20260117023022-Pipe_TEST",
+      "pipe_id": "Pipe_TEST",
+      "severity": "warning",
+      "timestamp": "2026-01-17T02:30:22.811440",
+      "status": "new"
+    },
+    {
+      "alert_id": "ALT-20260117080743-Pipe_A1",
+      "pipe_id": "Pipe_A1",
+      "severity": "warning",
+      "timestamp": "2026-01-17T08:07:43.157703",
+      "status": "new"
+    },
+    {
+      "alert_id": "ALT-20260117080751-Pipe_A1",
+      "pipe_id": "Pipe_A1",
+      "severity": "warning",
+      "timestamp": "2026-01-17T08:07:51.142344",
+      "status": "new"
+    }
+  ]
 }

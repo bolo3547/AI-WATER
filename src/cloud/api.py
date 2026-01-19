@@ -274,7 +274,7 @@ def create_api() -> 'FastAPI':
     
     @app.get("/v1/dashboard/nrw-stats", response_model=NRWStatsResponse, tags=["Dashboard"])
     async def get_nrw_statistics(
-        period: str = Query("month", regex="^(day|week|month|year)$"),
+        period: str = Query("month", pattern="^(day|week|month|year)$"),
         utility_id: Optional[str] = None,
         user: User = Depends(get_current_user)
     ):
@@ -354,7 +354,7 @@ def create_api() -> 'FastAPI':
     @app.get("/v1/alerts", response_model=AlertListResponse, tags=["Alerts"])
     async def list_alerts(
         dma_id: Optional[str] = None,
-        severity: Optional[str] = Query(None, regex="^(critical|high|medium|low)$"),
+        severity: Optional[str] = Query(None, pattern="^(critical|high|medium|low)$"),
         acknowledged: Optional[bool] = None,
         limit: int = Query(50, ge=1, le=100),
         offset: int = Query(0, ge=0),
@@ -428,7 +428,7 @@ def create_api() -> 'FastAPI':
     @app.get("/v1/devices", response_model=DeviceListResponse, tags=["Devices"])
     async def list_devices(
         dma_id: Optional[str] = None,
-        status: Optional[str] = Query(None, regex="^(online|offline|error)$"),
+        status: Optional[str] = Query(None, pattern="^(online|offline|error)$"),
         user: User = Depends(get_current_user)
     ):
         """List all ESP32 devices."""
@@ -489,7 +489,7 @@ def create_api() -> 'FastAPI':
     async def get_readings(
         dma_id: Optional[str] = None,
         device_id: Optional[str] = None,
-        sensor_type: Optional[str] = Query(None, regex="^(pressure|flow|level)$"),
+        sensor_type: Optional[str] = Query(None, pattern="^(pressure|flow|level)$"),
         start_time: Optional[datetime] = None,
         end_time: Optional[datetime] = None,
         limit: int = Query(100, ge=1, le=1000),
@@ -570,7 +570,7 @@ def create_api() -> 'FastAPI':
     
     @app.post("/v1/notifications/test", tags=["Notifications"])
     async def test_notification(
-        channel: str = Query(..., regex="^(sms|whatsapp|email|telegram)$"),
+        channel: str = Query(..., pattern="^(sms|whatsapp|email|telegram)$"),
         user: User = Depends(get_current_user)
     ):
         """Send test notification to verify setup."""

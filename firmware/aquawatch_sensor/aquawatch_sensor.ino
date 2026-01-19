@@ -1,15 +1,40 @@
 /*
- * AquaWatch NRW - ESP32 Sensor Node Firmware v2.0
+ * AquaWatch NRW - ESP32 Sensor Node Firmware v3.0
  * Non-Revenue Water Detection System for Zambia/South Africa
+ * 
+ * ====================================================================
+ * ARCHITECTURAL ROLE: EDGE SENSING LAYER (NOT DECISION MAKER)
+ * ====================================================================
+ * 
+ * The ESP32 is the SENSING LAYER of a distributed water intelligence system.
+ * It does NOT make final leak decisions - that is the role of AquaWatch AI.
+ * 
+ * ESP32 RESPONSIBILITIES:
+ * ✓ Read real sensors (flow, pressure, level)
+ * ✓ Timestamp and validate readings
+ * ✓ Perform basic edge checks (sensor failure, extreme values)
+ * ✓ Buffer data when offline (store-and-forward)
+ * ✓ Send RAW and PRE-PROCESSED data to backend
+ * ✓ Accept control commands from AI (sampling rate, reset, calibration)
+ * 
+ * ESP32 MUST NEVER:
+ * ✗ Make final leak decisions
+ * ✗ Rank DMAs or assign priorities
+ * ✗ Calculate NRW
+ * ✗ Recommend field actions
+ * 
+ * DATA FLOW:
+ * Sensors → ESP32 → MQTT → API → Time-Series DB → AI Models → Dashboard
  * 
  * Hardware: ESP32-WROOM-32
  * Sensors: Flow meter (pulse), Pressure sensor (analog), Ultrasonic level,
  *          Water quality (pH, Turbidity, Chlorine), Temperature
- * Communication: WiFi + MQTT to central dashboard
+ * Communication: WiFi + MQTT to AquaWatch Central AI
  * 
  * Features:
  * - Over-the-Air (OTA) firmware updates
- * - Edge AI anomaly detection (TensorFlow Lite)
+ * - Edge pre-processing (statistics, validation) - NOT decision making
+ * - Offline data buffering (store-and-forward)
  * - Water quality monitoring
  * - Self-diagnostics & calibration
  * - Mesh networking capability (ESP-NOW)
@@ -27,20 +52,30 @@
 #include <esp_wifi.h>
 
 // ==================== CONFIGURATION ====================
-// WiFi Settings
-const char* WIFI_SSID = "deborah-my-wife";
-const char* WIFI_PASSWORD = "admin@29";
+// ===== CHANGE THESE SETTINGS FOR YOUR NETWORK =====
 
-// MQTT Broker Settings
-const char* MQTT_BROKER = "192.168.1.100";
+// WiFi Settings - UPDATE THESE!
+const char* WIFI_SSID = "YOUR_WIFI_SSID";         // Your WiFi network name
+const char* WIFI_PASSWORD = "YOUR_WIFI_PASSWORD"; // Your WiFi password
+
+// MQTT Broker Settings - UPDATE THESE!
+// Use your computer's IP address (find it with ipconfig on Windows)
+const char* MQTT_BROKER = "192.168.1.100";  // Change to your PC's IP address
 const int MQTT_PORT = 1883;
-const char* MQTT_USER = "deborah-my-wife";
-const char* MQTT_PASSWORD = "admin@29";
+const char* MQTT_USER = "";                  // Leave empty if no auth
+const char* MQTT_PASSWORD = "";              // Leave empty if no auth
 
-// Device Configuration
-const char* DEVICE_ID = "SENSOR_NODE_001";
-const char* ZONE_ID = "ZONE_A";
-const char* FIRMWARE_VERSION = "2.0.0";
+// API Settings - For HTTP fallback (when MQTT unavailable)
+const char* API_HOST = "192.168.1.100";      // Same as MQTT_BROKER
+const int API_PORT = 8000;                   // Python API port
+
+// Device Configuration - UPDATE THESE!
+const char* DEVICE_ID = "ESP32_001";              // Unique ID for this device
+const char* DMA_ID = "dma-001";                   // District Metered Area ID
+const char* PIPE_ID = "Pipe_A1";                  // Pipe/sensor location ID
+const char* ZONE_ID = "ZONE_A";                   // Zone within DMA
+const char* SENSOR_LOCATION = "Kabulonga North"; // Human-readable location
+const char* FIRMWARE_VERSION = "3.0.0";
 
 // OTA Update Settings
 const char* OTA_UPDATE_URL = "http://aquawatch.local/api/firmware/latest";
@@ -73,7 +108,7 @@ const unsigned long OTA_CHECK_INTERVAL = 3600000;  // Check every hour
 
 // Status LED
 #define STATUS_LED_PIN 2
-#define ALARM_LED_PIN 4            // Red LED for alarms
+#define ALARM_LED_PIN 4            // Red LED for sensor faults (NOT leak decisions)
 
 // ==================== GLOBAL VARIABLES ====================
 WiFiClient wifiClient;
@@ -104,13 +139,45 @@ float batteryPercent = 0.0;
 float solarVoltage = 0.0;
 bool solarCharging = false;
 
-// Edge AI - Simple anomaly detection
-float pressureHistory[60];     // Last 60 readings
+// Edge Pre-Processing (statistics for AI - NOT decisions)
+// These are sent to Central AI which makes the actual decisions
+float pressureHistory[60];     // Last 60 readings for stats
 float flowHistory[60];
 int historyIndex = 0;
-bool anomalyDetected = false;
-String anomalyType = "";
-float anomalyConfidence = 0.0;
+
+// Edge-computed statistics (for AI to use, NOT for local decisions)
+float pressureMean = 0.0;
+float pressureStd = 0.0;
+float flowMean = 0.0;
+float flowStd = 0.0;
+float pressureZScore = 0.0;   // Sent to AI for its decision
+float flowZScore = 0.0;       // Sent to AI for its decision
+
+// Sensor health flags (edge validation - legitimate ESP32 responsibility)
+bool sensorFault = false;
+String sensorFaultType = "";
+
+// ==================== OFFLINE DATA BUFFERING ====================
+// Store-and-forward when connectivity is lost
+struct BufferedReading {
+    unsigned long timestamp;
+    float flowRate;
+    float totalVolume;
+    float pressure;
+    float tankLevel;
+    float ph;
+    float turbidity;
+    float chlorine;
+    float battery;
+    bool sensorFault;
+};
+
+#define BUFFER_SIZE 100  // Store up to 100 readings when offline
+BufferedReading offlineBuffer[BUFFER_SIZE];
+int bufferHead = 0;
+int bufferTail = 0;
+int bufferedReadings = 0;
+bool wasOffline = false;
 
 // OTA Update
 unsigned long lastOTACheck = 0;
@@ -120,12 +187,12 @@ bool otaInProgress = false;
 uint8_t meshPeers[10][6];  // Up to 10 peer MAC addresses
 int numMeshPeers = 0;
 
-// Timing
+// Timing - Configurable by Central AI via MQTT commands
 unsigned long lastSensorRead = 0;
 unsigned long lastMqttPublish = 0;
 unsigned long lastDiagnostics = 0;
-const unsigned long SENSOR_READ_INTERVAL = 1000;   // 1 second
-const unsigned long MQTT_PUBLISH_INTERVAL = 5000;  // 5 seconds
+unsigned long sensorReadInterval = 1000;     // Default 1 second (AI can adjust)
+unsigned long mqttPublishInterval = 5000;    // Default 5 seconds (AI can adjust)
 const unsigned long DIAGNOSTICS_INTERVAL = 60000;  // 1 minute
 
 // Status
@@ -133,6 +200,9 @@ bool wifiConnected = false;
 bool mqttConnected = false;
 int consecutiveErrors = 0;
 String lastError = "";
+
+// Sequence number for data integrity
+unsigned long sequenceNumber = 0;
 
 // ==================== INTERRUPT SERVICE ROUTINE ====================
 void IRAM_ATTR flowPulseISR() {
@@ -142,10 +212,24 @@ void IRAM_ATTR flowPulseISR() {
 // ==================== SETUP ====================
 void setup() {
     Serial.begin(115200);
-    Serial.println("\n========================================");
-    Serial.println("AquaWatch NRW - Sensor Node v2.0");
-    Serial.println("For Zambia & Southern Africa");
-    Serial.println("========================================\n");
+    Serial.println("\n============================================================");
+    Serial.println("  AquaWatch NRW - ESP32 Edge Sensor Node v3.0");
+    Serial.println("  Non-Revenue Water Detection System");
+    Serial.println("  For Zambia & Southern Africa");
+    Serial.println("============================================================");
+    Serial.println("\n  ROLE: EDGE SENSING (Data Collection & Pre-Processing)");
+    Serial.println("  Central AI makes all leak detection decisions.");
+    Serial.println("============================================================\n");
+    
+    Serial.print("Device ID: ");
+    Serial.println(DEVICE_ID);
+    Serial.print("DMA ID: ");
+    Serial.println(DMA_ID);
+    Serial.print("Zone: ");
+    Serial.println(ZONE_ID);
+    Serial.print("Location: ");
+    Serial.println(SENSOR_LOCATION);
+    Serial.println();
 
     // Initialize EEPROM for persistent storage
     EEPROM.begin(1024);
@@ -170,11 +254,16 @@ void setup() {
     // Attach flow sensor interrupt
     attachInterrupt(digitalPinToInterrupt(FLOW_SENSOR_PIN), flowPulseISR, FALLING);
 
-    // Initialize history arrays
+    // Initialize history arrays for edge statistics
     for(int i = 0; i < 60; i++) {
         pressureHistory[i] = 0;
         flowHistory[i] = 0;
     }
+    
+    // Initialize offline buffer
+    bufferHead = 0;
+    bufferTail = 0;
+    bufferedReadings = 0;
 
     // Load saved data from EEPROM
     loadTotalVolume();
@@ -183,7 +272,7 @@ void setup() {
     // Connect to WiFi
     connectWiFi();
 
-    // Initialize ESP-NOW for mesh networking
+    // Initialize ESP-NOW for mesh networking (store-and-forward relay)
     initESPNow();
 
     // Configure MQTT
@@ -197,9 +286,22 @@ void setup() {
     // Run initial diagnostics
     runDiagnostics();
 
-    Serial.println("\nSensor Node Ready!");
+    Serial.println("\n============================================================");
+    Serial.println("  SENSOR NODE READY - Sending data to AquaWatch Central AI");
+    Serial.println("============================================================");
     Serial.print("Firmware Version: ");
     Serial.println(FIRMWARE_VERSION);
+    Serial.print("Sensor Read Interval: ");
+    Serial.print(sensorReadInterval);
+    Serial.println(" ms");
+    Serial.print("MQTT Publish Interval: ");
+    Serial.print(mqttPublishInterval);
+    Serial.println(" ms");
+    Serial.print("Offline Buffer Capacity: ");
+    Serial.print(BUFFER_SIZE);
+    Serial.println(" readings");
+    Serial.println("============================================================\n");
+    
     blinkLED(3, 200);
 }
 
@@ -223,21 +325,38 @@ void loop() {
     }
     mqttClient.loop();
 
-    // Read sensors at regular interval
-    if (millis() - lastSensorRead >= SENSOR_READ_INTERVAL) {
+    // Read sensors at regular interval (rate controlled by Central AI)
+    if (millis() - lastSensorRead >= sensorReadInterval) {
         readAllSensors();
-        runEdgeAI();  // Edge anomaly detection
+        computeEdgeStatistics();  // Pre-process stats for AI (NOT decisions)
+        validateSensorHealth();    // Edge validation (legitimate ESP32 job)
         lastSensorRead = millis();
     }
 
-    // Publish data to MQTT
-    if (millis() - lastMqttPublish >= MQTT_PUBLISH_INTERVAL) {
-        publishSensorData();
-        publishWaterQuality();
-        publishPowerStatus();
-        
-        if (anomalyDetected) {
-            publishAnomaly();
+    // Publish data to MQTT (or buffer if offline)
+    if (millis() - lastMqttPublish >= mqttPublishInterval) {
+        if (mqttConnected) {
+            // Flush any buffered readings first
+            if (bufferedReadings > 0) {
+                flushOfflineBuffer();
+            }
+            // Publish current reading
+            publishSensorData();
+            publishWaterQuality();
+            publishPowerStatus();
+            
+            // Publish sensor fault to backend (edge validation is valid)
+            if (sensorFault) {
+                publishSensorFault();
+            }
+        } else {
+            // Try HTTP API as fallback when MQTT unavailable
+            if (wifiConnected) {
+                sendDataViaHTTP();
+            } else {
+                // Buffer data when offline (store-and-forward)
+                bufferCurrentReading();
+            }
         }
         lastMqttPublish = millis();
     }
@@ -257,8 +376,8 @@ void loop() {
     // Update status LED
     updateStatusLED();
     
-    // Update alarm LED if anomaly detected
-    digitalWrite(ALARM_LED_PIN, anomalyDetected ? HIGH : LOW);
+    // Alarm LED indicates SENSOR FAULTS only (not leak decisions)
+    digitalWrite(ALARM_LED_PIN, sensorFault ? HIGH : LOW);
 }
 
 // ==================== WIFI FUNCTIONS ====================
@@ -304,14 +423,26 @@ void connectMQTT() {
             mqttConnected = true;
             Serial.println("MQTT Connected!");
 
-            // Subscribe to command topic
-            String cmdTopic = "aquawatch/" + String(ZONE_ID) + "/" + String(DEVICE_ID) + "/cmd";
+            // Subscribe to command topic from Central AI
+            // Topic: aquawatch/<dma_id>/<device_id>/cmd
+            String cmdTopic = "aquawatch/" + String(DMA_ID) + "/" + String(DEVICE_ID) + "/cmd";
             mqttClient.subscribe(cmdTopic.c_str());
             Serial.print("Subscribed to: ");
             Serial.println(cmdTopic);
+            
+            // Also subscribe to DMA-wide commands
+            String dmaCmdTopic = "aquawatch/" + String(DMA_ID) + "/cmd";
+            mqttClient.subscribe(dmaCmdTopic.c_str());
+            Serial.print("Subscribed to DMA commands: ");
+            Serial.println(dmaCmdTopic);
 
             // Publish online status
             publishStatus("online");
+            
+            // If we were offline, notify that we have buffered data
+            if (bufferedReadings > 0) {
+                Serial.printf("Online again with %d buffered readings\n", bufferedReadings);
+            }
         } else {
             Serial.print("MQTT Failed, rc=");
             Serial.print(mqttClient.state());
@@ -328,13 +459,13 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
         message += (char)payload[i];
     }
 
-    Serial.print("MQTT Message [");
+    Serial.print("MQTT Command [");
     Serial.print(topic);
     Serial.print("]: ");
     Serial.println(message);
 
-    // Parse JSON command
-    StaticJsonDocument<256> doc;
+    // Parse JSON command from Central AI
+    StaticJsonDocument<512> doc;
     DeserializationError error = deserializeJson(doc, message);
     
     if (error) {
@@ -344,60 +475,233 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
 
     String command = doc["cmd"] | "";
     
-    if (command == "reset_volume") {
+    // ========== COMMANDS FROM AQUAWATCH CENTRAL AI ==========
+    
+    if (command == "set_sampling_rate") {
+        // AI controls sampling rate based on network conditions
+        unsigned long newSensorInterval = doc["sensor_interval_ms"] | 1000;
+        unsigned long newPublishInterval = doc["publish_interval_ms"] | 5000;
+        sensorReadInterval = constrain(newSensorInterval, 100, 60000);
+        mqttPublishInterval = constrain(newPublishInterval, 1000, 300000);
+        Serial.printf("Sampling rate updated: read=%lums, publish=%lums\n", 
+                      sensorReadInterval, mqttPublishInterval);
+        publishAcknowledgement("set_sampling_rate", true);
+        
+    } else if (command == "reset_volume") {
+        // Reset total volume counter
         totalVolume = 0.0;
         saveTotalVolume();
-        Serial.println("Total volume reset!");
+        Serial.println("Total volume reset by Central AI");
+        publishAcknowledgement("reset_volume", true);
+        
     } else if (command == "reboot") {
-        Serial.println("Rebooting...");
+        // Remote reboot
+        Serial.println("Reboot requested by Central AI...");
+        publishAcknowledgement("reboot", true);
         delay(1000);
         ESP.restart();
+        
     } else if (command == "calibrate") {
-        // Calibration routine
+        // Calibration routine from AI
         float newPPL = doc["pulses_per_liter"] | FLOW_PULSES_PER_LITER;
-        Serial.print("Calibration: ");
-        Serial.print(newPPL);
-        Serial.println(" pulses/liter");
+        float pressureOffset = doc["pressure_offset"] | 0.0;
+        float phOffset = doc["ph_offset"] | 0.0;
+        Serial.printf("Calibration from AI: PPL=%.2f, P_offset=%.2f, pH_offset=%.2f\n",
+                      newPPL, pressureOffset, phOffset);
+        saveCalibrationValues(newPPL, pressureOffset, phOffset);
+        publishAcknowledgement("calibrate", true);
+        
     } else if (command == "status") {
+        // Request status update
         publishStatus("online");
+        publishDiagnostics();
+        
     } else if (command == "ota_update") {
+        // OTA firmware update
         String url = doc["url"] | "";
         if (url.length() > 0) {
             performOTAUpdate(url);
         }
+        
     } else if (command == "diagnostics") {
+        // Run and publish diagnostics
         runDiagnostics();
         publishDiagnostics();
-    } else if (command == "set_threshold") {
-        // Set anomaly detection thresholds
-        float pressureThreshold = doc["pressure_threshold"] | 2.0;
-        float flowThreshold = doc["flow_threshold"] | 50.0;
-        saveThresholds(pressureThreshold, flowThreshold);
+        
+    } else if (command == "sync_time") {
+        // Time synchronization from server (future: NTP)
+        unsigned long serverTime = doc["epoch"] | 0;
+        if (serverTime > 0) {
+            Serial.printf("Time sync received: %lu\n", serverTime);
+            // In production, would sync RTC here
+        }
+        publishAcknowledgement("sync_time", true);
+        
+    } else if (command == "clear_buffer") {
+        // Clear offline buffer
+        bufferHead = 0;
+        bufferTail = 0;
+        bufferedReadings = 0;
+        Serial.println("Offline buffer cleared");
+        publishAcknowledgement("clear_buffer", true);
+        
+    } else if (command == "get_config") {
+        // Return current configuration to AI
+        publishConfiguration();
+        
+    } else {
+        Serial.println("Unknown command: " + command);
+        publishAcknowledgement(command.c_str(), false);
     }
 }
 
 void publishSensorData() {
     if (!mqttConnected) return;
 
-    StaticJsonDocument<512> doc;
+    // Increment sequence number for data integrity tracking
+    sequenceNumber++;
+
+    StaticJsonDocument<768> doc;
     
+    // ========== DEVICE IDENTIFICATION (Critical for AI) ==========
     doc["device_id"] = DEVICE_ID;
+    doc["dma_id"] = DMA_ID;               // CRITICAL: DMA for NRW calculation
     doc["zone_id"] = ZONE_ID;
-    doc["timestamp"] = millis();
+    doc["sensor_location"] = SENSOR_LOCATION;  // inlet/outlet/junction
+    doc["firmware_version"] = FIRMWARE_VERSION;
+    doc["sequence"] = sequenceNumber;     // For detecting data gaps
+    doc["timestamp_ms"] = millis();       // Device uptime timestamp
     
-    JsonObject sensors = doc.createNestedObject("sensors");
-    sensors["flow_rate_lpm"] = flowRate;
-    sensors["total_volume_l"] = totalVolume;
-    sensors["pressure_bar"] = pressureBar;
-    sensors["tank_level_percent"] = tankLevelPercent;
-    sensors["water_level_cm"] = waterLevelCm;
+    // ========== RAW SENSOR VALUES (for AI to analyze) ==========
+    JsonObject raw = doc.createNestedObject("raw");
+    raw["flow_rate_lpm"] = flowRate;
+    raw["total_volume_l"] = totalVolume;
+    raw["pressure_bar"] = pressureBar;
+    raw["tank_level_percent"] = tankLevelPercent;
+    raw["water_level_cm"] = waterLevelCm;
     
+    // ========== EDGE-COMPUTED STATISTICS (for AI, not decisions) ==========
+    // The Central AI uses these to make leak decisions, NOT the ESP32
+    JsonObject stats = doc.createNestedObject("edge_stats");
+    stats["pressure_mean"] = pressureMean;
+    stats["pressure_std"] = pressureStd;
+    stats["pressure_zscore"] = pressureZScore;
+    stats["flow_mean"] = flowMean;
+    stats["flow_std"] = flowStd;
+    stats["flow_zscore"] = flowZScore;
+    stats["sample_count"] = 60;  // Number of samples in rolling window
+    
+    // ========== SENSOR HEALTH (legitimate edge validation) ==========
+    JsonObject health = doc.createNestedObject("sensor_health");
+    health["fault_detected"] = sensorFault;
+    health["fault_type"] = sensorFaultType;
+    health["pressure_sensor_ok"] = (pressureBar > 0 && pressureBar < PRESSURE_MAX);
+    health["flow_sensor_ok"] = true;  // Passive sensor
+    health["ultrasonic_ok"] = (waterLevelCm >= 0);
+    
+    // ========== DEVICE STATUS ==========
     JsonObject status = doc.createNestedObject("status");
     status["wifi_rssi"] = WiFi.RSSI();
     status["uptime_sec"] = millis() / 1000;
     status["free_heap"] = ESP.getFreeHeap();
+    status["battery_percent"] = batteryPercent;
+    status["solar_charging"] = solarCharging;
+    status["buffered_readings"] = bufferedReadings;  // Offline buffer status
+    
+    // ========== DATA QUALITY FLAGS ==========
+    JsonObject quality = doc.createNestedObject("data_quality");
+    quality["is_buffered"] = false;  // This is live data
+    quality["was_offline"] = wasOffline;
+    quality["consecutive_errors"] = consecutiveErrors;
 
     String output;
+    serializeJson(doc, output);
+
+    // Topic structure: aquawatch/<dma_id>/<device_id>/data
+    String topic = "aquawatch/" + String(DMA_ID) + "/" + String(DEVICE_ID) + "/data";
+    
+    if (mqttClient.publish(topic.c_str(), output.c_str())) {
+        Serial.println("Data published → Central AI");
+        consecutiveErrors = 0;
+        wasOffline = false;
+    } else {
+        Serial.println("MQTT publish failed!");
+        consecutiveErrors++;
+    }
+}
+
+// ==================== HTTP API FALLBACK ====================
+// Send data via HTTP when MQTT is unavailable
+void sendDataViaHTTP() {
+    HTTPClient http;
+    
+    // Build API URL
+    String apiUrl = "http://" + String(API_HOST) + ":" + String(API_PORT) + "/api/sensor";
+    
+    Serial.print("Sending data via HTTP to: ");
+    Serial.println(apiUrl);
+    
+    http.begin(apiUrl);
+    http.addHeader("Content-Type", "application/json");
+    
+    // Build JSON payload matching API format
+    StaticJsonDocument<512> doc;
+    doc["pipe_id"] = PIPE_ID;
+    doc["device_id"] = DEVICE_ID;
+    doc["dma_id"] = DMA_ID;
+    doc["location"] = SENSOR_LOCATION;
+    doc["pressure"] = pressureBar * 10;  // Convert to compatible unit
+    doc["flow"] = flowRate;
+    doc["tank_level"] = tankLevelPercent;
+    doc["battery"] = batteryPercent;
+    doc["rssi"] = WiFi.RSSI();
+    doc["firmware"] = FIRMWARE_VERSION;
+    
+    // Add sensor health
+    JsonObject health = doc.createNestedObject("health");
+    health["sensor_fault"] = sensorFault;
+    health["fault_type"] = sensorFaultType;
+    
+    // Add edge statistics
+    JsonObject stats = doc.createNestedObject("edge_stats");
+    stats["pressure_mean"] = pressureMean;
+    stats["pressure_std"] = pressureStd;
+    stats["pressure_zscore"] = pressureZScore;
+    stats["flow_mean"] = flowMean;
+    stats["flow_std"] = flowStd;
+    
+    String payload;
+    serializeJson(doc, payload);
+    
+    int httpResponseCode = http.POST(payload);
+    
+    if (httpResponseCode > 0) {
+        String response = http.getString();
+        Serial.print("HTTP Response: ");
+        Serial.println(httpResponseCode);
+        Serial.println(response);
+        
+        // Check if server detected a leak
+        if (response.indexOf("\"status\":\"leak\"") > 0) {
+            Serial.println("⚠️ SERVER DETECTED LEAK - Check dashboard!");
+            // Blink alarm LED (but don't make local decisions)
+            for (int i = 0; i < 5; i++) {
+                digitalWrite(ALARM_LED_PIN, HIGH);
+                delay(100);
+                digitalWrite(ALARM_LED_PIN, LOW);
+                delay(100);
+            }
+        }
+        
+        consecutiveErrors = 0;
+    } else {
+        Serial.print("HTTP Error: ");
+        Serial.println(httpResponseCode);
+        consecutiveErrors++;
+    }
+    
+    http.end();
+}
     serializeJson(doc, output);
 
     String topic = "aquawatch/" + String(ZONE_ID) + "/" + String(DEVICE_ID) + "/data";
@@ -412,20 +716,26 @@ void publishSensorData() {
 void publishStatus(const char* status) {
     if (!mqttConnected) return;
 
-    StaticJsonDocument<256> doc;
+    StaticJsonDocument<384> doc;
     doc["device_id"] = DEVICE_ID;
+    doc["dma_id"] = DMA_ID;
     doc["zone_id"] = ZONE_ID;
+    doc["sensor_location"] = SENSOR_LOCATION;
     doc["status"] = status;
     doc["ip"] = WiFi.localIP().toString();
     doc["rssi"] = WiFi.RSSI();
     doc["firmware_version"] = FIRMWARE_VERSION;
     doc["battery_percent"] = batteryPercent;
     doc["solar_charging"] = solarCharging;
+    doc["uptime_sec"] = millis() / 1000;
+    doc["sampling_rate_ms"] = sensorReadInterval;
+    doc["publish_rate_ms"] = mqttPublishInterval;
+    doc["buffered_readings"] = bufferedReadings;
 
     String output;
     serializeJson(doc, output);
 
-    String topic = "aquawatch/" + String(ZONE_ID) + "/" + String(DEVICE_ID) + "/status";
+    String topic = "aquawatch/" + String(DMA_ID) + "/" + String(DEVICE_ID) + "/status";
     mqttClient.publish(topic.c_str(), output.c_str(), true);
 }
 
@@ -458,8 +768,9 @@ void publishWaterQuality() {
 
     StaticJsonDocument<384> doc;
     doc["device_id"] = DEVICE_ID;
+    doc["dma_id"] = DMA_ID;
     doc["zone_id"] = ZONE_ID;
-    doc["timestamp"] = millis();
+    doc["timestamp_ms"] = millis();
     
     JsonObject quality = doc.createNestedObject("water_quality");
     quality["ph"] = phValue;
@@ -467,37 +778,16 @@ void publishWaterQuality() {
     quality["chlorine_mg_l"] = chlorineMgL;
     quality["temperature_c"] = waterTempC;
     
-    // Quality assessment
-    String assessment = "good";
-    String issues = "";
-    
-    if (phValue < 6.5 || phValue > 8.5) {
-        assessment = "warning";
-        issues += "pH out of range;";
-    }
-    if (turbidityNTU > 5.0) {
-        assessment = "warning";
-        issues += "High turbidity;";
-    }
-    if (turbidityNTU > 100.0) {
-        assessment = "critical";
-    }
-    if (chlorineMgL < 0.2) {
-        assessment = "warning";
-        issues += "Low chlorine residual;";
-    }
-    if (chlorineMgL > 4.0) {
-        assessment = "warning";
-        issues += "High chlorine;";
-    }
-    
-    quality["assessment"] = assessment;
-    quality["issues"] = issues;
+    // Sensor health assessment (NOT water safety decision - that's for AI)
+    JsonObject health = doc.createNestedObject("sensor_health");
+    health["ph_in_range"] = (phValue >= 0 && phValue <= 14);
+    health["turbidity_in_range"] = (turbidityNTU >= 0 && turbidityNTU <= 3000);
+    health["chlorine_in_range"] = (chlorineMgL >= 0 && chlorineMgL <= 5);
 
     String output;
     serializeJson(doc, output);
 
-    String topic = "aquawatch/" + String(ZONE_ID) + "/" + String(DEVICE_ID) + "/quality";
+    String topic = "aquawatch/" + String(DMA_ID) + "/" + String(DEVICE_ID) + "/quality";
     mqttClient.publish(topic.c_str(), output.c_str());
 }
 
@@ -526,7 +816,9 @@ void publishPowerStatus() {
 
     StaticJsonDocument<256> doc;
     doc["device_id"] = DEVICE_ID;
+    doc["dma_id"] = DMA_ID;
     doc["zone_id"] = ZONE_ID;
+    doc["timestamp_ms"] = millis();
     
     JsonObject power = doc.createNestedObject("power");
     power["battery_voltage"] = batteryVoltage;
@@ -534,7 +826,7 @@ void publishPowerStatus() {
     power["solar_voltage"] = solarVoltage;
     power["solar_charging"] = solarCharging;
     
-    // Power status assessment
+    // Power health status (for monitoring)
     String status = "good";
     if (batteryPercent < 20) {
         status = "low";
@@ -547,111 +839,135 @@ void publishPowerStatus() {
     String output;
     serializeJson(doc, output);
 
-    String topic = "aquawatch/" + String(ZONE_ID) + "/" + String(DEVICE_ID) + "/power";
+    String topic = "aquawatch/" + String(DMA_ID) + "/" + String(DEVICE_ID) + "/power";
     mqttClient.publish(topic.c_str(), output.c_str());
 }
 
-// ==================== EDGE AI - ANOMALY DETECTION ====================
-void runEdgeAI() {
-    // Store current readings in history
+// ==================== EDGE PRE-PROCESSING (NOT DECISION MAKING) ====================
+// The ESP32 computes statistics to help the Central AI make decisions.
+// The ESP32 does NOT decide if there is a leak - that is the AI's job.
+
+void computeEdgeStatistics() {
+    // Store current readings in circular buffer
     pressureHistory[historyIndex] = pressureBar;
     flowHistory[historyIndex] = flowRate;
     historyIndex = (historyIndex + 1) % 60;
     
-    // Calculate statistics
-    float pressureAvg = 0, pressureStd = 0;
-    float flowAvg = 0, flowStd = 0;
+    // Calculate rolling statistics (for AI to use)
+    pressureMean = 0;
+    flowMean = 0;
     
     for (int i = 0; i < 60; i++) {
-        pressureAvg += pressureHistory[i];
-        flowAvg += flowHistory[i];
+        pressureMean += pressureHistory[i];
+        flowMean += flowHistory[i];
     }
-    pressureAvg /= 60.0;
-    flowAvg /= 60.0;
+    pressureMean /= 60.0;
+    flowMean /= 60.0;
+    
+    // Calculate standard deviations
+    pressureStd = 0;
+    flowStd = 0;
     
     for (int i = 0; i < 60; i++) {
-        pressureStd += pow(pressureHistory[i] - pressureAvg, 2);
-        flowStd += pow(flowHistory[i] - flowAvg, 2);
+        pressureStd += pow(pressureHistory[i] - pressureMean, 2);
+        flowStd += pow(flowHistory[i] - flowMean, 2);
     }
     pressureStd = sqrt(pressureStd / 60.0);
     flowStd = sqrt(flowStd / 60.0);
     
-    // Detect anomalies using Z-score method
-    anomalyDetected = false;
-    anomalyType = "";
-    anomalyConfidence = 0.0;
-    
-    // Pressure drop anomaly (potential leak)
-    if (pressureStd > 0.1) {
-        float pressureZ = (pressureBar - pressureAvg) / pressureStd;
-        if (pressureZ < -2.5) {  // Significant pressure drop
-            anomalyDetected = true;
-            anomalyType = "pressure_drop";
-            anomalyConfidence = min(abs(pressureZ) / 5.0, 1.0) * 100;
-        }
+    // Calculate Z-scores (sent to AI for its decision, NOT for local decisions)
+    if (pressureStd > 0.01) {
+        pressureZScore = (pressureBar - pressureMean) / pressureStd;
+    } else {
+        pressureZScore = 0;
     }
     
-    // Sudden flow increase (potential burst)
-    if (flowStd > 1.0) {
-        float flowZ = (flowRate - flowAvg) / flowStd;
-        if (flowZ > 3.0) {  // Significant flow increase
-            anomalyDetected = true;
-            anomalyType = "flow_spike";
-            anomalyConfidence = min(abs(flowZ) / 5.0, 1.0) * 100;
-        }
+    if (flowStd > 0.01) {
+        flowZScore = (flowRate - flowMean) / flowStd;
+    } else {
+        flowZScore = 0;
     }
     
-    // Night flow anomaly (flow during expected zero-flow periods)
-    // This would need RTC for accurate time - simplified here
-    if (flowRate > 5.0 && flowAvg < 1.0) {
-        anomalyDetected = true;
-        anomalyType = "unexpected_flow";
-        anomalyConfidence = 70.0;
+    // NOTE: We do NOT make leak decisions here.
+    // The Central AI will analyze pressureZScore, flowZScore, and other data
+    // from multiple sensors across the DMA to determine IF and WHERE a leak is.
+}
+
+// ==================== SENSOR HEALTH VALIDATION ====================
+// This is a LEGITIMATE edge responsibility - detecting sensor failures
+
+void validateSensorHealth() {
+    sensorFault = false;
+    sensorFaultType = "";
+    
+    // Check for sensor faults (NOT leak detection - just sensor health)
+    
+    // Pressure sensor fault detection
+    if (pressureBar < -0.5 || pressureBar > PRESSURE_MAX + 1.0) {
+        sensorFault = true;
+        sensorFaultType = "pressure_sensor_out_of_range";
     }
     
-    // Water quality anomaly
-    if (phValue < 6.0 || phValue > 9.0 || turbidityNTU > 50 || chlorineMgL < 0.1) {
-        anomalyDetected = true;
-        anomalyType = "water_quality";
-        anomalyConfidence = 85.0;
+    // Check for stuck pressure sensor (no variance)
+    if (pressureStd < 0.001 && pressureMean > 0) {
+        // Pressure hasn't changed in 60 readings - possible stuck sensor
+        sensorFault = true;
+        sensorFaultType = "pressure_sensor_stuck";
+    }
+    
+    // pH out of physical range
+    if (phValue < 0 || phValue > 14) {
+        sensorFault = true;
+        sensorFaultType = "ph_sensor_fault";
+    }
+    
+    // Ultrasonic sensor fault
+    if (waterLevelCm < -10 || waterLevelCm > TANK_HEIGHT_CM + 50) {
+        sensorFault = true;
+        sensorFaultType = "ultrasonic_sensor_fault";
+    }
+    
+    // Battery critical - affects data reliability
+    if (batteryPercent < 5 && !solarCharging) {
+        sensorFault = true;
+        sensorFaultType = "battery_critical";
+    }
+    
+    if (sensorFault) {
+        Serial.println("⚠️ SENSOR FAULT: " + sensorFaultType);
     }
 }
 
-void publishAnomaly() {
-    if (!mqttConnected || !anomalyDetected) return;
+void publishSensorFault() {
+    // Publish sensor fault to backend (legitimate edge responsibility)
+    if (!mqttConnected) return;
 
-    StaticJsonDocument<512> doc;
+    StaticJsonDocument<384> doc;
     doc["device_id"] = DEVICE_ID;
+    doc["dma_id"] = DMA_ID;
     doc["zone_id"] = ZONE_ID;
-    doc["timestamp"] = millis();
-    doc["anomaly_type"] = anomalyType;
-    doc["confidence"] = anomalyConfidence;
-    doc["priority"] = anomalyConfidence > 80 ? "high" : (anomalyConfidence > 50 ? "medium" : "low");
+    doc["timestamp_ms"] = millis();
+    doc["fault_type"] = sensorFaultType;
+    doc["fault_detected"] = true;
     
+    // Include current readings for diagnostics
     JsonObject readings = doc.createNestedObject("readings");
     readings["pressure_bar"] = pressureBar;
+    readings["pressure_mean"] = pressureMean;
+    readings["pressure_std"] = pressureStd;
     readings["flow_rate_lpm"] = flowRate;
     readings["ph"] = phValue;
-    readings["turbidity_ntu"] = turbidityNTU;
-    
-    // Recommended action
-    String action = "investigate";
-    if (anomalyType == "pressure_drop") {
-        action = "Check for leaks in zone " + String(ZONE_ID);
-    } else if (anomalyType == "flow_spike") {
-        action = "Possible burst - dispatch technician immediately";
-    } else if (anomalyType == "water_quality") {
-        action = "Water quality issue - check treatment process";
-    }
-    doc["recommended_action"] = action;
+    readings["water_level_cm"] = waterLevelCm;
+    readings["battery_percent"] = batteryPercent;
 
     String output;
     serializeJson(doc, output);
 
-    String topic = "aquawatch/" + String(ZONE_ID) + "/" + String(DEVICE_ID) + "/anomaly";
+    // Sensor faults go to a separate topic for monitoring
+    String topic = "aquawatch/" + String(DMA_ID) + "/" + String(DEVICE_ID) + "/sensor_fault";
     mqttClient.publish(topic.c_str(), output.c_str());
     
-    Serial.println("⚠️ ANOMALY DETECTED: " + anomalyType);
+    Serial.println("Sensor fault reported to Central AI");
 }
 
 // ==================== OTA UPDATE FUNCTIONS ====================
@@ -739,6 +1055,8 @@ void performOTAUpdate(String url) {
 }
 
 // ==================== ESP-NOW MESH FUNCTIONS ====================
+// Mesh networking allows ESP32 devices to relay data when one has connectivity
+
 void initESPNow() {
     if (esp_now_init() != ESP_OK) {
         Serial.println("ESP-NOW init failed");
@@ -752,23 +1070,48 @@ void initESPNow() {
 }
 
 void onESPNowReceive(const uint8_t* mac, const uint8_t* data, int len) {
-    // Receive data from mesh peer
+    // Receive data from mesh peer (another ESP32 that may be offline)
     String message = "";
     for (int i = 0; i < len; i++) {
         message += (char)data[i];
     }
     
-    Serial.print("ESP-NOW received from ");
-    for (int i = 0; i < 6; i++) {
-        Serial.printf("%02X", mac[i]);
-        if (i < 5) Serial.print(":");
-    }
-    Serial.println(": " + message);
+    // Format MAC address for logging
+    char macStr[18];
+    snprintf(macStr, sizeof(macStr), "%02X:%02X:%02X:%02X:%02X:%02X",
+             mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
     
-    // Forward to MQTT if we have connectivity
+    Serial.print("ESP-NOW received from ");
+    Serial.print(macStr);
+    Serial.println(": " + message.substring(0, 50) + "...");
+    
+    // Forward to MQTT if we have connectivity (store-and-forward relay)
     if (mqttConnected) {
-        String topic = "aquawatch/mesh/forwarded";
-        mqttClient.publish(topic.c_str(), message.c_str());
+        // Parse the incoming message to extract DMA info
+        StaticJsonDocument<768> doc;
+        DeserializationError error = deserializeJson(doc, message);
+        
+        if (!error) {
+            // Add relay metadata
+            doc["relayed_by"] = DEVICE_ID;
+            doc["relay_dma"] = DMA_ID;
+            doc["original_mac"] = macStr;
+            
+            String output;
+            serializeJson(doc, output);
+            
+            // Forward to mesh relay topic for Central AI
+            String topic = "aquawatch/" + String(DMA_ID) + "/mesh/relayed";
+            mqttClient.publish(topic.c_str(), output.c_str());
+            Serial.println("Mesh data forwarded to Central AI");
+        } else {
+            // Forward raw if JSON parse fails
+            String topic = "aquawatch/" + String(DMA_ID) + "/mesh/raw";
+            mqttClient.publish(topic.c_str(), message.c_str());
+        }
+    } else {
+        // Buffer the relayed data too
+        Serial.println("Cannot forward mesh data - buffering locally");
     }
 }
 
@@ -778,9 +1121,39 @@ void onESPNowSend(const uint8_t* mac, esp_now_send_status_t status) {
 }
 
 void broadcastToMesh(String message) {
-    // Broadcast to all mesh peers
+    // Broadcast to all mesh peers (for offline relay)
     for (int i = 0; i < numMeshPeers; i++) {
         esp_now_send(meshPeers[i], (uint8_t*)message.c_str(), message.length());
+    }
+}
+
+// Request mesh relay when this device is offline
+void requestMeshRelay() {
+    if (bufferedReadings > 0 && !mqttConnected && numMeshPeers > 0) {
+        // Send buffered data to mesh peers for relay
+        Serial.println("Requesting mesh relay for buffered data...");
+        
+        // Send a relay request with our oldest buffered reading
+        if (bufferedReadings > 0) {
+            BufferedReading* reading = &offlineBuffer[bufferTail];
+            
+            StaticJsonDocument<512> doc;
+            doc["device_id"] = DEVICE_ID;
+            doc["dma_id"] = DMA_ID;
+            doc["zone_id"] = ZONE_ID;
+            doc["needs_relay"] = true;
+            doc["timestamp_ms"] = reading->timestamp;
+            
+            JsonObject raw = doc.createNestedObject("raw");
+            raw["flow_rate_lpm"] = reading->flowRate;
+            raw["pressure_bar"] = reading->pressure;
+            raw["total_volume_l"] = reading->totalVolume;
+            
+            String output;
+            serializeJson(doc, output);
+            
+            broadcastToMesh(output);
+        }
     }
 }
 
@@ -823,8 +1196,10 @@ void publishDiagnostics() {
 
     StaticJsonDocument<512> doc;
     doc["device_id"] = DEVICE_ID;
+    doc["dma_id"] = DMA_ID;
     doc["zone_id"] = ZONE_ID;
-    doc["timestamp"] = millis();
+    doc["sensor_location"] = SENSOR_LOCATION;
+    doc["timestamp_ms"] = millis();
     doc["firmware_version"] = FIRMWARE_VERSION;
     
     JsonObject system = doc.createNestedObject("system");
@@ -833,13 +1208,20 @@ void publishDiagnostics() {
     system["wifi_rssi"] = WiFi.RSSI();
     system["consecutive_errors"] = consecutiveErrors;
     system["last_error"] = lastError;
+    system["sensor_read_interval_ms"] = sensorReadInterval;
+    system["mqtt_publish_interval_ms"] = mqttPublishInterval;
     
     JsonObject sensors = doc.createNestedObject("sensor_health");
-    sensors["pressure"] = pressureBar > 0 ? "ok" : "error";
+    sensors["pressure"] = (pressureBar > 0 && pressureBar < PRESSURE_MAX) ? "ok" : "error";
     sensors["flow"] = "ok";
     sensors["ultrasonic"] = waterLevelCm >= 0 ? "ok" : "error";
     sensors["ph"] = (phValue >= 0 && phValue <= 14) ? "ok" : "error";
     sensors["turbidity"] = turbidityNTU >= 0 ? "ok" : "error";
+    
+    JsonObject buffer = doc.createNestedObject("offline_buffer");
+    buffer["capacity"] = BUFFER_SIZE;
+    buffer["used"] = bufferedReadings;
+    buffer["was_offline"] = wasOffline;
     
     JsonObject power = doc.createNestedObject("power");
     power["battery_percent"] = batteryPercent;
@@ -848,7 +1230,7 @@ void publishDiagnostics() {
     String output;
     serializeJson(doc, output);
 
-    String topic = "aquawatch/" + String(ZONE_ID) + "/" + String(DEVICE_ID) + "/diagnostics";
+    String topic = "aquawatch/" + String(DMA_ID) + "/" + String(DEVICE_ID) + "/diagnostics";
     mqttClient.publish(topic.c_str(), output.c_str());
 }
 
@@ -866,6 +1248,139 @@ void saveThresholds(float pressureThreshold, float flowThreshold) {
     EEPROM.put(204, flowThreshold);
     EEPROM.commit();
     Serial.println("Thresholds saved");
+}
+
+void saveCalibrationValues(float ppl, float pressureOffset, float phOffset) {
+    EEPROM.put(208, ppl);
+    EEPROM.put(212, pressureOffset);
+    EEPROM.put(216, phOffset);
+    EEPROM.commit();
+    Serial.println("Calibration values saved");
+}
+
+// ==================== OFFLINE DATA BUFFERING (STORE-AND-FORWARD) ====================
+// When connectivity is lost, buffer readings for later transmission
+
+void bufferCurrentReading() {
+    if (bufferedReadings >= BUFFER_SIZE) {
+        // Buffer full - overwrite oldest
+        Serial.println("⚠️ Offline buffer full - overwriting oldest data");
+        bufferTail = (bufferTail + 1) % BUFFER_SIZE;
+        bufferedReadings--;
+    }
+    
+    // Store current reading
+    offlineBuffer[bufferHead].timestamp = millis();
+    offlineBuffer[bufferHead].flowRate = flowRate;
+    offlineBuffer[bufferHead].totalVolume = totalVolume;
+    offlineBuffer[bufferHead].pressure = pressureBar;
+    offlineBuffer[bufferHead].tankLevel = tankLevelPercent;
+    offlineBuffer[bufferHead].ph = phValue;
+    offlineBuffer[bufferHead].turbidity = turbidityNTU;
+    offlineBuffer[bufferHead].chlorine = chlorineMgL;
+    offlineBuffer[bufferHead].battery = batteryPercent;
+    offlineBuffer[bufferHead].sensorFault = sensorFault;
+    
+    bufferHead = (bufferHead + 1) % BUFFER_SIZE;
+    bufferedReadings++;
+    wasOffline = true;
+    
+    Serial.printf("Buffered reading #%d (offline)\n", bufferedReadings);
+}
+
+void flushOfflineBuffer() {
+    if (!mqttConnected || bufferedReadings == 0) return;
+    
+    Serial.printf("Flushing %d buffered readings...\n", bufferedReadings);
+    
+    int flushed = 0;
+    while (bufferedReadings > 0 && flushed < 10) {  // Flush up to 10 at a time
+        BufferedReading* reading = &offlineBuffer[bufferTail];
+        
+        // Publish buffered reading with buffer flag
+        StaticJsonDocument<512> doc;
+        doc["device_id"] = DEVICE_ID;
+        doc["dma_id"] = DMA_ID;
+        doc["zone_id"] = ZONE_ID;
+        doc["sensor_location"] = SENSOR_LOCATION;
+        doc["timestamp_ms"] = reading->timestamp;
+        doc["sequence"] = sequenceNumber++;
+        
+        JsonObject raw = doc.createNestedObject("raw");
+        raw["flow_rate_lpm"] = reading->flowRate;
+        raw["total_volume_l"] = reading->totalVolume;
+        raw["pressure_bar"] = reading->pressure;
+        raw["tank_level_percent"] = reading->tankLevel;
+        
+        JsonObject quality_obj = doc.createNestedObject("water_quality");
+        quality_obj["ph"] = reading->ph;
+        quality_obj["turbidity_ntu"] = reading->turbidity;
+        quality_obj["chlorine_mg_l"] = reading->chlorine;
+        
+        JsonObject quality_flags = doc.createNestedObject("data_quality");
+        quality_flags["is_buffered"] = true;  // Mark as buffered data
+        quality_flags["was_offline"] = true;
+        quality_flags["buffer_sequence"] = flushed;
+        
+        doc["sensor_fault"] = reading->sensorFault;
+        
+        String output;
+        serializeJson(doc, output);
+        
+        String topic = "aquawatch/" + String(DMA_ID) + "/" + String(DEVICE_ID) + "/data";
+        
+        if (mqttClient.publish(topic.c_str(), output.c_str())) {
+            bufferTail = (bufferTail + 1) % BUFFER_SIZE;
+            bufferedReadings--;
+            flushed++;
+        } else {
+            break;  // Stop if publish fails
+        }
+    }
+    
+    Serial.printf("Flushed %d buffered readings, %d remaining\n", flushed, bufferedReadings);
+}
+
+void publishAcknowledgement(const char* command, bool success) {
+    if (!mqttConnected) return;
+    
+    StaticJsonDocument<192> doc;
+    doc["device_id"] = DEVICE_ID;
+    doc["dma_id"] = DMA_ID;
+    doc["command"] = command;
+    doc["success"] = success;
+    doc["timestamp_ms"] = millis();
+    
+    String output;
+    serializeJson(doc, output);
+    
+    String topic = "aquawatch/" + String(DMA_ID) + "/" + String(DEVICE_ID) + "/ack";
+    mqttClient.publish(topic.c_str(), output.c_str());
+}
+
+void publishConfiguration() {
+    if (!mqttConnected) return;
+    
+    StaticJsonDocument<384> doc;
+    doc["device_id"] = DEVICE_ID;
+    doc["dma_id"] = DMA_ID;
+    doc["zone_id"] = ZONE_ID;
+    doc["sensor_location"] = SENSOR_LOCATION;
+    doc["firmware_version"] = FIRMWARE_VERSION;
+    doc["sensor_read_interval_ms"] = sensorReadInterval;
+    doc["mqtt_publish_interval_ms"] = mqttPublishInterval;
+    doc["buffer_size"] = BUFFER_SIZE;
+    doc["buffer_used"] = bufferedReadings;
+    doc["flow_pulses_per_liter"] = FLOW_PULSES_PER_LITER;
+    doc["pressure_min"] = PRESSURE_MIN;
+    doc["pressure_max"] = PRESSURE_MAX;
+    doc["tank_height_cm"] = TANK_HEIGHT_CM;
+    
+    String output;
+    serializeJson(doc, output);
+    
+    String topic = "aquawatch/" + String(DMA_ID) + "/" + String(DEVICE_ID) + "/config";
+    mqttClient.publish(topic.c_str(), output.c_str());
 }
 
 // ==================== SENSOR READING FUNCTIONS ====================

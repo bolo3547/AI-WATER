@@ -1100,5 +1100,10 @@ app.layout = html.Div([
 # RUN APPLICATION
 # =============================================================================
 
+def create_monday_dashboard():
+    """Factory function to create the dashboard app (for external use)."""
+    return app
+
+
 if __name__ == "__main__":
     app.run(debug=True, port=8050)

@@ -819,6 +819,12 @@ def get_smart_meter_manager() -> SmartMeterManager:
     return smart_meter_manager
 
 
+# Alias for compatibility
+def get_ami_system() -> SmartMeterManager:
+    """Get the AMI system (alias for get_smart_meter_manager)"""
+    return smart_meter_manager
+
+
 if __name__ == "__main__":
     # Demo
     manager = SmartMeterManager()

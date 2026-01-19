@@ -27,13 +27,26 @@ except ImportError:
     print("Warning: PyJWT not installed. Run: pip install PyJWT")
 
 # Password hashing
+PASSLIB_AVAILABLE = False
+BCRYPT_AVAILABLE = False
+
 try:
-    from passlib.context import CryptContext
-    pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-    PASSLIB_AVAILABLE = True
+    import bcrypt
+    BCRYPT_AVAILABLE = True
 except ImportError:
-    PASSLIB_AVAILABLE = False
-    print("Warning: passlib not installed. Run: pip install passlib[bcrypt]")
+    pass
+
+if not BCRYPT_AVAILABLE:
+    try:
+        from passlib.context import CryptContext
+        # Use sha256_crypt as fallback (no bcrypt dependency issues)
+        pwd_context = CryptContext(
+            schemes=["sha256_crypt"],
+            deprecated="auto"
+        )
+        PASSLIB_AVAILABLE = True
+    except ImportError:
+        print("Warning: passlib not installed. Run: pip install passlib")
 
 
 # =============================================================================
@@ -244,14 +257,22 @@ class AuthService:
     
     def hash_password(self, password: str) -> str:
         """Hash password securely."""
-        if PASSLIB_AVAILABLE:
+        if BCRYPT_AVAILABLE:
+            # Truncate to 72 bytes and encode for bcrypt
+            truncated = password[:72].encode('utf-8')
+            salt = bcrypt.gensalt(rounds=12)
+            return bcrypt.hashpw(truncated, salt).decode('utf-8')
+        elif PASSLIB_AVAILABLE:
             return pwd_context.hash(password)
         # Fallback (NOT secure for production)
         return hashlib.sha256(password.encode()).hexdigest()
     
     def verify_password(self, plain_password: str, hashed_password: str) -> bool:
         """Verify password against hash."""
-        if PASSLIB_AVAILABLE:
+        if BCRYPT_AVAILABLE:
+            truncated = plain_password[:72].encode('utf-8')
+            return bcrypt.checkpw(truncated, hashed_password.encode('utf-8'))
+        elif PASSLIB_AVAILABLE:
             return pwd_context.verify(plain_password, hashed_password)
         return hashlib.sha256(plain_password.encode()).hexdigest() == hashed_password
     
@@ -523,17 +544,23 @@ try:
         if not x_api_key:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="API key required"
-            )
-        
-        api_key = auth_service.verify_api_key(x_api_key)
-        if not api_key:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid API key"
             )
         
         return api_key
 
 except ImportError:
-    pass  # FastAPI not installed
+    # FastAPI not installed - provide stub functions
+    def get_current_user():
+        """Stub: FastAPI not installed."""
+        raise NotImplementedError("FastAPI required for authentication")
+    
+    def require_permission(permission):
+        """Stub: FastAPI not installed."""
+        def stub_checker():
+            raise NotImplementedError("FastAPI required for permission checking")
+        return stub_checker
+    
+    def verify_api_key_header():
+        """Stub: FastAPI not installed."""
+        raise NotImplementedError("FastAPI required for API key verification")

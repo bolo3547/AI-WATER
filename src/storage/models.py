@@ -777,6 +777,266 @@ class ModelVersion(Base):
 
 
 # =============================================================================
+# SYSTEM INPUT VOLUME (SIV) MODELS - FOUNDATION FOR NRW
+# =============================================================================
+
+class SIVSourceType(str, Enum):
+    """Types of SIV sources."""
+    TREATMENT_PLANT = "treatment_plant"
+    RESERVOIR = "reservoir"
+    BULK_METER = "bulk_meter"
+    BOREHOLE = "borehole"
+    IMPORTED = "imported"
+
+
+class SIVSource(Base):
+    """
+    System Input Volume source (treatment plant, reservoir, bulk meter).
+    
+    This is CRITICAL - without SIV sources, NRW cannot be calculated.
+    """
+    __tablename__ = "siv_sources"
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    utility_id = Column(UUID(as_uuid=True), ForeignKey("utilities.id"))
+    
+    # Identification
+    source_code = Column(String(50), unique=True, nullable=False)
+    name = Column(String(200), nullable=False)
+    source_type = Column(SQLEnum(SIVSourceType), nullable=False)
+    
+    # Location
+    location_description = Column(String(500))
+    latitude = Column(Numeric(10, 7))
+    longitude = Column(Numeric(10, 7))
+    
+    # Meter info
+    meter_id = Column(String(100))
+    meter_serial = Column(String(100))
+    measurement_unit = Column(String(20), default="m3/h")
+    accuracy_percent = Column(Numeric(5, 2), default=2.0)
+    
+    # Capacity
+    design_capacity_m3_day = Column(Numeric(12, 2))
+    max_flow_m3_hour = Column(Numeric(10, 2))
+    
+    # Connected DMAs
+    connected_dma_ids = Column(ARRAY(UUID(as_uuid=True)))
+    
+    # Status
+    is_active = Column(Boolean, default=True)
+    commissioned_date = Column(Date)
+    last_reading_at = Column(DateTime(timezone=True))
+    
+    # Config
+    config = Column(JSONB, default={})
+    
+    # Audit
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    
+    # Relationships
+    siv_records = relationship("SIVRecord", back_populates="source")
+    
+    __table_args__ = (
+        Index("ix_siv_sources_type", "source_type"),
+        Index("ix_siv_sources_utility", "utility_id"),
+    )
+
+
+class SIVRecord(Base):
+    """
+    System Input Volume time-series record.
+    
+    This table stores all water entering the distribution system.
+    Converted to TimescaleDB hypertable for efficient queries.
+    """
+    __tablename__ = "siv_records"
+    
+    # Composite primary key for hypertable
+    time = Column(DateTime(timezone=True), primary_key=True, nullable=False)
+    source_id = Column(UUID(as_uuid=True), ForeignKey("siv_sources.id"), primary_key=True, nullable=False)
+    
+    # Volume measurement
+    volume_m3 = Column(Numeric(12, 3), nullable=False)
+    flow_rate_m3_hour = Column(Numeric(10, 3))
+    
+    # Period (for aggregated data)
+    period_start = Column(DateTime(timezone=True))
+    period_end = Column(DateTime(timezone=True))
+    aggregation_type = Column(String(20), default="instantaneous")
+    
+    # Data quality
+    quality = Column(String(20), default="measured")  # measured, estimated, interpolated
+    quality_score = Column(Integer, default=100)
+    is_validated = Column(Boolean, default=False)
+    
+    # Raw reading
+    raw_value = Column(Numeric(12, 4))
+    raw_unit = Column(String(20))
+    
+    # Uncertainty
+    uncertainty_m3 = Column(Numeric(10, 3))
+    uncertainty_percent = Column(Numeric(5, 2))
+    
+    # Ingestion
+    ingestion_method = Column(String(20), default="api")  # api, csv, scada, manual
+    ingestion_timestamp = Column(DateTime(timezone=True), server_default=func.now())
+    notes = Column(Text)
+    
+    # Relationships
+    source = relationship("SIVSource", back_populates="siv_records")
+    
+    __table_args__ = (
+        Index("ix_siv_records_source_time", "source_id", "time"),
+    )
+
+
+class DMAInletFlow(Base):
+    """
+    Water flow at DMA boundary meters.
+    
+    Links SIV to individual DMAs for loss attribution.
+    """
+    __tablename__ = "dma_inlet_flows"
+    
+    # Composite primary key for hypertable
+    time = Column(DateTime(timezone=True), primary_key=True, nullable=False)
+    dma_id = Column(UUID(as_uuid=True), ForeignKey("dmas.id"), primary_key=True, nullable=False)
+    inlet_point_id = Column(String(50), primary_key=True, nullable=False)
+    
+    # Flow measurement
+    volume_m3 = Column(Numeric(12, 3), nullable=False)
+    flow_rate_m3_hour = Column(Numeric(10, 3), nullable=False)
+    
+    # Period
+    period_start = Column(DateTime(timezone=True), nullable=False)
+    period_end = Column(DateTime(timezone=True), nullable=False)
+    
+    # Direction
+    is_inlet = Column(Boolean, default=True)  # True = entering, False = leaving
+    
+    # Link to SIV source
+    siv_source_id = Column(UUID(as_uuid=True), ForeignKey("siv_sources.id"))
+    
+    # Meter
+    meter_id = Column(String(100))
+    
+    # Quality
+    quality = Column(String(20), default="measured")
+    quality_score = Column(Integer, default=100)
+    
+    __table_args__ = (
+        Index("ix_dma_inlet_dma_time", "dma_id", "time"),
+    )
+
+
+class BillingRecord(Base):
+    """
+    Billing/consumption data for NRW calculation.
+    
+    NRW = SIV - (Billed + Unbilled Authorized)
+    """
+    __tablename__ = "billing_records"
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    dma_id = Column(UUID(as_uuid=True), ForeignKey("dmas.id"), nullable=False)
+    
+    # Billing period
+    period_start = Column(Date, nullable=False)
+    period_end = Column(Date, nullable=False)
+    
+    # Billed Authorized Consumption (m³)
+    billed_metered_m3 = Column(Numeric(12, 2), default=0)
+    billed_unmetered_m3 = Column(Numeric(12, 2), default=0)
+    
+    # Unbilled Authorized Consumption (m³)
+    unbilled_metered_m3 = Column(Numeric(12, 2), default=0)
+    unbilled_unmetered_m3 = Column(Numeric(12, 2), default=0)
+    
+    # Customer counts
+    metered_customer_count = Column(Integer, default=0)
+    unmetered_customer_count = Column(Integer, default=0)
+    
+    # Revenue (optional)
+    revenue_usd = Column(Numeric(14, 2))
+    tariff_usd_per_m3 = Column(Numeric(8, 4))
+    
+    # Audit
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    source_system = Column(String(50))  # billing_system, manual, etc.
+    
+    __table_args__ = (
+        Index("ix_billing_dma_period", "dma_id", "period_start"),
+        UniqueConstraint("dma_id", "period_start", "period_end", name="uq_billing_dma_period"),
+    )
+
+
+class NRWCalculation(Base):
+    """
+    Stored NRW calculation results.
+    
+    Provides audit trail of all NRW calculations.
+    """
+    __tablename__ = "nrw_calculations"
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    
+    # Scope
+    utility_id = Column(UUID(as_uuid=True), ForeignKey("utilities.id"))
+    dma_id = Column(UUID(as_uuid=True), ForeignKey("dmas.id"))  # NULL = utility-wide
+    
+    # Period
+    period_start = Column(DateTime(timezone=True), nullable=False)
+    period_end = Column(DateTime(timezone=True), nullable=False)
+    period_days = Column(Integer, nullable=False)
+    
+    # IWA Water Balance Components (m³)
+    system_input_volume_m3 = Column(Numeric(14, 2), nullable=False)
+    billed_authorized_m3 = Column(Numeric(14, 2), nullable=False)
+    unbilled_authorized_m3 = Column(Numeric(14, 2), nullable=False)
+    water_losses_m3 = Column(Numeric(14, 2), nullable=False)
+    
+    # Loss breakdown
+    apparent_losses_m3 = Column(Numeric(14, 2))
+    real_losses_m3 = Column(Numeric(14, 2))
+    
+    # KPIs
+    nrw_percent = Column(Numeric(5, 2), nullable=False)
+    real_losses_percent = Column(Numeric(5, 2))
+    apparent_losses_percent = Column(Numeric(5, 2))
+    
+    # IWA Level 2 indicators
+    real_losses_l_per_conn_day = Column(Numeric(8, 2))
+    real_losses_m3_per_km_day = Column(Numeric(8, 3))
+    
+    # IWA Level 3 indicators
+    ili = Column(Numeric(6, 2))  # Infrastructure Leakage Index
+    uarl_m3_year = Column(Numeric(14, 2))  # Unavoidable Annual Real Losses
+    carl_m3_year = Column(Numeric(14, 2))  # Current Annual Real Losses
+    
+    # MNF analysis
+    mnf_m3_hour = Column(Numeric(10, 2))
+    mnf_excess_m3_day = Column(Numeric(10, 2))
+    
+    # Data quality
+    siv_data_completeness = Column(Numeric(5, 2))
+    billing_data_completeness = Column(Numeric(5, 2))
+    calculation_confidence = Column(Numeric(5, 2))
+    
+    # Metadata
+    calculation_timestamp = Column(DateTime(timezone=True), server_default=func.now())
+    calculated_by = Column(String(100))  # user or "system"
+    assumptions = Column(JSONB)
+    notes = Column(Text)
+    
+    __table_args__ = (
+        Index("ix_nrw_calc_dma_period", "dma_id", "period_start"),
+        Index("ix_nrw_calc_utility_period", "utility_id", "period_start"),
+    )
+
+
+# =============================================================================
 # TIMESCALEDB INITIALIZATION SQL
 # =============================================================================
 
@@ -842,4 +1102,80 @@ SELECT create_hypertable(
     chunk_time_interval => INTERVAL '1 day',
     if_not_exists => TRUE
 );
+
+-- =============================================================================
+-- SIV (SYSTEM INPUT VOLUME) HYPERTABLES - FOUNDATION FOR NRW
+-- =============================================================================
+
+-- SIV Records hypertable
+SELECT create_hypertable(
+    'siv_records',
+    'time',
+    chunk_time_interval => INTERVAL '1 week',
+    if_not_exists => TRUE
+);
+
+-- Enable compression for SIV records
+ALTER TABLE siv_records SET (
+    timescaledb.compress,
+    timescaledb.compress_segmentby = 'source_id'
+);
+
+SELECT add_compression_policy('siv_records', INTERVAL '30 days');
+
+-- Continuous aggregate for daily SIV totals
+CREATE MATERIALIZED VIEW siv_daily
+WITH (timescaledb.continuous) AS
+SELECT
+    time_bucket('1 day', time) AS day,
+    source_id,
+    SUM(volume_m3) as total_volume_m3,
+    AVG(flow_rate_m3_hour) as avg_flow_m3_h,
+    MAX(flow_rate_m3_hour) as max_flow_m3_h,
+    MIN(flow_rate_m3_hour) as min_flow_m3_h,
+    COUNT(*) as record_count,
+    AVG(quality_score) as avg_quality
+FROM siv_records
+GROUP BY day, source_id
+WITH NO DATA;
+
+SELECT add_continuous_aggregate_policy('siv_daily',
+    start_offset => INTERVAL '2 days',
+    end_offset => INTERVAL '1 day',
+    schedule_interval => INTERVAL '1 day');
+
+-- DMA Inlet Flow hypertable
+SELECT create_hypertable(
+    'dma_inlet_flows',
+    'time',
+    chunk_time_interval => INTERVAL '1 week',
+    if_not_exists => TRUE
+);
+
+ALTER TABLE dma_inlet_flows SET (
+    timescaledb.compress,
+    timescaledb.compress_segmentby = 'dma_id'
+);
+
+SELECT add_compression_policy('dma_inlet_flows', INTERVAL '30 days');
+
+-- Continuous aggregate for daily DMA inlet totals
+CREATE MATERIALIZED VIEW dma_inlet_daily
+WITH (timescaledb.continuous) AS
+SELECT
+    time_bucket('1 day', time) AS day,
+    dma_id,
+    SUM(CASE WHEN is_inlet THEN volume_m3 ELSE 0 END) as total_inlet_m3,
+    SUM(CASE WHEN NOT is_inlet THEN volume_m3 ELSE 0 END) as total_outlet_m3,
+    SUM(volume_m3 * CASE WHEN is_inlet THEN 1 ELSE -1 END) as net_input_m3,
+    AVG(flow_rate_m3_hour) as avg_flow_m3_h,
+    COUNT(*) as record_count
+FROM dma_inlet_flows
+GROUP BY day, dma_id
+WITH NO DATA;
+
+SELECT add_continuous_aggregate_policy('dma_inlet_daily',
+    start_offset => INTERVAL '2 days',
+    end_offset => INTERVAL '1 day',
+    schedule_interval => INTERVAL '1 day');
 """
