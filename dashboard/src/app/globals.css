@@ -1,0 +1,168 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Leaflet Map Styles */
+@import 'leaflet/dist/leaflet.css';
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+
+@layer base {
+  html {
+    @apply antialiased;
+    scroll-behavior: smooth;
+  }
+  
+  body {
+    @apply bg-slate-50 text-slate-900 font-sans;
+  }
+}
+
+@layer components {
+  /* Premium Card Styles */
+  .card {
+    @apply bg-white rounded-2xl shadow-sm border border-slate-200/60 relative overflow-hidden;
+  }
+  
+  .card-premium {
+    @apply bg-white rounded-2xl shadow-lg relative overflow-hidden;
+    background: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
+    border: 1px solid rgba(148, 163, 184, 0.2);
+  }
+  
+  .card-premium::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #3b82f6 0%, #06b6d4 50%, #3b82f6 100%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+  
+  .card-premium:hover::before {
+    opacity: 1;
+  }
+  
+  .card-premium:hover {
+    @apply shadow-xl;
+    transform: translateY(-1px);
+    transition: all 0.2s ease;
+  }
+  
+  /* Glass Effect */
+  .glass {
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+  }
+  
+  /* Hero Metric */
+  .hero-metric {
+    @apply text-5xl font-extrabold tracking-tight;
+    background: linear-gradient(135deg, #0f172a 0%, #1e40af 50%, #0ea5e9 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  
+  /* Section Headers */
+  .section-header {
+    @apply flex items-center justify-between mb-4;
+  }
+  
+  .section-title {
+    @apply text-lg font-semibold text-slate-900;
+  }
+  
+  /* Status Badges */
+  .status-badge {
+    @apply inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold;
+  }
+  
+  .status-healthy {
+    @apply bg-emerald-50 text-emerald-700 border border-emerald-200;
+  }
+  
+  .status-warning {
+    @apply bg-amber-50 text-amber-700 border border-amber-200;
+  }
+  
+  .status-critical {
+    @apply bg-red-50 text-red-700 border border-red-200;
+  }
+
+  /* Pulse Animation */
+  .pulse-live {
+    animation: pulse-ring 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+  
+  @keyframes pulse-ring {
+    0%, 100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.6;
+      transform: scale(1.05);
+    }
+  }
+  
+  /* Skeleton Loader */
+  .skeleton {
+    @apply animate-pulse bg-slate-200 rounded;
+  }
+  
+  /* Progress Bar */
+  .progress-bar {
+    @apply h-2 rounded-full bg-slate-100 overflow-hidden;
+  }
+  
+  .progress-fill {
+    @apply h-full rounded-full transition-all duration-500 ease-out;
+  }
+  
+  /* Gradient Text */
+  .gradient-text {
+    background: linear-gradient(135deg, #1e40af 0%, #0ea5e9 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  
+  /* Confidence indicator */
+  .confidence-bar {
+    @apply h-2 rounded-full bg-slate-100 overflow-hidden;
+  }
+  
+  .confidence-fill {
+    @apply h-full rounded-full transition-all duration-300;
+  }
+}
+
+@layer utilities {
+  .timestamp {
+    @apply text-xs text-slate-400 font-mono;
+  }
+  
+  /* Custom scrollbar */
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 3px;
+  }
+  
+  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+  }
+}
