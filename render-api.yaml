@@ -1,0 +1,21 @@
+# LWSC NRW Detection System - Backend API
+# Deploy to Render.com
+
+services:
+  - type: web
+    name: lwsc-nrw-api
+    env: python
+    region: frankfurt
+    plan: free
+    buildCommand: pip install -r requirements-api.txt
+    startCommand: gunicorn api_server:app --bind 0.0.0.0:$PORT --workers 2
+    envVars:
+      - key: USE_MONGODB
+        value: "true"
+      - key: MONGODB_URI
+        sync: false
+      - key: SECRET_KEY
+        generateValue: true
+      - key: PYTHON_VERSION
+        value: 3.11.0
+    healthCheckPath: /api/health
