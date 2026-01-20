@@ -30,7 +30,9 @@ import {
   UserCheck,
   MessageSquare,
   Gauge,
-  CloudRain
+  CloudRain,
+  Menu,
+  X
 } from 'lucide-react'
 
 // Role-based navigation
@@ -104,6 +106,14 @@ export function Sidebar({ isExpanded, onToggle, isMobile = false }: SidebarProps
     }
   }, [])
 
+  // Close mobile menu when route changes
+  useEffect(() => {
+    if (isMobile && isExpanded) {
+      onToggle()
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname])
+
   // Get navigation based on role
   const getNavigation = () => {
     switch (userRole) {
@@ -120,15 +130,140 @@ export function Sidebar({ isExpanded, onToggle, isMobile = false }: SidebarProps
   const roleLabel = userRole === 'admin' ? 'Administrator' : userRole === 'technician' ? 'Field Tech' : 'Operator'
   const roleColor = userRole === 'admin' ? 'text-purple-400' : userRole === 'technician' ? 'text-orange-400' : 'text-cyan-400'
 
-  // Widths based on device and state - larger on mobile for touch
-  const expandedWidth = isMobile ? 'w-72' : 'w-64'
-  const collapsedWidth = isMobile ? 'w-16' : 'w-16'
-  
+  // MOBILE: Hamburger menu that slides in from left
+  if (isMobile) {
+    return (
+      <>
+        {/* Hamburger Button - Fixed in top left */}
+        <button
+          onClick={onToggle}
+          className="fixed top-3 left-3 z-50 p-2.5 rounded-xl bg-[var(--sidebar-bg)] border border-white/10 text-white shadow-lg"
+          aria-label="Toggle menu"
+        >
+          {isExpanded ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+        </button>
+
+        {/* Overlay */}
+        {isExpanded && (
+          <div 
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40"
+            onClick={onToggle}
+          />
+        )}
+
+        {/* Slide-out Menu */}
+        <aside className={clsx(
+          "fixed left-0 top-0 bottom-0 w-80 flex flex-col z-50 transition-transform duration-300 ease-in-out",
+          "bg-[var(--sidebar-bg)] border-r border-white/5 shadow-2xl",
+          isExpanded ? "translate-x-0" : "-translate-x-full"
+        )}>
+          {/* Logo Header */}
+          <div className="h-16 flex items-center justify-between px-4 border-b border-white/5">
+            <div className="flex items-center gap-3">
+              <div className="relative flex-shrink-0">
+                <img src="/lwsc-logo.png" alt="LWSC" className="w-10 h-10 object-contain" />
+                <div className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-400 rounded-full border-2 border-slate-900" />
+              </div>
+              <div>
+                <h1 className="text-lg font-bold text-white">LWSC</h1>
+                <p className={clsx("text-xs font-medium uppercase tracking-wider", roleColor)}>{roleLabel}</p>
+              </div>
+            </div>
+            <button
+              onClick={onToggle}
+              className="p-2 rounded-lg hover:bg-white/10 text-slate-400"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          {/* Quick Stats */}
+          <div className="px-4 py-3 border-b border-white/5">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="bg-white/5 rounded-xl p-3">
+                <p className="text-[10px] text-slate-400 uppercase tracking-wider">NRW Rate</p>
+                <p className="text-xl font-bold text-white">32.4%</p>
+              </div>
+              <div className="bg-white/5 rounded-xl p-3">
+                <p className="text-[10px] text-slate-400 uppercase tracking-wider">Active Alerts</p>
+                <p className="text-xl font-bold text-amber-400">3</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Navigation */}
+          <nav className="flex-1 py-3 px-3 overflow-y-auto">
+            <p className="px-3 py-2 text-[10px] font-medium text-slate-500 uppercase tracking-wider">Menu</p>
+            <div className="space-y-1">
+              {navigation.map((item) => {
+                const isActive = pathname === item.href || 
+                  (item.href !== '/' && pathname.startsWith(item.href))
+                
+                return (
+                  <Link
+                    key={item.name}
+                    href={item.href}
+                    className={clsx(
+                      'flex items-center gap-3 px-4 py-3.5 rounded-xl font-medium transition-all duration-150',
+                      isActive 
+                        ? 'bg-[var(--sidebar-accent)] text-white' 
+                        : 'text-slate-400 hover:bg-white/5 hover:text-white active:bg-white/10'
+                    )}
+                  >
+                    <item.icon className={clsx(
+                      'w-5 h-5 flex-shrink-0',
+                      isActive ? 'text-white' : 'text-slate-500'
+                    )} />
+                    <span className="flex-1">{item.name}</span>
+                    {item.badge && (
+                      <span className={clsx(
+                        'px-2 py-1 rounded-lg text-xs font-semibold',
+                        isActive ? 'bg-white/20 text-white' : 'bg-[var(--sidebar-accent)]/20 text-[var(--primary-light)]'
+                      )}>
+                        {item.badge}
+                      </span>
+                    )}
+                  </Link>
+                )
+              })}
+            </div>
+          </nav>
+
+          {/* AI Status */}
+          <div className="px-4 py-3 border-t border-white/5">
+            <div className="flex items-center gap-3 px-4 py-3 bg-emerald-500/10 rounded-xl border border-emerald-500/20">
+              <div className="w-8 h-8 rounded-lg bg-emerald-500/20 flex items-center justify-center">
+                <Zap className="w-4 h-4 text-emerald-400" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-white">AI Active</p>
+                <p className="text-xs text-emerald-400">94% confidence</p>
+              </div>
+              <div className="w-2 h-2 bg-emerald-400 rounded-full pulse-live" />
+            </div>
+          </div>
+
+          {/* Footer */}
+          <div className="px-4 py-3 border-t border-white/5">
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-slate-500">v2.4.1</span>
+              <span className="text-emerald-400 flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full"></span>
+                Connected
+              </span>
+            </div>
+          </div>
+        </aside>
+      </>
+    )
+  }
+
+  // DESKTOP: Traditional collapsible sidebar
   return (
     <aside className={clsx(
       "fixed left-0 top-0 bottom-0 flex flex-col z-40 transition-all duration-300 ease-in-out",
       "bg-[var(--sidebar-bg)] border-r border-white/5",
-      isExpanded ? expandedWidth : collapsedWidth
+      isExpanded ? 'w-64' : 'w-16'
     )}>
       {/* Logo - LWSC Branding */}
       <div className={clsx(
@@ -183,19 +318,17 @@ export function Sidebar({ isExpanded, onToggle, isMobile = false }: SidebarProps
               href={item.href}
               title={!isExpanded ? item.name : undefined}
               className={clsx(
-                'group flex items-center font-medium transition-all duration-150 relative',
-                isMobile ? 'text-sm' : 'text-[13px]',
+                'group flex items-center text-[13px] font-medium transition-all duration-150 relative',
                 isExpanded 
-                  ? (isMobile ? 'gap-3 px-4 py-3 rounded-xl mx-1' : 'gap-3 px-3 py-2 rounded-lg mx-1')
-                  : (isMobile ? 'justify-center p-3 rounded-xl mx-1' : 'justify-center p-2.5 rounded-lg mx-1'),
+                  ? 'gap-3 px-3 py-2 rounded-lg mx-1'
+                  : 'justify-center p-2.5 rounded-lg mx-1',
                 isActive 
                   ? 'bg-[var(--sidebar-accent)] text-white' 
                   : 'text-slate-400 hover:bg-white/5 hover:text-white'
               )}
             >
               <item.icon className={clsx(
-                'flex-shrink-0 transition-colors',
-                isMobile ? 'w-5 h-5' : 'w-[18px] h-[18px]',
+                'w-[18px] h-[18px] flex-shrink-0 transition-colors',
                 isActive ? 'text-white' : 'text-slate-500 group-hover:text-slate-300'
               )} />
               {isExpanded && (

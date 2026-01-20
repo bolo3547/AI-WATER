@@ -78,15 +78,16 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
   }
 
   // Calculate sidebar width based on state and device
+  // On mobile, sidebar is a slide-out menu, so no margin needed
   const sidebarWidth = isMobile 
-    ? (sidebarExpanded ? 288 : 64)  // Larger touch targets on mobile (w-72 = 288px)
-    : (sidebarExpanded ? 256 : 64)  // Normal on desktop
+    ? 0  // Mobile: hamburger menu, no sidebar margin
+    : (sidebarExpanded ? 256 : 64)  // Desktop: normal sidebar
 
   // Dashboard pages - with sidebar/topbar and notifications
   return (
     <NotificationProvider>
       <div className="flex min-h-screen">
-        {/* Sidebar - Always visible, expands/collapses like ChatGPT */}
+        {/* Sidebar - Desktop: always visible. Mobile: hamburger menu */}
         <Sidebar isExpanded={sidebarExpanded} onToggle={handleSidebarToggle} isMobile={isMobile} />
         
         {/* Main Content Area - Adjusts margin based on sidebar state */}
