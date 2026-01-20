@@ -134,13 +134,13 @@ export function Sidebar({ isExpanded, onToggle, isMobile = false }: SidebarProps
   if (isMobile) {
     return (
       <>
-        {/* Hamburger Button - Fixed in top left */}
+        {/* Hamburger Button - Fixed in top left, same size as logo (w-8 h-8) */}
         <button
           onClick={onToggle}
-          className="fixed top-3 left-3 z-50 p-2.5 rounded-xl bg-[var(--sidebar-bg)] border border-white/10 text-white shadow-lg"
+          className="fixed top-3 left-3 z-50 w-10 h-10 flex items-center justify-center rounded-xl bg-[var(--sidebar-bg)] border border-white/10 text-white shadow-lg"
           aria-label="Toggle menu"
         >
-          {isExpanded ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+          {isExpanded ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
         </button>
 
         {/* Overlay */}

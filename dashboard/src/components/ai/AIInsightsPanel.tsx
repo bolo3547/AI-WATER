@@ -55,6 +55,7 @@ export function AIInsightsPanel({ type, data, title, autoLoad = false, compact =
   const [analysis, setAnalysis] = useState<string>('')
   const [loading, setLoading] = useState(false)
   const [expanded, setExpanded] = useState(!compact)
+  const [contentExpanded, setContentExpanded] = useState(false)
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
 
   const getTitle = () => {
@@ -144,7 +145,7 @@ export function AIInsightsPanel({ type, data, title, autoLoad = false, compact =
         ) : analysis ? (
           <div className="prose prose-sm max-w-none">
             <div 
-              className="text-slate-700 text-sm leading-relaxed ai-content"
+              className={`text-slate-700 text-sm leading-relaxed ai-content overflow-hidden transition-all duration-300 ${contentExpanded ? '' : 'max-h-40'}`}
               dangerouslySetInnerHTML={{ 
                 __html: analysis
                   .replace(/\*\*(.*?)\*\*/g, '<strong class="text-slate-900">$1</strong>')
@@ -158,11 +159,28 @@ export function AIInsightsPanel({ type, data, title, autoLoad = false, compact =
                   .replace(/\n/g, '<br/>')
               }}
             />
-            {lastUpdated && (
-              <p className="text-xs text-slate-400 mt-3 pt-2 border-t border-purple-100">
-                Generated: {lastUpdated.toLocaleTimeString()}
-              </p>
-            )}
+            {/* Expand/Collapse button */}
+            <button
+              onClick={() => setContentExpanded(!contentExpanded)}
+              className="flex items-center gap-1.5 mt-3 pt-2 border-t border-purple-100 text-xs text-purple-600 hover:text-purple-800 transition-colors w-full"
+            >
+              {contentExpanded ? (
+                <>
+                  <ChevronUp className="w-4 h-4" />
+                  <span>Show less</span>
+                </>
+              ) : (
+                <>
+                  <ChevronDown className="w-4 h-4" />
+                  <span>Read more</span>
+                </>
+              )}
+              {lastUpdated && (
+                <span className="ml-auto text-slate-400">
+                  Generated: {lastUpdated.toLocaleTimeString()}
+                </span>
+              )}
+            </button>
           </div>
         ) : (
           <div className="text-center py-6">
