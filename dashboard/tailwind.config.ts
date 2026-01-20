@@ -17,6 +17,13 @@ const config: Config = {
     },
     extend: {
       colors: {
+        // Zambian Flag Colors - National Branding
+        zambia: {
+          green: '#198038',      // Zambian green
+          orange: '#EF7D00',     // Zambian orange/copper
+          black: '#000000',      // Black
+          red: '#DE2010',        // Red (eagle)
+        },
         // Primary palette - Deep professional blues
         primary: {
           50: '#eff6ff',

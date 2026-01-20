@@ -29,8 +29,10 @@ function KPICard({
 }) {
   const colorClasses: Record<string, string> = {
     blue: 'from-blue-500 to-blue-600',
-    green: 'from-emerald-500 to-emerald-600',
+    green: 'from-green-600 to-green-700',
+    emerald: 'from-emerald-500 to-emerald-600',
     amber: 'from-amber-500 to-amber-600',
+    orange: 'from-orange-500 to-orange-600',
     red: 'from-red-500 to-red-600',
     purple: 'from-purple-500 to-purple-600',
     cyan: 'from-cyan-500 to-cyan-600',
@@ -118,7 +120,7 @@ export default function ExecutiveDashboard() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3">
           <div>
             <div className="flex items-center gap-1.5 sm:gap-2 text-[10px] sm:text-xs md:text-sm text-slate-500 mb-0.5 sm:mb-1">
-              <span className="px-1.5 sm:px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded-full font-medium text-[8px] sm:text-[10px] md:text-xs">LIVE</span>
+              <span className="px-1.5 sm:px-2 py-0.5 bg-green-100 text-green-700 rounded-full font-medium text-[8px] sm:text-[10px] md:text-xs">LIVE</span>
               <span className="truncate">{currentTime.toLocaleString('en-GB', { 
                 weekday: 'short', 
                 month: 'short', 
@@ -140,7 +142,7 @@ export default function ExecutiveDashboard() {
                   onClick={() => setPeriod(p)}
                   className={`px-1.5 sm:px-2 md:px-3 py-1 sm:py-1.5 text-[8px] sm:text-[10px] md:text-xs font-medium rounded-md transition-colors ${
                     period === p 
-                      ? 'bg-blue-600 text-white' 
+                      ? 'bg-green-600 text-white' 
                       : 'text-slate-600 hover:bg-slate-100'
                   }`}
                 >
@@ -150,7 +152,7 @@ export default function ExecutiveDashboard() {
             </div>
             
             {/* Export Button */}
-            <button className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-[10px] sm:text-xs md:text-sm font-medium">
+            <button className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors text-[10px] sm:text-xs md:text-sm font-medium">
               <Download className="w-3 h-3 sm:w-4 sm:h-4" />
               <span className="hidden xs:inline">Export</span>
             </button>

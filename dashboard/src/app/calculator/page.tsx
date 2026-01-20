@@ -252,12 +252,12 @@ export default function CalculatorPage() {
         <div className="lg:col-span-2 space-y-4">
           {/* Key Metrics */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
-            <div className="bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl sm:rounded-2xl p-2 sm:p-3 md:p-4 text-white">
+            <div className="bg-gradient-to-br from-green-600 to-green-700 rounded-xl sm:rounded-2xl p-2 sm:p-3 md:p-4 text-white">
               <div className="flex items-center justify-between mb-1 sm:mb-2">
                 <PiggyBank className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 opacity-80" />
                 <TrendingUp className="w-3 h-3 sm:w-4 sm:h-4" />
               </div>
-              <p className="text-[8px] sm:text-[10px] md:text-xs text-emerald-100">Annual Savings</p>
+              <p className="text-[8px] sm:text-[10px] md:text-xs text-green-100">Annual Savings</p>
               <p className="text-sm sm:text-lg md:text-xl lg:text-2xl font-bold">{formatCurrency(results.totalBenefitAnnual)}</p>
             </div>
             
@@ -279,12 +279,12 @@ export default function CalculatorPage() {
               <p className="text-sm sm:text-lg md:text-xl lg:text-2xl font-bold">{results.nrwReduction.toFixed(1)}%</p>
             </div>
 
-            <div className="bg-gradient-to-br from-cyan-500 to-cyan-600 rounded-xl sm:rounded-2xl p-2 sm:p-3 md:p-4 text-white">
+            <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl sm:rounded-2xl p-2 sm:p-3 md:p-4 text-white">
               <div className="flex items-center justify-between mb-1 sm:mb-2">
                 <Zap className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 opacity-80" />
                 <span className="text-[8px] sm:text-[10px] md:text-xs">{results.roi5Year > 0 ? '+' : ''}{results.roi5Year.toFixed(0)}%</span>
               </div>
-              <p className="text-[8px] sm:text-[10px] md:text-xs text-cyan-100">5-Year ROI</p>
+              <p className="text-[8px] sm:text-[10px] md:text-xs text-orange-100">5-Year ROI</p>
               <p className="text-sm sm:text-lg md:text-xl lg:text-2xl font-bold">{formatCurrency(results.npv5Year)}</p>
             </div>
           </div>

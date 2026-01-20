@@ -191,20 +191,20 @@ export function OperatorDashboard() {
   return (
     <div className="space-y-4 sm:space-y-6">
       {/* Operator Hero Section */}
-      <div className="relative overflow-hidden rounded-xl sm:rounded-2xl bg-gradient-to-br from-cyan-900 via-slate-800 to-slate-900 p-4 sm:p-6 text-white">
+      <div className="relative overflow-hidden rounded-xl sm:rounded-2xl bg-gradient-to-br from-green-800 via-green-900 to-slate-900 p-4 sm:p-6 text-white">
         <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-10" />
-        <div className="absolute top-0 right-0 w-64 h-64 bg-cyan-500/20 rounded-full blur-3xl" />
+        <div className="absolute top-0 right-0 w-64 h-64 bg-orange-500/20 rounded-full blur-3xl" />
         
         <div className="relative z-10">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4 sm:mb-6">
             <div>
               <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-2">
-                <div className="px-2 sm:px-3 py-1 bg-cyan-500/20 rounded-full border border-cyan-400/30">
-                  <span className="text-[10px] sm:text-xs font-semibold text-cyan-300 uppercase tracking-wider">Operator</span>
+                <div className="px-2 sm:px-3 py-1 bg-green-500/20 rounded-full border border-green-400/30">
+                  <span className="text-[10px] sm:text-xs font-semibold text-green-300 uppercase tracking-wider">Operator</span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <div className="w-2 h-2 bg-emerald-400 rounded-full pulse-live" />
-                  <span className="text-[10px] sm:text-xs font-medium text-emerald-400 uppercase">Live</span>
+                  <div className="w-2 h-2 bg-orange-400 rounded-full pulse-live" />
+                  <span className="text-[10px] sm:text-xs font-medium text-orange-400 uppercase">Live</span>
                 </div>
                 {lastUpdate && (
                   <span className="text-[10px] sm:text-xs text-slate-400 hidden sm:inline">Updated {lastUpdate.toLocaleTimeString()}</span>

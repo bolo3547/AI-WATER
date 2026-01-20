@@ -228,7 +228,7 @@ export default function AuditPage() {
           onClick={() => setActiveTab('logs')}
           className={`flex-1 flex items-center justify-center gap-1 sm:gap-2 py-2 sm:py-2.5 rounded-lg text-xs sm:text-sm font-medium transition-colors ${
             activeTab === 'logs'
-              ? 'bg-blue-600 text-white'
+              ? 'bg-green-600 text-white'
               : 'text-slate-600 hover:bg-slate-50'
           }`}
         >
@@ -239,7 +239,7 @@ export default function AuditPage() {
           onClick={() => setActiveTab('compliance')}
           className={`flex-1 flex items-center justify-center gap-1 sm:gap-2 py-2 sm:py-2.5 rounded-lg text-xs sm:text-sm font-medium transition-colors ${
             activeTab === 'compliance'
-              ? 'bg-blue-600 text-white'
+              ? 'bg-green-600 text-white'
               : 'text-slate-600 hover:bg-slate-50'
           }`}
         >

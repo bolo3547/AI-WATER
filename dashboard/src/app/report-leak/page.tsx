@@ -136,7 +136,7 @@ export default function ReportLeakPage() {
             onClick={() => { setActiveTab('report'); setIsSubmitted(false); setStep(1); }}
             className={`flex-1 flex items-center justify-center gap-1 sm:gap-2 py-2 sm:py-2.5 md:py-3 rounded-lg text-xs sm:text-sm font-medium transition-colors ${
               activeTab === 'report'
-                ? 'bg-blue-600 text-white'
+                ? 'bg-green-600 text-white'
                 : 'text-slate-600 hover:bg-slate-50'
             }`}
           >
@@ -147,7 +147,7 @@ export default function ReportLeakPage() {
             onClick={() => setActiveTab('track')}
             className={`flex-1 flex items-center justify-center gap-1 sm:gap-2 py-2 sm:py-2.5 md:py-3 rounded-lg text-xs sm:text-sm font-medium transition-colors ${
               activeTab === 'track'
-                ? 'bg-blue-600 text-white'
+                ? 'bg-green-600 text-white'
                 : 'text-slate-600 hover:bg-slate-50'
             }`}
           >
@@ -202,9 +202,9 @@ export default function ReportLeakPage() {
                     key={s}
                     className={`flex-1 py-2 sm:py-3 text-center text-[10px] sm:text-xs md:text-sm font-medium transition-colors ${
                       step === s
-                        ? 'text-blue-600 bg-blue-50 border-b-2 border-blue-600'
+                        ? 'text-green-600 bg-green-50 border-b-2 border-green-600'
                         : step > s
-                        ? 'text-emerald-600 bg-emerald-50'
+                        ? 'text-orange-600 bg-orange-50'
                         : 'text-slate-400'
                     }`}
                   >

@@ -95,7 +95,7 @@ export default function MapPage() {
                   onClick={() => setLayer(l.id as typeof layer)}
                   className={`flex items-center gap-1 px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs font-medium rounded-md transition-colors ${
                     layer === l.id 
-                      ? 'bg-blue-600 text-white' 
+                      ? 'bg-green-600 text-white' 
                       : 'text-slate-600 hover:bg-slate-100'
                   }`}
                 >
