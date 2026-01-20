@@ -52,16 +52,16 @@ export function SplashScreen({ onComplete }: { onComplete: () => void }) {
       <div className="absolute inset-0 bg-gradient-to-b from-orange-300 via-orange-400 to-blue-400" />
       
       {/* Sun */}
-      <div className="absolute top-8 sm:top-12 right-8 sm:right-16 w-16 h-16 sm:w-24 sm:h-24 bg-yellow-300 rounded-full blur-sm animate-pulse" />
-      <div className="absolute top-8 sm:top-12 right-8 sm:right-16 w-16 h-16 sm:w-24 sm:h-24 bg-yellow-200 rounded-full" />
+      <div className="absolute top-4 sm:top-8 right-4 sm:right-12 w-10 h-10 sm:w-16 sm:h-16 bg-yellow-300 rounded-full blur-sm animate-pulse" />
+      <div className="absolute top-4 sm:top-8 right-4 sm:right-12 w-10 h-10 sm:w-16 sm:h-16 bg-yellow-200 rounded-full" />
       
       {/* Clouds */}
-      <div className="absolute top-16 left-[10%] w-20 h-8 bg-white/60 rounded-full blur-sm" />
-      <div className="absolute top-12 left-[15%] w-16 h-6 bg-white/50 rounded-full blur-sm" />
-      <div className="absolute top-20 right-[25%] w-24 h-10 bg-white/40 rounded-full blur-sm" />
+      <div className="absolute top-8 sm:top-16 left-[10%] w-12 sm:w-20 h-5 sm:h-8 bg-white/60 rounded-full blur-sm" />
+      <div className="absolute top-6 sm:top-12 left-[15%] w-10 sm:w-16 h-4 sm:h-6 bg-white/50 rounded-full blur-sm" />
+      <div className="absolute top-10 sm:top-20 right-[25%] w-14 sm:w-24 h-5 sm:h-10 bg-white/40 rounded-full blur-sm" />
 
       {/* Scene container */}
-      <div className="absolute bottom-0 left-0 right-0 h-[55%] sm:h-[50%]">
+      <div className="absolute bottom-0 left-0 right-0 h-[45%] sm:h-[50%]">
         {/* Land/Beach - right side */}
         <div className="absolute bottom-0 right-0 w-[60%] h-full">
           <svg className="w-full h-full" viewBox="0 0 600 300" preserveAspectRatio="none">
@@ -109,7 +109,7 @@ export function SplashScreen({ onComplete }: { onComplete: () => void }) {
 
         {/* Animated Hippo */}
         <div 
-          className="absolute bottom-[15%] sm:bottom-[20%] transition-all duration-100"
+          className="absolute bottom-[18%] sm:bottom-[20%] transition-all duration-100"
           style={{ 
             left: `${hippoX}%`,
             transform: `translateX(-50%)`
@@ -117,7 +117,7 @@ export function SplashScreen({ onComplete }: { onComplete: () => void }) {
         >
           <svg 
             viewBox="0 0 180 120" 
-            className={`w-28 h-20 sm:w-40 sm:h-28 md:w-48 md:h-32 drop-shadow-lg ${
+            className={`w-20 h-14 sm:w-32 sm:h-24 md:w-40 md:h-28 drop-shadow-lg ${
               phase === 'walking' ? 'animate-hippo-bob' : ''
             }`}
           >
@@ -200,22 +200,22 @@ export function SplashScreen({ onComplete }: { onComplete: () => void }) {
       </div>
 
       {/* Text overlay */}
-      <div className={`absolute top-[12%] sm:top-[15%] left-1/2 -translate-x-1/2 text-center transition-all duration-700 ${
+      <div className={`absolute top-[15%] sm:top-[18%] left-1/2 -translate-x-1/2 text-center transition-all duration-700 ${
         phase === 'swimming' ? 'opacity-0 translate-y-4' : 'opacity-100 translate-y-0'
       }`}>
-        <h1 className="text-3xl sm:text-5xl font-bold text-white mb-2 tracking-tight drop-shadow-lg">
+        <h1 className="text-2xl sm:text-4xl md:text-5xl font-bold text-white mb-1 sm:mb-2 tracking-tight drop-shadow-lg">
           LWSC
         </h1>
-        <p className="text-white/90 text-sm sm:text-lg font-medium tracking-wider uppercase drop-shadow">
+        <p className="text-white/90 text-xs sm:text-base md:text-lg font-medium tracking-wider uppercase drop-shadow">
           NRW Detection System
         </p>
-        <p className="text-white/60 text-xs sm:text-sm mt-1 drop-shadow">
+        <p className="text-white/60 text-[10px] sm:text-sm mt-0.5 sm:mt-1 drop-shadow">
           Lusaka Water Supply Company
         </p>
       </div>
 
       {/* Progress bar at bottom */}
-      <div className="absolute bottom-8 sm:bottom-12 left-1/2 -translate-x-1/2 w-64 sm:w-80">
+      <div className="absolute bottom-4 sm:bottom-10 left-1/2 -translate-x-1/2 w-48 sm:w-72 md:w-80">
         <div className="h-2 bg-white/20 rounded-full overflow-hidden backdrop-blur">
           <div 
             className="h-full bg-gradient-to-r from-cyan-400 via-blue-400 to-cyan-400 rounded-full transition-all duration-100 ease-out relative"
@@ -224,12 +224,12 @@ export function SplashScreen({ onComplete }: { onComplete: () => void }) {
             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent animate-shimmer" />
           </div>
         </div>
-        <p className="text-center text-white/70 text-xs sm:text-sm mt-3 font-medium drop-shadow">
-          {progress < 25 ? '🌊 Hippo swimming...' : 
-           progress < 50 ? '🦛 Emerging from water...' : 
-           progress < 80 ? '🚶 Walking to shore...' : 
-           progress < 100 ? '✨ Almost there...' :
-           '✅ Ready!'}
+        <p className="text-center text-white/70 text-[10px] sm:text-sm mt-2 sm:mt-3 font-medium drop-shadow">
+          {progress < 25 ? 'Hippo swimming...' : 
+           progress < 50 ? 'Emerging from water...' : 
+           progress < 80 ? 'Walking to shore...' : 
+           progress < 100 ? 'Almost there...' :
+           'Ready!'}
         </p>
       </div>
 
