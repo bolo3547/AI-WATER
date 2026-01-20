@@ -1,10 +1,11 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { 
   MapPin, Droplets, AlertTriangle, CheckCircle, Clock, 
   Filter, Layers, ZoomIn, ZoomOut, Maximize2, Target,
-  Info, X, Navigation, Wrench, Phone, Calendar, User, Locate, ExternalLink
+  Info, X, Navigation, Wrench, Phone, Calendar, User, Locate, ExternalLink,
+  RefreshCw, Wifi, WifiOff, Activity, Gauge, Battery, Signal
 } from 'lucide-react'
 
 // Operator location interface
@@ -16,38 +17,164 @@ interface OperatorLocation {
   name: string
 }
 
-// DMA zones for Lusaka
-const dmaZones = [
-  { id: 'woodlands', name: 'Woodlands', nrw: 18.5, status: 'good', lat: -15.385, lng: 28.310, leaks: 2 },
-  { id: 'kabulonga', name: 'Kabulonga', nrw: 21.2, status: 'good', lat: -15.408, lng: 28.332, leaks: 3 },
-  { id: 'roma', name: 'Roma', nrw: 23.1, status: 'good', lat: -15.422, lng: 28.298, leaks: 1 },
-  { id: 'matero', name: 'Matero', nrw: 48.2, status: 'critical', lat: -15.362, lng: 28.278, leaks: 12 },
-  { id: 'chilenje', name: 'Chilenje', nrw: 45.8, status: 'critical', lat: -15.445, lng: 28.268, leaks: 8 },
-  { id: 'garden', name: 'Garden', nrw: 42.1, status: 'warning', lat: -15.398, lng: 28.285, leaks: 6 },
-  { id: 'rhodes-park', name: 'Rhodes Park', nrw: 28.5, status: 'moderate', lat: -15.412, lng: 28.305, leaks: 4 },
-  { id: 'olympia', name: 'Olympia', nrw: 35.2, status: 'warning', lat: -15.438, lng: 28.312, leaks: 5 },
-  { id: 'kabwata', name: 'Kabwata', nrw: 39.8, status: 'warning', lat: -15.455, lng: 28.285, leaks: 7 },
-  { id: 'mtendere', name: 'Mtendere', nrw: 52.3, status: 'critical', lat: -15.448, lng: 28.342, leaks: 14 },
+// DMA Zone interface for real-time updates
+interface DMAZone {
+  id: string
+  name: string
+  nrw: number
+  status: 'good' | 'moderate' | 'warning' | 'critical'
+  lat: number
+  lng: number
+  leaks: number
+  flowRate: number
+  pressure: number
+}
+
+// Leak interface for real-time updates
+interface LeakData {
+  id: number
+  location: string
+  dma: string
+  severity: 'high' | 'medium' | 'low'
+  status: 'active' | 'assigned' | 'monitoring' | 'repaired'
+  flowRate: number
+  detectedAt: string
+  lat: number
+  lng: number
+}
+
+// Sensor interface
+interface SensorData {
+  id: string
+  name: string
+  type: 'flow' | 'pressure' | 'acoustic'
+  status: 'online' | 'warning' | 'offline'
+  lat: number
+  lng: number
+  value: number
+  unit: string
+  battery: number
+  lastReading: Date
+}
+
+// Initial DMA zones for Lusaka
+const initialDmaZones: DMAZone[] = [
+  { id: 'woodlands', name: 'Woodlands', nrw: 18.5, status: 'good', lat: -15.385, lng: 28.310, leaks: 2, flowRate: 850, pressure: 3.2 },
+  { id: 'kabulonga', name: 'Kabulonga', nrw: 21.2, status: 'good', lat: -15.408, lng: 28.332, leaks: 3, flowRate: 720, pressure: 3.5 },
+  { id: 'roma', name: 'Roma', nrw: 23.1, status: 'good', lat: -15.422, lng: 28.298, leaks: 1, flowRate: 680, pressure: 3.1 },
+  { id: 'matero', name: 'Matero', nrw: 48.2, status: 'critical', lat: -15.362, lng: 28.278, leaks: 12, flowRate: 1250, pressure: 2.4 },
+  { id: 'chilenje', name: 'Chilenje', nrw: 45.8, status: 'critical', lat: -15.445, lng: 28.268, leaks: 8, flowRate: 920, pressure: 2.6 },
+  { id: 'garden', name: 'Garden', nrw: 42.1, status: 'warning', lat: -15.398, lng: 28.285, leaks: 6, flowRate: 780, pressure: 2.9 },
+  { id: 'rhodes-park', name: 'Rhodes Park', nrw: 28.5, status: 'moderate', lat: -15.412, lng: 28.305, leaks: 4, flowRate: 650, pressure: 3.3 },
+  { id: 'olympia', name: 'Olympia', nrw: 35.2, status: 'warning', lat: -15.438, lng: 28.312, leaks: 5, flowRate: 580, pressure: 3.0 },
+  { id: 'kabwata', name: 'Kabwata', nrw: 39.8, status: 'warning', lat: -15.455, lng: 28.285, leaks: 7, flowRate: 890, pressure: 2.7 },
+  { id: 'mtendere', name: 'Mtendere', nrw: 52.3, status: 'critical', lat: -15.448, lng: 28.342, leaks: 14, flowRate: 1100, pressure: 2.2 },
 ]
 
-// Sample leak data
-const leakData = [
-  { id: 1, location: 'Great East Rd & Lumumba Rd', dma: 'matero', severity: 'high', status: 'active', flowRate: 45.2, detectedAt: '2025-01-14', lat: -15.360, lng: 28.275 },
-  { id: 2, location: 'Independence Ave', dma: 'rhodes-park', severity: 'medium', status: 'assigned', flowRate: 22.8, detectedAt: '2025-01-13', lat: -15.414, lng: 28.308 },
-  { id: 3, location: 'Cairo Rd South', dma: 'garden', severity: 'low', status: 'repaired', flowRate: 8.5, detectedAt: '2025-01-12', lat: -15.402, lng: 28.282 },
-  { id: 4, location: 'Kafue Rd', dma: 'chilenje', severity: 'high', status: 'active', flowRate: 67.3, detectedAt: '2025-01-15', lat: -15.448, lng: 28.265 },
-  { id: 5, location: 'Los Angeles Blvd', dma: 'kabulonga', severity: 'medium', status: 'assigned', flowRate: 18.4, detectedAt: '2025-01-14', lat: -15.405, lng: 28.335 },
-  { id: 6, location: 'Manda Hill Area', dma: 'woodlands', severity: 'low', status: 'monitoring', flowRate: 5.2, detectedAt: '2025-01-13', lat: -15.388, lng: 28.315 },
+// Initial leak data
+const initialLeakData: LeakData[] = [
+  { id: 1, location: 'Great East Rd & Lumumba Rd', dma: 'matero', severity: 'high', status: 'active', flowRate: 45.2, detectedAt: '2026-01-14', lat: -15.360, lng: 28.275 },
+  { id: 2, location: 'Independence Ave', dma: 'rhodes-park', severity: 'medium', status: 'assigned', flowRate: 22.8, detectedAt: '2026-01-13', lat: -15.414, lng: 28.308 },
+  { id: 3, location: 'Cairo Rd South', dma: 'garden', severity: 'low', status: 'repaired', flowRate: 8.5, detectedAt: '2026-01-12', lat: -15.402, lng: 28.282 },
+  { id: 4, location: 'Kafue Rd', dma: 'chilenje', severity: 'high', status: 'active', flowRate: 67.3, detectedAt: '2026-01-15', lat: -15.448, lng: 28.265 },
+  { id: 5, location: 'Los Angeles Blvd', dma: 'kabulonga', severity: 'medium', status: 'assigned', flowRate: 18.4, detectedAt: '2026-01-14', lat: -15.405, lng: 28.335 },
+  { id: 6, location: 'Manda Hill Area', dma: 'woodlands', severity: 'low', status: 'monitoring', flowRate: 5.2, detectedAt: '2026-01-13', lat: -15.388, lng: 28.315 },
+  { id: 7, location: 'Chawama Rd Junction', dma: 'kabwata', severity: 'high', status: 'active', flowRate: 52.1, detectedAt: '2026-01-20', lat: -15.458, lng: 28.282 },
+  { id: 8, location: 'Chelstone Market', dma: 'mtendere', severity: 'medium', status: 'assigned', flowRate: 31.5, detectedAt: '2026-01-19', lat: -15.450, lng: 28.345 },
+]
+
+// Initial sensor data
+const initialSensorData: SensorData[] = [
+  { id: 'ESP32-001', name: 'Woodlands Flow A', type: 'flow', status: 'online', lat: -15.383, lng: 28.308, value: 856, unit: 'L/hr', battery: 92, lastReading: new Date() },
+  { id: 'ESP32-002', name: 'Kabulonga Pressure', type: 'pressure', status: 'online', lat: -15.406, lng: 28.330, value: 3.4, unit: 'bar', battery: 85, lastReading: new Date() },
+  { id: 'ESP32-003', name: 'Matero Acoustic', type: 'acoustic', status: 'warning', lat: -15.364, lng: 28.280, value: 72, unit: 'dB', battery: 23, lastReading: new Date() },
+  { id: 'ESP32-004', name: 'Garden Flow', type: 'flow', status: 'online', lat: -15.400, lng: 28.287, value: 782, unit: 'L/hr', battery: 78, lastReading: new Date() },
+  { id: 'ESP32-005', name: 'Chilenje Pressure', type: 'pressure', status: 'online', lat: -15.447, lng: 28.270, value: 2.8, unit: 'bar', battery: 65, lastReading: new Date() },
+  { id: 'ESP32-006', name: 'Roma Flow', type: 'flow', status: 'online', lat: -15.424, lng: 28.300, value: 695, unit: 'L/hr', battery: 88, lastReading: new Date() },
+  { id: 'ESP32-007', name: 'Rhodes Park Acoustic', type: 'acoustic', status: 'online', lat: -15.410, lng: 28.303, value: 28, unit: 'dB', battery: 71, lastReading: new Date() },
+  { id: 'ESP32-008', name: 'Olympia Flow', type: 'flow', status: 'offline', lat: -15.440, lng: 28.314, value: 0, unit: 'L/hr', battery: 5, lastReading: new Date(Date.now() - 3600000) },
+  { id: 'ESP32-009', name: 'Kabwata Pressure', type: 'pressure', status: 'online', lat: -15.457, lng: 28.287, value: 2.9, unit: 'bar', battery: 82, lastReading: new Date() },
+  { id: 'ESP32-010', name: 'Mtendere Acoustic', type: 'acoustic', status: 'warning', lat: -15.446, lng: 28.340, value: 85, unit: 'dB', battery: 45, lastReading: new Date() },
+  { id: 'ESP32-011', name: 'Woodlands Flow B', type: 'flow', status: 'online', lat: -15.387, lng: 28.312, value: 912, unit: 'L/hr', battery: 90, lastReading: new Date() },
+  { id: 'ESP32-012', name: 'Matero Flow', type: 'flow', status: 'online', lat: -15.358, lng: 28.276, value: 1285, unit: 'L/hr', battery: 67, lastReading: new Date() },
 ]
 
 export default function MapPage() {
   const [selectedDMA, setSelectedDMA] = useState<string | null>(null)
-  const [selectedLeak, setSelectedLeak] = useState<typeof leakData[0] | null>(null)
+  const [selectedLeak, setSelectedLeak] = useState<LeakData | null>(null)
+  const [selectedSensor, setSelectedSensor] = useState<SensorData | null>(null)
   const [filter, setFilter] = useState<'all' | 'active' | 'assigned' | 'repaired'>('all')
   const [layer, setLayer] = useState<'nrw' | 'leaks' | 'sensors'>('nrw')
   const [zoom, setZoom] = useState(1)
   const [operatorLocation, setOperatorLocation] = useState<OperatorLocation | null>(null)
   const [locationError, setLocationError] = useState<string | null>(null)
+  
+  // Real-time state
+  const [dmaZones, setDmaZones] = useState<DMAZone[]>(initialDmaZones)
+  const [leakData, setLeakData] = useState<LeakData[]>(initialLeakData)
+  const [sensorData, setSensorData] = useState<SensorData[]>(initialSensorData)
+  const [isLive, setIsLive] = useState(true)
+  const [lastUpdate, setLastUpdate] = useState<Date>(new Date())
+  
+  // Real-time data update function
+  const updateRealTimeData = useCallback(() => {
+    // Update DMA zones with slight variations
+    setDmaZones(prev => prev.map(dma => {
+      const nrwChange = (Math.random() - 0.5) * 2
+      const newNrw = Math.max(10, Math.min(60, dma.nrw + nrwChange))
+      const flowChange = (Math.random() - 0.5) * 50
+      const pressureChange = (Math.random() - 0.5) * 0.2
+      
+      let newStatus: DMAZone['status'] = 'good'
+      if (newNrw > 45) newStatus = 'critical'
+      else if (newNrw > 35) newStatus = 'warning'
+      else if (newNrw > 25) newStatus = 'moderate'
+      
+      return {
+        ...dma,
+        nrw: Math.round(newNrw * 10) / 10,
+        status: newStatus,
+        flowRate: Math.max(100, dma.flowRate + flowChange),
+        pressure: Math.max(1.5, Math.min(4.5, dma.pressure + pressureChange))
+      }
+    }))
+    
+    // Update leak data flow rates
+    setLeakData(prev => prev.map(leak => ({
+      ...leak,
+      flowRate: leak.status === 'repaired' ? 0 : Math.max(1, leak.flowRate + (Math.random() - 0.4) * 5)
+    })))
+    
+    // Update sensor data
+    setSensorData(prev => prev.map(sensor => {
+      if (sensor.status === 'offline') return sensor
+      
+      let newValue = sensor.value
+      if (sensor.type === 'flow') {
+        newValue = Math.max(0, sensor.value + (Math.random() - 0.5) * 100)
+      } else if (sensor.type === 'pressure') {
+        newValue = Math.max(1, Math.min(5, sensor.value + (Math.random() - 0.5) * 0.3))
+      } else if (sensor.type === 'acoustic') {
+        newValue = Math.max(10, Math.min(100, sensor.value + (Math.random() - 0.5) * 10))
+      }
+      
+      return {
+        ...sensor,
+        value: Math.round(newValue * 10) / 10,
+        lastReading: new Date(),
+        battery: Math.max(0, sensor.battery - (Math.random() > 0.95 ? 1 : 0))
+      }
+    }))
+    
+    setLastUpdate(new Date())
+  }, [])
+  
+  // Real-time update interval
+  useEffect(() => {
+    if (!isLive) return
+    const interval = setInterval(updateRealTimeData, 3000)
+    return () => clearInterval(interval)
+  }, [isLive, updateRealTimeData])
   const [isLocating, setIsLocating] = useState(false)
 
   // Get operator's location on mount
@@ -161,13 +288,56 @@ export default function MapPage() {
       {/* Header */}
       <div className="mb-2 sm:mb-3 md:mb-4 lg:mb-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3">
-          <div>
-            <h1 className="text-base sm:text-lg md:text-xl lg:text-3xl font-bold text-slate-900">Network Map</h1>
-            <p className="text-[10px] sm:text-xs md:text-sm text-slate-500 mt-0.5">Lusaka water distribution network</p>
+          <div className="flex items-center gap-3">
+            <div>
+              <h1 className="text-base sm:text-lg md:text-xl lg:text-3xl font-bold text-slate-900">Network Map</h1>
+              <p className="text-[10px] sm:text-xs md:text-sm text-slate-500 mt-0.5">Lusaka water distribution network</p>
+            </div>
+            {/* Real-time Status */}
+            <div className={`flex items-center gap-2 px-2 sm:px-3 py-1 rounded-full ${isLive ? 'bg-green-100' : 'bg-slate-100'}`}>
+              {isLive ? (
+                <>
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                  </span>
+                  <span className="text-[10px] sm:text-xs font-medium text-green-700">LIVE</span>
+                </>
+              ) : (
+                <>
+                  <WifiOff className="w-3 h-3 text-slate-500" />
+                  <span className="text-[10px] sm:text-xs font-medium text-slate-600">Paused</span>
+                </>
+              )}
+            </div>
           </div>
           
           {/* Controls */}
           <div className="flex items-center gap-2 sm:gap-3">
+            {/* Live Toggle */}
+            <button
+              onClick={() => setIsLive(!isLive)}
+              className={`p-1.5 sm:p-2 rounded-lg transition-colors ${isLive ? 'bg-red-100 text-red-600 hover:bg-red-200' : 'bg-green-100 text-green-600 hover:bg-green-200'}`}
+              title={isLive ? 'Pause updates' : 'Resume updates'}
+            >
+              {isLive ? <WifiOff className="w-4 h-4" /> : <Wifi className="w-4 h-4" />}
+            </button>
+            
+            {/* Refresh Button */}
+            <button
+              onClick={updateRealTimeData}
+              className="p-1.5 sm:p-2 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors"
+              title="Refresh now"
+            >
+              <RefreshCw className="w-4 h-4 text-slate-600" />
+            </button>
+            
+            {/* Last Update */}
+            <div className="hidden md:flex items-center gap-1.5 text-[10px] sm:text-xs text-slate-500">
+              <Clock className="w-3 h-3" />
+              {lastUpdate.toLocaleTimeString()}
+            </div>
+            
             {/* Layer Toggle */}
             <div className="flex bg-white rounded-lg border border-slate-200 p-0.5 sm:p-1">
               {[
@@ -298,23 +468,53 @@ export default function MapPage() {
                   )
                 })}
 
-                {/* Sensor Markers */}
-                {layer === 'sensors' && Array.from({ length: 15 }).map((_, i) => {
-                  const x = 10 + (i % 5) * 20 + Math.random() * 10
-                  const y = 15 + Math.floor(i / 5) * 30 + Math.random() * 10
+                {/* Sensor Markers - Real-time data */}
+                {layer === 'sensors' && sensorData.map((sensor) => {
+                  const x = ((sensor.lng - 28.26) / 0.1) * 100
+                  const y = ((sensor.lat + 15.35) / 0.12) * 100
+                  const isSelected = selectedSensor?.id === sensor.id
+                  
+                  const getSensorColor = () => {
+                    if (sensor.status === 'offline') return 'bg-slate-500 ring-slate-300'
+                    if (sensor.status === 'warning') return 'bg-amber-500 ring-amber-300'
+                    return sensor.type === 'flow' ? 'bg-cyan-500 ring-cyan-300' :
+                           sensor.type === 'pressure' ? 'bg-purple-500 ring-purple-300' :
+                           'bg-orange-500 ring-orange-300'
+                  }
+                  
+                  const getSensorIcon = () => {
+                    if (sensor.type === 'flow') return <Activity className="w-3 h-3 text-white" />
+                    if (sensor.type === 'pressure') return <Gauge className="w-3 h-3 text-white" />
+                    return <Target className="w-3 h-3 text-white" />
+                  }
                   
                   return (
                     <div
-                      key={i}
-                      className="absolute cursor-pointer transition-all hover:scale-110 z-10"
+                      key={sensor.id}
+                      onClick={() => setSelectedSensor(isSelected ? null : sensor)}
+                      className={`absolute cursor-pointer transition-all duration-300 ${isSelected ? 'z-20' : 'z-10'}`}
                       style={{ 
-                        left: `${x}%`, 
-                        top: `${y}%`,
+                        left: `${Math.min(Math.max(x, 5), 90)}%`, 
+                        top: `${Math.min(Math.max(y, 5), 90)}%`,
                         transform: 'translate(-50%, -50%)'
                       }}
                     >
-                      <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-cyan-500 ring-2 ring-cyan-300 flex items-center justify-center shadow-lg">
-                        <Target className="w-3 h-3 sm:w-4 sm:h-4 text-white" />
+                      <div className={`relative ${isSelected ? 'scale-125' : 'hover:scale-110'} transition-transform`}>
+                        <div className={`w-6 h-6 sm:w-8 sm:h-8 rounded-full ${getSensorColor()} ring-2 flex items-center justify-center shadow-lg`}>
+                          {getSensorIcon()}
+                        </div>
+                        {sensor.status === 'online' && isLive && (
+                          <div className={`absolute -top-1 -right-1 w-2 h-2 rounded-full bg-green-500 animate-pulse`} />
+                        )}
+                        {sensor.status === 'offline' && (
+                          <div className={`absolute -top-1 -right-1 w-2 h-2 rounded-full bg-red-500`} />
+                        )}
+                        {/* Value label on hover/select */}
+                        {isSelected && (
+                          <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 whitespace-nowrap px-2 py-1 rounded bg-slate-900 text-white text-[9px] font-mono shadow-lg">
+                            {sensor.value} {sensor.unit}
+                          </div>
+                        )}
                       </div>
                     </div>
                   )
@@ -556,6 +756,74 @@ export default function MapPage() {
             </div>
           )}
 
+          {/* Sensor Details */}
+          {selectedSensor && (
+            <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm sm:text-base font-semibold text-slate-900">Sensor Details</h3>
+                <button onClick={() => setSelectedSensor(null)} className="p-1 hover:bg-slate-100 rounded">
+                  <X className="w-4 h-4 text-slate-400" />
+                </button>
+              </div>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className={`px-2 py-1 rounded text-xs font-medium ${
+                    selectedSensor.status === 'online' ? 'bg-green-100 text-green-700' :
+                    selectedSensor.status === 'warning' ? 'bg-amber-100 text-amber-700' :
+                    'bg-red-100 text-red-700'
+                  }`}>
+                    {selectedSensor.status.toUpperCase()}
+                  </span>
+                  <span className="px-2 py-1 rounded text-xs font-medium bg-slate-100 text-slate-700 capitalize">
+                    {selectedSensor.type}
+                  </span>
+                </div>
+                <div>
+                  <p className="text-xs text-slate-500">{selectedSensor.id}</p>
+                  <p className="text-sm font-medium text-slate-900">{selectedSensor.name}</p>
+                </div>
+                <div className="p-3 bg-gradient-to-r from-cyan-50 to-blue-50 rounded-lg border border-cyan-200">
+                  <p className="text-[10px] text-cyan-600 mb-1">Current Reading</p>
+                  <p className="text-2xl font-bold text-cyan-700">
+                    {selectedSensor.value} <span className="text-sm font-normal">{selectedSensor.unit}</span>
+                  </p>
+                  {isLive && selectedSensor.status === 'online' && (
+                    <div className="flex items-center gap-1 mt-1">
+                      <span className="relative flex h-2 w-2">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                      </span>
+                      <span className="text-[10px] text-green-600">Live</span>
+                    </div>
+                  )}
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="p-2 bg-slate-50 rounded-lg">
+                    <p className="text-[10px] text-slate-500 flex items-center gap-1">
+                      <Battery className="w-3 h-3" /> Battery
+                    </p>
+                    <p className={`text-sm font-bold ${
+                      selectedSensor.battery > 50 ? 'text-green-600' :
+                      selectedSensor.battery > 20 ? 'text-amber-600' :
+                      'text-red-600'
+                    }`}>{selectedSensor.battery}%</p>
+                  </div>
+                  <div className="p-2 bg-slate-50 rounded-lg">
+                    <p className="text-[10px] text-slate-500 flex items-center gap-1">
+                      <Clock className="w-3 h-3" /> Last Update
+                    </p>
+                    <p className="text-sm font-bold text-slate-900">
+                      {selectedSensor.lastReading.toLocaleTimeString()}
+                    </p>
+                  </div>
+                </div>
+                <button className="w-full py-2 bg-blue-600 text-white rounded-lg text-xs font-medium hover:bg-blue-700 transition-colors">
+                  View Sensor History
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Quick Stats */}
           <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
             <h3 className="text-sm sm:text-base font-semibold text-slate-900 mb-3">Network Overview</h3>
@@ -576,6 +844,12 @@ export default function MapPage() {
                   {leakData.filter(l => l.status === 'active').length}
                 </span>
               </div>
+              <div className="flex items-center justify-between p-2 bg-cyan-50 rounded-lg">
+                <span className="text-xs text-cyan-600">Sensors Online</span>
+                <span className="text-sm font-bold text-cyan-600">
+                  {sensorData.filter(s => s.status === 'online').length}/{sensorData.length}
+                </span>
+              </div>
               <div className="flex items-center justify-between p-2 bg-emerald-50 rounded-lg">
                 <span className="text-xs text-emerald-600">Repaired Today</span>
                 <span className="text-sm font-bold text-emerald-600">
@@ -584,6 +858,37 @@ export default function MapPage() {
               </div>
             </div>
           </div>
+
+          {/* Sensor List when layer is sensors */}
+          {layer === 'sensors' && (
+            <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
+              <h3 className="text-sm font-semibold text-slate-900 mb-3">Sensor Status</h3>
+              <div className="space-y-2 max-h-[200px] overflow-y-auto">
+                {sensorData.map(sensor => (
+                  <div
+                    key={sensor.id}
+                    onClick={() => setSelectedSensor(sensor)}
+                    className={`p-2 rounded-lg cursor-pointer transition-colors ${
+                      selectedSensor?.id === sensor.id ? 'bg-blue-50 border border-blue-200' : 'bg-slate-50 hover:bg-slate-100'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-medium text-slate-900">{sensor.name}</span>
+                      <div className={`w-2 h-2 rounded-full ${
+                        sensor.status === 'online' ? 'bg-green-500' :
+                        sensor.status === 'warning' ? 'bg-amber-500' :
+                        'bg-red-500'
+                      }`} />
+                    </div>
+                    <div className="flex items-center justify-between mt-1">
+                      <span className="text-[10px] text-slate-500">{sensor.type}</span>
+                      <span className="text-xs font-mono text-slate-700">{sensor.value} {sensor.unit}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Leak Filter */}
           {layer === 'leaks' && (
