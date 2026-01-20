@@ -141,39 +141,39 @@ export default function AnalyticsPage() {
   ]
   
   return (
-    <div className="space-y-4 sm:space-y-6">
+    <div className="space-y-4 sm:space-y-6 max-w-full overflow-x-hidden">
       {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
+      <div className="flex flex-col gap-3 sm:gap-4">
         <div>
           <h1 className="text-xl sm:text-2xl lg:text-display font-bold text-text-primary">Analytics</h1>
           <p className="text-xs sm:text-sm lg:text-body text-text-secondary mt-0.5 sm:mt-1">
             In-depth analysis of network performance and NRW trends
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           {lastUpdate && (
-            <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 rounded-lg border border-emerald-200">
+            <div className="flex items-center gap-2 px-2 sm:px-3 py-1.5 bg-emerald-50 rounded-lg border border-emerald-200">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              <span className="text-xs text-emerald-700">Live • {lastUpdate.toLocaleTimeString()}</span>
+              <span className="text-[10px] sm:text-xs text-emerald-700">Live • {lastUpdate.toLocaleTimeString()}</span>
             </div>
           )}
           <Select
             value={timeRange}
             options={[
-              { value: '7d', label: 'Last 7 days' },
-              { value: '30d', label: 'Last 30 days' },
-              { value: '90d', label: 'Last 90 days' },
-              { value: '1y', label: 'Last year' },
+              { value: '7d', label: '7 days' },
+              { value: '30d', label: '30 days' },
+              { value: '90d', label: '90 days' },
+              { value: '1y', label: '1 year' },
             ]}
             onChange={setTimeRange}
           />
-          <Button variant="secondary">
+          <Button variant="secondary" className="hidden sm:flex">
             <Download className="w-4 h-4" />
-            Export
+            <span className="hidden md:inline">Export</span>
           </Button>
           <Button variant="primary" onClick={() => fetchData()}>
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-            Refresh
+            <span className="hidden sm:inline">Refresh</span>
           </Button>
         </div>
       </div>
@@ -215,47 +215,51 @@ export default function AnalyticsPage() {
       </div>
       
       {/* Main Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 sm:gap-6">
         <SectionCard title="NRW Trend Analysis" subtitle="Network-wide NRW percentage over time">
-          <NRWTrendChart data={displayTrend} height={350} showLegend />
+          <div className="h-[250px] sm:h-[300px] lg:h-[350px]">
+            <NRWTrendChart data={displayTrend} height={250} showLegend />
+          </div>
         </SectionCard>
         
         <SectionCard title="Flow Pattern Analysis" subtitle="24-hour inflow vs consumption pattern">
-          <FlowComparisonChart data={displayFlow} height={350} />
+          <div className="h-[250px] sm:h-[300px] lg:h-[350px]">
+            <FlowComparisonChart data={displayFlow} height={250} />
+          </div>
         </SectionCard>
       </div>
       
       {/* DMA Performance Table */}
       <SectionCard title="DMA Performance Comparison" subtitle="NRW rates by district metered area (Live)">
-        <div className="overflow-x-auto">
-          <table className="w-full">
+        <div className="overflow-x-auto -mx-4 sm:mx-0">
+          <table className="w-full min-w-[500px]">
             <thead>
               <tr className="border-b border-slate-200">
-                <th className="text-left py-3 px-4 text-xs font-semibold text-slate-500 uppercase">DMA Name</th>
-                <th className="text-right py-3 px-4 text-xs font-semibold text-slate-500 uppercase">Current NRW</th>
-                <th className="text-right py-3 px-4 text-xs font-semibold text-slate-500 uppercase">Change</th>
-                <th className="text-left py-3 px-4 text-xs font-semibold text-slate-500 uppercase">Trend</th>
-                <th className="text-left py-3 px-4 text-xs font-semibold text-slate-500 uppercase">Status</th>
+                <th className="text-left py-2 sm:py-3 px-3 sm:px-4 text-[10px] sm:text-xs font-semibold text-slate-500 uppercase">DMA Name</th>
+                <th className="text-right py-2 sm:py-3 px-3 sm:px-4 text-[10px] sm:text-xs font-semibold text-slate-500 uppercase">NRW</th>
+                <th className="text-right py-2 sm:py-3 px-3 sm:px-4 text-[10px] sm:text-xs font-semibold text-slate-500 uppercase">Change</th>
+                <th className="text-left py-2 sm:py-3 px-3 sm:px-4 text-[10px] sm:text-xs font-semibold text-slate-500 uppercase hidden sm:table-cell">Trend</th>
+                <th className="text-left py-2 sm:py-3 px-3 sm:px-4 text-[10px] sm:text-xs font-semibold text-slate-500 uppercase">Status</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {displayDMA.map((dma) => (
                 <tr key={dma.name} className="hover:bg-slate-50 transition-colors">
-                  <td className="py-3 px-4 font-medium text-slate-900">{dma.name}</td>
-                  <td className="py-3 px-4 text-right font-semibold text-slate-900">{typeof dma.nrw === 'number' ? dma.nrw.toFixed(1) : dma.nrw}%</td>
-                  <td className={`py-3 px-4 text-right font-medium ${Number(dma.change) > 0 ? 'text-red-600' : 'text-emerald-600'}`}>
+                  <td className="py-2 sm:py-3 px-3 sm:px-4 text-xs sm:text-sm font-medium text-slate-900">{dma.name}</td>
+                  <td className="py-2 sm:py-3 px-3 sm:px-4 text-right text-xs sm:text-sm font-semibold text-slate-900">{typeof dma.nrw === 'number' ? dma.nrw.toFixed(1) : dma.nrw}%</td>
+                  <td className={`py-2 sm:py-3 px-3 sm:px-4 text-right text-xs sm:text-sm font-medium ${Number(dma.change) > 0 ? 'text-red-600' : 'text-emerald-600'}`}>
                     {Number(dma.change) > 0 ? '+' : ''}{dma.change}%
                   </td>
-                  <td className="py-3 px-4">
-                    <div className="w-24 h-2 bg-slate-100 rounded-full overflow-hidden">
+                  <td className="py-2 sm:py-3 px-3 sm:px-4 hidden sm:table-cell">
+                    <div className="w-16 sm:w-24 h-2 bg-slate-100 rounded-full overflow-hidden">
                       <div 
                         className={`h-full rounded-full ${Number(dma.nrw) > 35 ? 'bg-red-500' : Number(dma.nrw) > 25 ? 'bg-amber-500' : 'bg-emerald-500'}`}
                         style={{ width: `${Math.min(Number(dma.nrw) * 2, 100)}%` }}
                       />
                     </div>
                   </td>
-                  <td className="py-3 px-4">
-                    <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                  <td className="py-2 sm:py-3 px-3 sm:px-4">
+                    <span className={`inline-flex items-center px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs font-medium ${
                       Number(dma.nrw) > 35 ? 'bg-red-100 text-red-700' : 
                       Number(dma.nrw) > 25 ? 'bg-amber-100 text-amber-700' : 
                       'bg-emerald-100 text-emerald-700'
@@ -272,36 +276,36 @@ export default function AnalyticsPage() {
       
       {/* AI Insights */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-        <div className="card p-6">
-          <h3 className="font-semibold text-slate-900 mb-3">Top Anomalies</h3>
-          <div className="space-y-3">
+        <div className="card p-4 sm:p-6">
+          <h3 className="font-semibold text-slate-900 mb-3 text-sm sm:text-base">Top Anomalies</h3>
+          <div className="space-y-2 sm:space-y-3">
             {[
               { location: 'Kabulonga North', type: 'Night flow spike', time: '2h ago' },
               { location: 'Matero West', type: 'Pressure drop', time: '5h ago' },
               { location: 'Roma Industrial', type: 'Unusual pattern', time: '12h ago' },
             ].map((anomaly, i) => (
-              <div key={i} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
-                <div>
-                  <p className="text-sm font-medium text-slate-900">{anomaly.location}</p>
-                  <p className="text-xs text-slate-500">{anomaly.type}</p>
+              <div key={i} className="flex items-center justify-between gap-2 p-2 sm:p-3 bg-slate-50 rounded-lg">
+                <div className="min-w-0">
+                  <p className="text-xs sm:text-sm font-medium text-slate-900 truncate">{anomaly.location}</p>
+                  <p className="text-[10px] sm:text-xs text-slate-500">{anomaly.type}</p>
                 </div>
-                <span className="text-xs text-slate-400">{anomaly.time}</span>
+                <span className="text-[10px] sm:text-xs text-slate-400 whitespace-nowrap">{anomaly.time}</span>
               </div>
             ))}
           </div>
         </div>
         
-        <div className="card p-6">
-          <h3 className="font-semibold text-slate-900 mb-3">Recommendations</h3>
-          <div className="space-y-3">
+        <div className="card p-4 sm:p-6">
+          <h3 className="font-semibold text-slate-900 mb-3 text-sm sm:text-base">Recommendations</h3>
+          <div className="space-y-2 sm:space-y-3">
             {[
               { action: 'Investigate night flow in Kabulonga', priority: 'High' },
               { action: 'Schedule pressure monitoring Roma', priority: 'Medium' },
               { action: 'Review meter readings Chelstone', priority: 'Low' },
             ].map((rec, i) => (
-              <div key={i} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
-                <p className="text-sm text-slate-700">{rec.action}</p>
-                <span className={`text-xs font-medium px-2 py-0.5 rounded ${
+              <div key={i} className="flex items-start sm:items-center justify-between gap-2 p-2 sm:p-3 bg-slate-50 rounded-lg">
+                <p className="text-xs sm:text-sm text-slate-700">{rec.action}</p>
+                <span className={`text-[10px] sm:text-xs font-medium px-1.5 sm:px-2 py-0.5 rounded whitespace-nowrap ${
                   rec.priority === 'High' ? 'bg-red-100 text-red-700' :
                   rec.priority === 'Medium' ? 'bg-amber-100 text-amber-700' :
                   'bg-slate-100 text-slate-600'
@@ -313,11 +317,11 @@ export default function AnalyticsPage() {
           </div>
         </div>
         
-        <div className="card p-6">
-          <h3 className="font-semibold text-slate-900 mb-3">Performance Summary</h3>
-          <div className="space-y-4">
+        <div className="card p-4 sm:p-6">
+          <h3 className="font-semibold text-slate-900 mb-3 text-sm sm:text-base">Performance Summary</h3>
+          <div className="space-y-3 sm:space-y-4">
             <div>
-              <div className="flex justify-between text-sm mb-1">
+              <div className="flex justify-between text-xs sm:text-sm mb-1">
                 <span className="text-slate-600">Target Achievement</span>
                 <span className="font-semibold text-slate-900">78%</span>
               </div>
@@ -326,7 +330,7 @@ export default function AnalyticsPage() {
               </div>
             </div>
             <div>
-              <div className="flex justify-between text-sm mb-1">
+              <div className="flex justify-between text-xs sm:text-sm mb-1">
                 <span className="text-slate-600">Detection Rate</span>
                 <span className="font-semibold text-slate-900">94%</span>
               </div>
@@ -335,7 +339,7 @@ export default function AnalyticsPage() {
               </div>
             </div>
             <div>
-              <div className="flex justify-between text-sm mb-1">
+              <div className="flex justify-between text-xs sm:text-sm mb-1">
                 <span className="text-slate-600">Response Time</span>
                 <span className="font-semibold text-slate-900">85%</span>
               </div>
