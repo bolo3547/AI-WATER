@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { User, Clock, ChevronDown, Wifi, WifiOff, Database, Cpu, Search, LogOut, Moon, Sun, Command } from 'lucide-react'
+import { User, Clock, ChevronDown, Wifi, WifiOff, Database, Cpu, Search, LogOut, Moon, Sun, Command, Shield, Award } from 'lucide-react'
 import { clsx } from 'clsx'
 import { NotificationPanel } from '@/components/notifications/NotificationPanel'
 import { useNotifications } from '@/lib/notifications'
@@ -82,14 +82,34 @@ export function TopBar({ utilityName = 'LWSC' }: TopBarProps) {
   }
   
   return (
-    <header 
-      className="fixed top-0 right-0 h-14 sm:h-16 backdrop-blur-xl border-b z-30 transition-all duration-300" 
-      style={{ 
-        left: 0,
-        backgroundColor: isDarkMode ? 'rgba(30, 41, 59, 0.9)' : 'rgba(255, 255, 255, 0.8)',
-        borderColor: isDarkMode ? 'rgba(51, 65, 85, 0.6)' : 'rgba(226, 232, 240, 0.6)'
-      }}
-    >
+    <>
+      {/* Official Government Banner */}
+      <div className="fixed top-0 left-0 right-0 h-7 sm:h-8 bg-gradient-to-r from-green-700 via-green-600 to-orange-500 z-40 flex items-center justify-between px-2 sm:px-4">
+        <div className="flex items-center gap-2">
+          <span className="text-sm sm:text-base">🇿🇲</span>
+          <span className="text-[9px] sm:text-[10px] text-white font-medium hidden xs:inline">Republic of Zambia</span>
+          <span className="text-[8px] sm:text-[9px] text-white/80 hidden sm:inline">| Ministry of Water Development</span>
+        </div>
+        <div className="flex items-center gap-2 sm:gap-3">
+          <div className="hidden sm:flex items-center gap-1.5 px-2 py-0.5 bg-white/10 rounded-full">
+            <Shield className="w-3 h-3 text-white" />
+            <span className="text-[9px] text-white font-medium">Official System</span>
+          </div>
+          <span className="text-[9px] sm:text-[10px] text-white/90 font-mono">
+            {currentTime.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+          </span>
+        </div>
+      </div>
+
+      {/* Main Top Bar */}
+      <header 
+        className="fixed top-7 sm:top-8 right-0 h-12 sm:h-14 backdrop-blur-xl border-b z-30 transition-all duration-300" 
+        style={{ 
+          left: 0,
+          backgroundColor: isDarkMode ? 'rgba(30, 41, 59, 0.95)' : 'rgba(255, 255, 255, 0.9)',
+          borderColor: isDarkMode ? 'rgba(51, 65, 85, 0.6)' : 'rgba(226, 232, 240, 0.6)'
+        }}
+      >
       <div className="h-full px-2 sm:px-4 lg:px-6 flex items-center justify-between">
         {/* Left: Logo on mobile (with space for hamburger), Breadcrumb on desktop */}
         <div className="flex items-center gap-2 sm:gap-4">
@@ -244,5 +264,6 @@ export function TopBar({ utilityName = 'LWSC' }: TopBarProps) {
         </div>
       </div>
     </header>
+    </>
   )
 }

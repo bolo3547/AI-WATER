@@ -48,16 +48,25 @@ export function SplashScreen({ onComplete }: { onComplete: () => void }) {
 
   return (
     <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center overflow-hidden">
+      {/* Official Government Banner at top */}
+      <div className="absolute top-0 left-0 right-0 h-8 sm:h-10 bg-gradient-to-r from-green-700 via-green-600 to-orange-500 z-10 flex items-center justify-center px-4">
+        <div className="flex items-center gap-2 sm:gap-3">
+          <span className="text-base sm:text-lg">🇿🇲</span>
+          <span className="text-[10px] sm:text-xs text-white font-semibold tracking-wider">REPUBLIC OF ZAMBIA</span>
+          <span className="text-[9px] sm:text-[10px] text-white/80 hidden sm:inline">| Official Government System</span>
+        </div>
+      </div>
+
       {/* Sky gradient background */}
       <div className="absolute inset-0 bg-gradient-to-b from-orange-300 via-orange-400 to-blue-400" />
       
       {/* Sun */}
-      <div className="absolute top-2 sm:top-6 right-3 sm:right-10 w-8 h-8 sm:w-14 sm:h-14 bg-yellow-300 rounded-full blur-sm animate-pulse" />
-      <div className="absolute top-2 sm:top-6 right-3 sm:right-10 w-8 h-8 sm:w-14 sm:h-14 bg-yellow-200 rounded-full" />
+      <div className="absolute top-12 sm:top-16 right-3 sm:right-10 w-8 h-8 sm:w-14 sm:h-14 bg-yellow-300 rounded-full blur-sm animate-pulse" />
+      <div className="absolute top-12 sm:top-16 right-3 sm:right-10 w-8 h-8 sm:w-14 sm:h-14 bg-yellow-200 rounded-full" />
       
       {/* Clouds - smaller on mobile */}
-      <div className="absolute top-6 sm:top-14 left-[8%] w-10 sm:w-16 h-4 sm:h-6 bg-white/60 rounded-full blur-sm" />
-      <div className="absolute top-4 sm:top-10 left-[12%] w-8 sm:w-12 h-3 sm:h-5 bg-white/50 rounded-full blur-sm" />
+      <div className="absolute top-16 sm:top-20 left-[8%] w-10 sm:w-16 h-4 sm:h-6 bg-white/60 rounded-full blur-sm" />
+      <div className="absolute top-14 sm:top-18 left-[12%] w-8 sm:w-12 h-3 sm:h-5 bg-white/50 rounded-full blur-sm" />
       <div className="absolute top-6 sm:top-16 right-[20%] w-10 sm:w-20 h-4 sm:h-8 bg-white/40 rounded-full blur-sm" />
 
       {/* Scene container - smaller on mobile */}

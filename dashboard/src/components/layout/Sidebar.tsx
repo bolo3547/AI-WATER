@@ -134,10 +134,10 @@ export function Sidebar({ isExpanded, onToggle, isMobile = false }: SidebarProps
   if (isMobile) {
     return (
       <>
-        {/* Hamburger Button - Fixed in top left, same size as logo (w-8 h-8) */}
+        {/* Hamburger Button - Fixed below government banner */}
         <button
           onClick={onToggle}
-          className="fixed top-3 left-3 z-50 w-10 h-10 flex items-center justify-center rounded-xl bg-[var(--sidebar-bg)] border border-white/10 text-white shadow-lg"
+          className="fixed top-9 sm:top-10 left-2 z-50 w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center rounded-xl bg-[var(--sidebar-bg)] border border-white/10 text-white shadow-lg"
           aria-label="Toggle menu"
         >
           {isExpanded ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
@@ -261,24 +261,24 @@ export function Sidebar({ isExpanded, onToggle, isMobile = false }: SidebarProps
   // DESKTOP: Traditional collapsible sidebar
   return (
     <aside className={clsx(
-      "fixed left-0 top-0 bottom-0 flex flex-col z-40 transition-all duration-300 ease-in-out",
+      "fixed left-0 top-7 sm:top-8 bottom-0 flex flex-col z-40 transition-all duration-300 ease-in-out",
       "bg-[var(--sidebar-bg)] border-r border-white/5",
       isExpanded ? 'w-64' : 'w-16'
     )}>
       {/* Logo - LWSC Branding */}
       <div className={clsx(
-        "h-14 flex items-center border-b border-white/5 transition-all duration-300",
+        "h-12 sm:h-14 flex items-center border-b border-white/5 transition-all duration-300",
         isExpanded ? "px-4" : "px-2 justify-center"
       )}>
         <div className="flex items-center gap-3">
           <div className="relative flex-shrink-0">
-            <img src="/lwsc-logo.png" alt="LWSC" className="w-9 h-9 object-contain" />
+            <img src="/lwsc-logo.png" alt="LWSC" className="w-8 h-8 sm:w-9 sm:h-9 object-contain" />
             <div className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-emerald-400 rounded-full border border-slate-900" />
           </div>
           {isExpanded && (
             <div className="overflow-hidden">
-              <h1 className="text-base font-semibold text-white tracking-tight">LWSC</h1>
-              <p className={clsx("text-[10px] font-medium uppercase tracking-wider", roleColor)}>{roleLabel}</p>
+              <h1 className="text-sm sm:text-base font-semibold text-white tracking-tight">LWSC</h1>
+              <p className={clsx("text-[9px] sm:text-[10px] font-medium uppercase tracking-wider", roleColor)}>{roleLabel}</p>
             </div>
           )}
         </div>
@@ -286,15 +286,15 @@ export function Sidebar({ isExpanded, onToggle, isMobile = false }: SidebarProps
       
       {/* Quick Stats - Only show when expanded */}
       {isExpanded && (
-        <div className="px-3 py-2.5 border-b border-white/5">
+        <div className="px-3 py-2 sm:py-2.5 border-b border-white/5">
           <div className="grid grid-cols-2 gap-2">
-            <div className="bg-white/5 rounded-lg p-2.5">
-              <p className="text-[9px] text-slate-400 uppercase tracking-wider">NRW Rate</p>
-              <p className="text-base font-semibold text-white">32.4%</p>
+            <div className="bg-white/5 rounded-lg p-2 sm:p-2.5">
+              <p className="text-[8px] sm:text-[9px] text-slate-400 uppercase tracking-wider">NRW Rate</p>
+              <p className="text-sm sm:text-base font-semibold text-white">32.4%</p>
             </div>
-            <div className="bg-white/5 rounded-lg p-2.5">
-              <p className="text-[9px] text-slate-400 uppercase tracking-wider">Alerts</p>
-              <p className="text-base font-semibold text-amber-400">3</p>
+            <div className="bg-white/5 rounded-lg p-2 sm:p-2.5">
+              <p className="text-[8px] sm:text-[9px] text-slate-400 uppercase tracking-wider">Alerts</p>
+              <p className="text-sm sm:text-base font-semibold text-amber-400">3</p>
             </div>
           </div>
         </div>

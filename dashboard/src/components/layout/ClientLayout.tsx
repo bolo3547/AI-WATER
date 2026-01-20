@@ -134,8 +134,8 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
           {/* Top Status Bar */}
           <TopBar />
           
-          {/* Page Content - tighter padding on mobile */}
-          <main className="mt-14 sm:mt-16 p-2 sm:p-4 lg:p-6">
+          {/* Page Content - tighter padding on mobile, account for government banner */}
+          <main className="mt-[76px] sm:mt-[86px] p-2 sm:p-4 lg:p-6">
             {children}
           </main>
         </div>
