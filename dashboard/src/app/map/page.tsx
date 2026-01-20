@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { 
   MapPin, Droplets, AlertTriangle, CheckCircle, Clock, 
   Filter, Layers, ZoomIn, ZoomOut, Maximize2, Target,
-  Info, X, Navigation, Wrench, Phone, Calendar, User, Locate
+  Info, X, Navigation, Wrench, Phone, Calendar, User, Locate, ExternalLink
 } from 'lucide-react'
 
 // Operator location interface
@@ -189,6 +189,17 @@ export default function MapPage() {
                 </button>
               ))}
             </div>
+            
+            {/* Public View Button */}
+            <a
+              href="/report-leak"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-[10px] sm:text-xs font-medium rounded-lg transition-colors shadow-sm"
+            >
+              <ExternalLink className="w-3 h-3 sm:w-4 sm:h-4" />
+              <span className="hidden xs:inline">Public View</span>
+            </a>
           </div>
         </div>
       </div>
