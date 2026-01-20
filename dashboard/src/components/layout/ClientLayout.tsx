@@ -7,13 +7,36 @@ import { TopBar } from './TopBar'
 import { NotificationProvider } from '@/lib/notifications'
 import AIChatAssistant from '@/components/ai/AIChatAssistant'
 import { InstallPrompt } from '@/components/pwa/InstallPrompt'
+import { SplashScreen } from '@/components/ui/SplashScreen'
 
 export function ClientLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const isLoginPage = pathname === '/login'
+  const isPortalPage = pathname === '/portal'
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null)
   const [sidebarExpanded, setSidebarExpanded] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
+  const [showSplash, setShowSplash] = useState(true)
+  const [splashComplete, setSplashComplete] = useState(false)
+
+  useEffect(() => {
+    // Check if splash was shown this session
+    if (typeof window !== 'undefined') {
+      const splashShown = sessionStorage.getItem('splashShown')
+      if (splashShown) {
+        setShowSplash(false)
+        setSplashComplete(true)
+      }
+    }
+  }, [])
+
+  const handleSplashComplete = () => {
+    setSplashComplete(true)
+    setShowSplash(false)
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem('splashShown', 'true')
+    }
+  }
 
   useEffect(() => {
     // Check authentication on client side
@@ -55,8 +78,13 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
     }
   }
 
-  // Show loading while checking auth
-  if (isAuthenticated === null && !isLoginPage) {
+  // Show splash screen on first load (not on login or portal page)
+  if (showSplash && !isLoginPage && !isPortalPage) {
+    return <SplashScreen onComplete={handleSplashComplete} />
+  }
+
+  // Show loading while checking auth (after splash)
+  if (isAuthenticated === null && !isLoginPage && !isPortalPage) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: 'var(--bg-secondary)' }}>
         <div className="flex flex-col items-center gap-4">
@@ -68,6 +96,14 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
   }
 
   // Login page - no sidebar/topbar
+  if (isLoginPage) {
+    return <>{children}</>
+  }
+
+  // Portal page - public, no auth required
+  if (isPortalPage) {
+    return <>{children}</>
+  }
   if (isLoginPage) {
     return <>{children}</>
   }
