@@ -8,36 +8,36 @@ export function SplashScreen({ onComplete }: { onComplete: () => void }) {
   const [phase, setPhase] = useState<'swimming' | 'emerging' | 'walking' | 'arrived'>('swimming')
 
   useEffect(() => {
-    // Animate progress bar
+    // Animate progress bar - SLOWER
     const progressInterval = setInterval(() => {
       setProgress(prev => {
         if (prev >= 100) {
           clearInterval(progressInterval)
           return 100
         }
-        return prev + 1.5
-      })
-    }, 40)
-
-    // Animate hippo walking from water to land
-    const hippoInterval = setInterval(() => {
-      setHippoX(prev => {
-        if (prev >= 50) {
-          clearInterval(hippoInterval)
-          return 50
-        }
         return prev + 0.8
       })
     }, 50)
 
-    // Phase transitions
-    setTimeout(() => setPhase('emerging'), 600)
-    setTimeout(() => setPhase('walking'), 1200)
-    setTimeout(() => setPhase('arrived'), 2800)
+    // Animate hippo walking from water to land - SLOWER
+    const hippoInterval = setInterval(() => {
+      setHippoX(prev => {
+        if (prev >= 55) {
+          clearInterval(hippoInterval)
+          return 55
+        }
+        return prev + 0.4
+      })
+    }, 60)
+
+    // Phase transitions - SLOWER timing
+    setTimeout(() => setPhase('emerging'), 1000)
+    setTimeout(() => setPhase('walking'), 2000)
+    setTimeout(() => setPhase('arrived'), 5500)
     
     const completeTimer = setTimeout(() => {
-      setTimeout(onComplete, 400)
-    }, 3200)
+      setTimeout(onComplete, 500)
+    }, 6500)
 
     return () => {
       clearInterval(progressInterval)
@@ -52,16 +52,16 @@ export function SplashScreen({ onComplete }: { onComplete: () => void }) {
       <div className="absolute inset-0 bg-gradient-to-b from-orange-300 via-orange-400 to-blue-400" />
       
       {/* Sun */}
-      <div className="absolute top-4 sm:top-8 right-4 sm:right-12 w-10 h-10 sm:w-16 sm:h-16 bg-yellow-300 rounded-full blur-sm animate-pulse" />
-      <div className="absolute top-4 sm:top-8 right-4 sm:right-12 w-10 h-10 sm:w-16 sm:h-16 bg-yellow-200 rounded-full" />
+      <div className="absolute top-2 sm:top-6 right-3 sm:right-10 w-8 h-8 sm:w-14 sm:h-14 bg-yellow-300 rounded-full blur-sm animate-pulse" />
+      <div className="absolute top-2 sm:top-6 right-3 sm:right-10 w-8 h-8 sm:w-14 sm:h-14 bg-yellow-200 rounded-full" />
       
-      {/* Clouds */}
-      <div className="absolute top-8 sm:top-16 left-[10%] w-12 sm:w-20 h-5 sm:h-8 bg-white/60 rounded-full blur-sm" />
-      <div className="absolute top-6 sm:top-12 left-[15%] w-10 sm:w-16 h-4 sm:h-6 bg-white/50 rounded-full blur-sm" />
-      <div className="absolute top-10 sm:top-20 right-[25%] w-14 sm:w-24 h-5 sm:h-10 bg-white/40 rounded-full blur-sm" />
+      {/* Clouds - smaller on mobile */}
+      <div className="absolute top-6 sm:top-14 left-[8%] w-10 sm:w-16 h-4 sm:h-6 bg-white/60 rounded-full blur-sm" />
+      <div className="absolute top-4 sm:top-10 left-[12%] w-8 sm:w-12 h-3 sm:h-5 bg-white/50 rounded-full blur-sm" />
+      <div className="absolute top-6 sm:top-16 right-[20%] w-10 sm:w-20 h-4 sm:h-8 bg-white/40 rounded-full blur-sm" />
 
-      {/* Scene container */}
-      <div className="absolute bottom-0 left-0 right-0 h-[45%] sm:h-[50%]">
+      {/* Scene container - smaller on mobile */}
+      <div className="absolute bottom-0 left-0 right-0 h-[38%] sm:h-[45%]">
         {/* Land/Beach - right side */}
         <div className="absolute bottom-0 right-0 w-[60%] h-full">
           <svg className="w-full h-full" viewBox="0 0 600 300" preserveAspectRatio="none">
@@ -107,9 +107,9 @@ export function SplashScreen({ onComplete }: { onComplete: () => void }) {
           </svg>
         </div>
 
-        {/* Animated Hippo */}
+        {/* Animated Hippo - smaller on mobile */}
         <div 
-          className="absolute bottom-[18%] sm:bottom-[20%] transition-all duration-100"
+          className="absolute bottom-[20%] sm:bottom-[22%] transition-all duration-100"
           style={{ 
             left: `${hippoX}%`,
             transform: `translateX(-50%)`
@@ -117,7 +117,7 @@ export function SplashScreen({ onComplete }: { onComplete: () => void }) {
         >
           <svg 
             viewBox="0 0 180 120" 
-            className={`w-20 h-14 sm:w-32 sm:h-24 md:w-40 md:h-28 drop-shadow-lg ${
+            className={`w-16 h-12 sm:w-28 sm:h-20 md:w-36 md:h-24 drop-shadow-lg ${
               phase === 'walking' ? 'animate-hippo-bob' : ''
             }`}
           >
@@ -199,24 +199,24 @@ export function SplashScreen({ onComplete }: { onComplete: () => void }) {
         </div>
       </div>
 
-      {/* Text overlay */}
-      <div className={`absolute top-[15%] sm:top-[18%] left-1/2 -translate-x-1/2 text-center transition-all duration-700 ${
+      {/* Text overlay - positioned better for mobile */}
+      <div className={`absolute top-[8%] sm:top-[12%] left-1/2 -translate-x-1/2 text-center transition-all duration-700 ${
         phase === 'swimming' ? 'opacity-0 translate-y-4' : 'opacity-100 translate-y-0'
       }`}>
-        <h1 className="text-2xl sm:text-4xl md:text-5xl font-bold text-white mb-1 sm:mb-2 tracking-tight drop-shadow-lg">
+        <h1 className="text-xl sm:text-3xl md:text-4xl font-bold text-white mb-0.5 sm:mb-1 tracking-tight drop-shadow-lg">
           LWSC
         </h1>
-        <p className="text-white/90 text-xs sm:text-base md:text-lg font-medium tracking-wider uppercase drop-shadow">
+        <p className="text-white/90 text-[10px] sm:text-sm md:text-base font-medium tracking-wider uppercase drop-shadow">
           NRW Detection System
         </p>
-        <p className="text-white/60 text-[10px] sm:text-sm mt-0.5 sm:mt-1 drop-shadow">
+        <p className="text-white/60 text-[9px] sm:text-xs mt-0.5 drop-shadow">
           Lusaka Water Supply Company
         </p>
       </div>
 
-      {/* Progress bar at bottom */}
-      <div className="absolute bottom-4 sm:bottom-10 left-1/2 -translate-x-1/2 w-48 sm:w-72 md:w-80">
-        <div className="h-2 bg-white/20 rounded-full overflow-hidden backdrop-blur">
+      {/* Progress bar at bottom - compact on mobile */}
+      <div className="absolute bottom-3 sm:bottom-8 left-1/2 -translate-x-1/2 w-40 sm:w-64 md:w-72">
+        <div className="h-1.5 sm:h-2 bg-white/20 rounded-full overflow-hidden backdrop-blur">
           <div 
             className="h-full bg-gradient-to-r from-cyan-400 via-blue-400 to-cyan-400 rounded-full transition-all duration-100 ease-out relative"
             style={{ width: `${progress}%` }}
@@ -224,7 +224,7 @@ export function SplashScreen({ onComplete }: { onComplete: () => void }) {
             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent animate-shimmer" />
           </div>
         </div>
-        <p className="text-center text-white/70 text-[10px] sm:text-sm mt-2 sm:mt-3 font-medium drop-shadow">
+        <p className="text-center text-white/70 text-[9px] sm:text-xs mt-1.5 sm:mt-2 font-medium drop-shadow">
           {progress < 25 ? 'Hippo swimming...' : 
            progress < 50 ? 'Emerging from water...' : 
            progress < 80 ? 'Walking to shore...' : 
