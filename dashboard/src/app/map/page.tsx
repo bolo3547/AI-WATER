@@ -4,8 +4,17 @@ import { useState, useEffect } from 'react'
 import { 
   MapPin, Droplets, AlertTriangle, CheckCircle, Clock, 
   Filter, Layers, ZoomIn, ZoomOut, Maximize2, Target,
-  Info, X, Navigation, Wrench, Phone, Calendar
+  Info, X, Navigation, Wrench, Phone, Calendar, User, Locate
 } from 'lucide-react'
+
+// Operator location interface
+interface OperatorLocation {
+  lat: number
+  lng: number
+  accuracy: number
+  timestamp: Date
+  name: string
+}
 
 // DMA zones for Lusaka
 const dmaZones = [
@@ -37,6 +46,82 @@ export default function MapPage() {
   const [filter, setFilter] = useState<'all' | 'active' | 'assigned' | 'repaired'>('all')
   const [layer, setLayer] = useState<'nrw' | 'leaks' | 'sensors'>('nrw')
   const [zoom, setZoom] = useState(1)
+  const [operatorLocation, setOperatorLocation] = useState<OperatorLocation | null>(null)
+  const [locationError, setLocationError] = useState<string | null>(null)
+  const [isLocating, setIsLocating] = useState(false)
+
+  // Get operator's location on mount
+  useEffect(() => {
+    getOperatorLocation()
+  }, [])
+
+  const getOperatorLocation = () => {
+    if (!navigator.geolocation) {
+      setLocationError('Geolocation not supported')
+      return
+    }
+
+    setIsLocating(true)
+    setLocationError(null)
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setOperatorLocation({
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+          accuracy: position.coords.accuracy,
+          timestamp: new Date(),
+          name: 'You (Operator)'
+        })
+        setIsLocating(false)
+      },
+      (error) => {
+        console.error('Location error:', error)
+        setLocationError(error.message)
+        setIsLocating(false)
+        // Fallback to Lusaka center if location fails
+        setOperatorLocation({
+          lat: -15.4167,
+          lng: 28.2833,
+          accuracy: 1000,
+          timestamp: new Date(),
+          name: 'You (Location unavailable)'
+        })
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 60000
+      }
+    )
+  }
+
+  // Watch position for real-time updates
+  useEffect(() => {
+    if (!navigator.geolocation) return
+
+    const watchId = navigator.geolocation.watchPosition(
+      (position) => {
+        setOperatorLocation({
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+          accuracy: position.coords.accuracy,
+          timestamp: new Date(),
+          name: 'You (Operator)'
+        })
+      },
+      (error) => {
+        console.error('Watch position error:', error)
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 30000
+      }
+    )
+
+    return () => navigator.geolocation.clearWatch(watchId)
+  }, [])
 
   const filteredLeaks = leakData.filter(leak => 
     filter === 'all' || leak.status === filter
@@ -95,7 +180,7 @@ export default function MapPage() {
                   onClick={() => setLayer(l.id as typeof layer)}
                   className={`flex items-center gap-1 px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs font-medium rounded-md transition-colors ${
                     layer === l.id 
-                      ? 'bg-green-600 text-white' 
+                      ? 'bg-blue-600 text-white' 
                       : 'text-slate-600 hover:bg-slate-100'
                   }`}
                 >
@@ -223,6 +308,47 @@ export default function MapPage() {
                     </div>
                   )
                 })}
+
+                {/* Operator Location Marker */}
+                {operatorLocation && (() => {
+                  const x = ((operatorLocation.lng - 28.26) / 0.1) * 100
+                  const y = ((operatorLocation.lat + 15.35) / 0.12) * 100
+                  
+                  return (
+                    <div
+                      className="absolute z-30 cursor-pointer"
+                      style={{ 
+                        left: `${Math.min(Math.max(x, 5), 95)}%`, 
+                        top: `${Math.min(Math.max(y, 5), 95)}%`,
+                        transform: 'translate(-50%, -50%)'
+                      }}
+                    >
+                      {/* Accuracy circle */}
+                      <div 
+                        className="absolute rounded-full bg-green-500/20 border-2 border-green-500/40 animate-pulse"
+                        style={{
+                          width: `${Math.min(operatorLocation.accuracy / 10, 80)}px`,
+                          height: `${Math.min(operatorLocation.accuracy / 10, 80)}px`,
+                          left: '50%',
+                          top: '50%',
+                          transform: 'translate(-50%, -50%)'
+                        }}
+                      />
+                      {/* Operator marker */}
+                      <div className="relative">
+                        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-green-600 ring-4 ring-green-300 ring-opacity-60 flex items-center justify-center shadow-lg border-2 border-white">
+                          <User className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+                        </div>
+                        {/* Pulse animation */}
+                        <div className="absolute inset-0 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-green-500 animate-ping opacity-30" />
+                        {/* Label */}
+                        <div className="absolute -bottom-7 left-1/2 -translate-x-1/2 whitespace-nowrap px-2 py-1 rounded-full bg-green-600 text-white text-[9px] sm:text-[10px] font-semibold shadow-lg">
+                          📍 Your Location
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })()}
               </div>
 
               {/* Map Controls */}
@@ -236,10 +362,37 @@ export default function MapPage() {
                 <button className="w-8 h-8 sm:w-10 sm:h-10 bg-white rounded-lg shadow-md flex items-center justify-center hover:bg-slate-50 transition-colors">
                   <Maximize2 className="w-4 h-4 sm:w-5 sm:h-5 text-slate-600" />
                 </button>
-                <button className="w-8 h-8 sm:w-10 sm:h-10 bg-white rounded-lg shadow-md flex items-center justify-center hover:bg-slate-50 transition-colors">
-                  <Navigation className="w-4 h-4 sm:w-5 sm:h-5 text-slate-600" />
+                <button 
+                  onClick={getOperatorLocation}
+                  className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg shadow-md flex items-center justify-center transition-colors ${
+                    isLocating ? 'bg-green-100' : operatorLocation ? 'bg-green-50 hover:bg-green-100' : 'bg-white hover:bg-slate-50'
+                  }`}
+                  title="Center on your location"
+                >
+                  <Locate className={`w-4 h-4 sm:w-5 sm:h-5 ${isLocating ? 'text-green-600 animate-pulse' : operatorLocation ? 'text-green-600' : 'text-slate-600'}`} />
                 </button>
               </div>
+
+              {/* Operator Location Info Banner */}
+              {operatorLocation && (
+                <div className="absolute top-3 left-3 bg-white/95 backdrop-blur-sm rounded-lg shadow-md p-2 sm:p-3 max-w-[200px] sm:max-w-[250px]">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
+                      <User className="w-4 h-4 text-green-600" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[10px] sm:text-xs font-semibold text-slate-900 truncate">Operator Online</p>
+                      <p className="text-[8px] sm:text-[10px] text-slate-500">
+                        {operatorLocation.lat.toFixed(4)}°S, {operatorLocation.lng.toFixed(4)}°E
+                      </p>
+                    </div>
+                    <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                  </div>
+                  <p className="text-[8px] sm:text-[10px] text-slate-400 mt-1">
+                    Accuracy: ±{operatorLocation.accuracy.toFixed(0)}m • Updated: {operatorLocation.timestamp.toLocaleTimeString()}
+                  </p>
+                </div>
+              )}
 
               {/* Legend */}
               <div className="absolute bottom-3 left-3 bg-white/95 backdrop-blur-sm rounded-lg shadow-md p-2 sm:p-3">
