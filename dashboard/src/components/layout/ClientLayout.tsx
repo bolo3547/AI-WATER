@@ -79,7 +79,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
 
   // Calculate sidebar width based on state and device
   const sidebarWidth = isMobile 
-    ? (sidebarExpanded ? 240 : 56)  // Smaller on mobile
+    ? (sidebarExpanded ? 288 : 64)  // Larger touch targets on mobile (w-72 = 288px)
     : (sidebarExpanded ? 256 : 64)  // Normal on desktop
 
   // Dashboard pages - with sidebar/topbar and notifications

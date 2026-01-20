@@ -120,9 +120,9 @@ export function Sidebar({ isExpanded, onToggle, isMobile = false }: SidebarProps
   const roleLabel = userRole === 'admin' ? 'Administrator' : userRole === 'technician' ? 'Field Tech' : 'Operator'
   const roleColor = userRole === 'admin' ? 'text-purple-400' : userRole === 'technician' ? 'text-orange-400' : 'text-cyan-400'
 
-  // Widths based on device and state
-  const expandedWidth = isMobile ? 'w-60' : 'w-64'
-  const collapsedWidth = isMobile ? 'w-14' : 'w-16'
+  // Widths based on device and state - larger on mobile for touch
+  const expandedWidth = isMobile ? 'w-72' : 'w-64'
+  const collapsedWidth = isMobile ? 'w-16' : 'w-16'
   
   return (
     <aside className={clsx(
@@ -183,15 +183,19 @@ export function Sidebar({ isExpanded, onToggle, isMobile = false }: SidebarProps
               href={item.href}
               title={!isExpanded ? item.name : undefined}
               className={clsx(
-                'group flex items-center text-[13px] font-medium transition-all duration-150 relative',
-                isExpanded ? 'gap-3 px-3 py-2 rounded-lg mx-1' : 'justify-center p-2.5 rounded-lg mx-1',
+                'group flex items-center font-medium transition-all duration-150 relative',
+                isMobile ? 'text-sm' : 'text-[13px]',
+                isExpanded 
+                  ? (isMobile ? 'gap-3 px-4 py-3 rounded-xl mx-1' : 'gap-3 px-3 py-2 rounded-lg mx-1')
+                  : (isMobile ? 'justify-center p-3 rounded-xl mx-1' : 'justify-center p-2.5 rounded-lg mx-1'),
                 isActive 
                   ? 'bg-[var(--sidebar-accent)] text-white' 
                   : 'text-slate-400 hover:bg-white/5 hover:text-white'
               )}
             >
               <item.icon className={clsx(
-                'w-[18px] h-[18px] flex-shrink-0 transition-colors',
+                'flex-shrink-0 transition-colors',
+                isMobile ? 'w-5 h-5' : 'w-[18px] h-[18px]',
                 isActive ? 'text-white' : 'text-slate-500 group-hover:text-slate-300'
               )} />
               {isExpanded && (
