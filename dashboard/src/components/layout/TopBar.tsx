@@ -83,7 +83,7 @@ export function TopBar({ utilityName = 'LWSC' }: TopBarProps) {
   
   return (
     <header 
-      className="fixed top-0 right-0 h-14 sm:h-16 backdrop-blur-xl border-b z-10 transition-all duration-300" 
+      className="fixed top-0 right-0 h-14 sm:h-16 backdrop-blur-xl border-b z-30 transition-all duration-300" 
       style={{ 
         left: 0,
         backgroundColor: isDarkMode ? 'rgba(30, 41, 59, 0.9)' : 'rgba(255, 255, 255, 0.8)',
@@ -91,11 +91,24 @@ export function TopBar({ utilityName = 'LWSC' }: TopBarProps) {
       }}
     >
       <div className="h-full px-2 sm:px-4 lg:px-6 flex items-center justify-between">
-        {/* Left: Breadcrumb & Utility Name */}
+        {/* Left: Logo on mobile (with space for hamburger), Breadcrumb on desktop */}
         <div className="flex items-center gap-2 sm:gap-4">
-          <div>
-            <p className="text-[9px] sm:text-[10px] font-semibold text-slate-400 uppercase tracking-wider hidden sm:block">Control Room</p>
-            <h2 className="text-xs sm:text-sm font-semibold text-slate-900">
+          {/* Spacer for hamburger menu on mobile */}
+          <div className="w-12 md:hidden" />
+          
+          {/* Logo - only on mobile */}
+          <div className="flex md:hidden items-center gap-2">
+            <img src="/lwsc-logo.png" alt="LWSC" className="w-8 h-8 object-contain" />
+            <div>
+              <h2 className="text-sm font-bold text-slate-900">LWSC</h2>
+              <p className="text-[9px] text-slate-500 uppercase tracking-wider">NRW System</p>
+            </div>
+          </div>
+          
+          {/* Desktop breadcrumb */}
+          <div className="hidden md:block">
+            <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Control Room</p>
+            <h2 className="text-sm font-semibold text-slate-900">
               {utilityName}
             </h2>
           </div>
