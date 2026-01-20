@@ -13,6 +13,8 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const isLoginPage = pathname === '/login'
   const isPortalPage = pathname === '/portal'
+  const isPublicReportPage = pathname === '/report-leak' // Public leak reporting
+  const isPublicPage = isLoginPage || isPortalPage || isPublicReportPage
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null)
   const [sidebarExpanded, setSidebarExpanded] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
@@ -44,8 +46,8 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
       const token = localStorage.getItem('access_token')
       setIsAuthenticated(!!token)
 
-      // Redirect to login if not authenticated and not on login page
-      if (!token && !isLoginPage) {
+      // Redirect to login if not authenticated and not on public page
+      if (!token && !isPublicPage) {
         window.location.href = '/login'
       }
       
@@ -67,7 +69,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
       
       return () => window.removeEventListener('resize', checkMobile)
     }
-  }, [isLoginPage])
+  }, [isPublicPage])
 
   // Save sidebar state to localStorage
   const handleSidebarToggle = () => {
@@ -78,13 +80,13 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
     }
   }
 
-  // Show splash screen on first load (not on login or portal page)
-  if (showSplash && !isLoginPage && !isPortalPage) {
+  // Show splash screen on first load (not on public pages)
+  if (showSplash && !isPublicPage) {
     return <SplashScreen onComplete={handleSplashComplete} />
   }
 
-  // Show loading while checking auth (after splash)
-  if (isAuthenticated === null && !isLoginPage && !isPortalPage) {
+  // Show loading while checking auth (after splash, not on public pages)
+  if (isAuthenticated === null && !isPublicPage) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: 'var(--bg-secondary)' }}>
         <div className="flex flex-col items-center gap-4">
@@ -100,11 +102,8 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
     return <>{children}</>
   }
 
-  // Portal page - public, no auth required
-  if (isPortalPage) {
-    return <>{children}</>
-  }
-  if (isLoginPage) {
+  // Public pages (portal, report-leak) - no auth required, standalone layout
+  if (isPortalPage || isPublicReportPage) {
     return <>{children}</>
   }
 
