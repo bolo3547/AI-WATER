@@ -38,7 +38,9 @@ import {
   MapPin,
   Download,
   ClipboardCheck,
-  Globe
+  Globe,
+  QrCode,
+  ExternalLink
 } from 'lucide-react'
 
 // Role-based navigation
@@ -64,6 +66,8 @@ const adminNavigation = [
   { name: 'Data Export', href: '/export', icon: Download, badge: null },
   { name: 'Audit Trail', href: '/audit', icon: ClipboardCheck, badge: null },
   { name: 'Community', href: '/community', icon: MessageSquare, badge: '15' },
+  { name: 'Promote Reports', href: '/promote', icon: QrCode, badge: 'New' },
+  { name: 'Public Portal', href: '/report-leak', icon: ExternalLink, badge: null, external: true },
   { name: 'User Management', href: '/admin/users', icon: Users, badge: null },
   { name: 'Locations', href: '/admin/locations', icon: Map, badge: null },
   { name: 'System Config', href: '/admin/config', icon: Database, badge: null },
@@ -213,30 +217,52 @@ export function Sidebar({ isExpanded, onToggle, isMobile = false }: SidebarProps
                   (item.href !== '/' && pathname.startsWith(item.href))
                 
                 return (
-                  <Link
-                    key={item.name}
-                    href={item.href}
-                    className={clsx(
-                      'flex items-center gap-3 px-4 py-3.5 rounded-xl font-medium transition-all duration-150',
-                      isActive 
-                        ? 'bg-[var(--sidebar-accent)] text-white' 
-                        : 'text-slate-400 hover:bg-white/5 hover:text-white active:bg-white/10'
-                    )}
-                  >
-                    <item.icon className={clsx(
-                      'w-5 h-5 flex-shrink-0',
-                      isActive ? 'text-white' : 'text-slate-500'
-                    )} />
-                    <span className="flex-1">{item.name}</span>
-                    {item.badge && (
-                      <span className={clsx(
-                        'px-2 py-1 rounded-lg text-xs font-semibold',
-                        isActive ? 'bg-white/20 text-white' : 'bg-[var(--sidebar-accent)]/20 text-[var(--primary-light)]'
-                      )}>
-                        {item.badge}
-                      </span>
-                    )}
-                  </Link>
+                  {(item as any).external ? (
+                    <a
+                      key={item.name}
+                      href={item.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={clsx(
+                        'flex items-center gap-3 px-4 py-3.5 rounded-xl font-medium transition-all duration-150',
+                        isActive 
+                          ? 'bg-[var(--sidebar-accent)] text-white' 
+                          : 'text-slate-400 hover:bg-white/5 hover:text-white active:bg-white/10'
+                      )}
+                    >
+                      <item.icon className={clsx(
+                        'w-5 h-5 flex-shrink-0',
+                        isActive ? 'text-white' : 'text-slate-500'
+                      )} />
+                      <span className="flex-1">{item.name}</span>
+                      <ExternalLink className="w-3 h-3 text-slate-500" />
+                    </a>
+                  ) : (
+                    <Link
+                      key={item.name}
+                      href={item.href}
+                      className={clsx(
+                        'flex items-center gap-3 px-4 py-3.5 rounded-xl font-medium transition-all duration-150',
+                        isActive 
+                          ? 'bg-[var(--sidebar-accent)] text-white' 
+                          : 'text-slate-400 hover:bg-white/5 hover:text-white active:bg-white/10'
+                      )}
+                    >
+                      <item.icon className={clsx(
+                        'w-5 h-5 flex-shrink-0',
+                        isActive ? 'text-white' : 'text-slate-500'
+                      )} />
+                      <span className="flex-1">{item.name}</span>
+                      {item.badge && (
+                        <span className={clsx(
+                          'px-2 py-1 rounded-lg text-xs font-semibold',
+                          isActive ? 'bg-white/20 text-white' : 'bg-[var(--sidebar-accent)]/20 text-[var(--primary-light)]'
+                        )}>
+                          {item.badge}
+                        </span>
+                      )}
+                    </Link>
+                  )}
                 )
               })}
             </div>
@@ -325,6 +351,34 @@ export function Sidebar({ isExpanded, onToggle, isMobile = false }: SidebarProps
           const isActive = pathname === item.href || 
             (item.href !== '/' && pathname.startsWith(item.href))
           
+          // Handle external links
+          if ((item as any).external) {
+            return (
+              <a
+                key={item.name}
+                href={item.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                title={!isExpanded ? item.name : undefined}
+                className={clsx(
+                  'group flex items-center text-[13px] font-medium transition-all duration-150 relative',
+                  isExpanded 
+                    ? 'gap-3 px-3 py-2 rounded-lg mx-1'
+                    : 'justify-center p-2.5 rounded-lg mx-1',
+                  'text-slate-400 hover:bg-white/5 hover:text-white'
+                )}
+              >
+                <item.icon className="w-[18px] h-[18px] flex-shrink-0 text-slate-500 group-hover:text-slate-300" />
+                {isExpanded && (
+                  <>
+                    <span className="flex-1 truncate">{item.name}</span>
+                    <ExternalLink className="w-3 h-3 text-slate-500" />
+                  </>
+                )}
+              </a>
+            )
+          }
+
           return (
             <Link
               key={item.name}
