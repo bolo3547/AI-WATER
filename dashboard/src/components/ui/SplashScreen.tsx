@@ -4,50 +4,36 @@ import { useState, useEffect } from 'react'
 
 export function SplashScreen({ onComplete }: { onComplete: () => void }) {
   const [progress, setProgress] = useState(0)
-  const [hippoX, setHippoX] = useState(-20) // Start from left (in water)
-  const [phase, setPhase] = useState<'swimming' | 'emerging' | 'walking' | 'arrived'>('swimming')
+  const [phase, setPhase] = useState<'rising' | 'visible' | 'complete'>('rising')
 
   useEffect(() => {
-    // Animate progress bar - SLOWER
+    // Animate progress bar
     const progressInterval = setInterval(() => {
       setProgress(prev => {
         if (prev >= 100) {
           clearInterval(progressInterval)
           return 100
         }
-        return prev + 0.8
+        return prev + 0.6
       })
-    }, 50)
+    }, 40)
 
-    // Animate hippo walking from water to land - SLOWER
-    const hippoInterval = setInterval(() => {
-      setHippoX(prev => {
-        if (prev >= 55) {
-          clearInterval(hippoInterval)
-          return 55
-        }
-        return prev + 0.4
-      })
-    }, 60)
-
-    // Phase transitions - SLOWER timing
-    setTimeout(() => setPhase('emerging'), 1000)
-    setTimeout(() => setPhase('walking'), 2000)
-    setTimeout(() => setPhase('arrived'), 5500)
+    // Phase transitions
+    setTimeout(() => setPhase('visible'), 800)
+    setTimeout(() => setPhase('complete'), 5800)
     
     const completeTimer = setTimeout(() => {
-      setTimeout(onComplete, 500)
-    }, 6500)
+      setTimeout(onComplete, 400)
+    }, 6200)
 
     return () => {
       clearInterval(progressInterval)
-      clearInterval(hippoInterval)
       clearTimeout(completeTimer)
     }
   }, [onComplete])
 
   return (
-    <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center overflow-hidden">
+    <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center overflow-hidden bg-gradient-to-b from-slate-900 via-blue-950 to-slate-900">
       {/* Official Government Banner at top */}
       <div className="absolute top-0 left-0 right-0 h-8 sm:h-10 bg-gradient-to-r from-green-700 via-green-600 to-orange-500 z-10 flex items-center justify-center px-4">
         <div className="flex items-center gap-2 sm:gap-3">
@@ -57,147 +43,184 @@ export function SplashScreen({ onComplete }: { onComplete: () => void }) {
         </div>
       </div>
 
-      {/* Sky gradient background */}
-      <div className="absolute inset-0 bg-gradient-to-b from-orange-300 via-orange-400 to-blue-400" />
-      
-      {/* Sun */}
-      <div className="absolute top-12 sm:top-16 right-3 sm:right-10 w-8 h-8 sm:w-14 sm:h-14 bg-yellow-300 rounded-full blur-sm animate-pulse" />
-      <div className="absolute top-12 sm:top-16 right-3 sm:right-10 w-8 h-8 sm:w-14 sm:h-14 bg-yellow-200 rounded-full" />
-      
-      {/* Clouds - smaller on mobile */}
-      <div className="absolute top-16 sm:top-20 left-[8%] w-10 sm:w-16 h-4 sm:h-6 bg-white/60 rounded-full blur-sm" />
-      <div className="absolute top-14 sm:top-18 left-[12%] w-8 sm:w-12 h-3 sm:h-5 bg-white/50 rounded-full blur-sm" />
-      <div className="absolute top-6 sm:top-16 right-[20%] w-10 sm:w-20 h-4 sm:h-8 bg-white/40 rounded-full blur-sm" />
+      {/* Animated water background */}
+      <div className="absolute inset-0 overflow-hidden">
+        {/* Water waves at bottom */}
+        <svg className="absolute bottom-0 w-full h-40 sm:h-56" viewBox="0 0 1440 200" preserveAspectRatio="none">
+          <path 
+            className="animate-wave-slow"
+            fill="rgba(59, 130, 246, 0.15)" 
+            d="M0,100 C288,150 576,50 864,100 C1152,150 1296,50 1440,100 L1440,200 L0,200 Z"
+          />
+          <path 
+            className="animate-wave-medium"
+            fill="rgba(59, 130, 246, 0.1)" 
+            d="M0,120 C288,70 576,170 864,120 C1152,70 1296,170 1440,120 L1440,200 L0,200 Z"
+          />
+          <path 
+            className="animate-wave-fast"
+            fill="rgba(6, 182, 212, 0.1)" 
+            d="M0,140 C288,90 576,190 864,140 C1152,90 1296,190 1440,140 L1440,200 L0,200 Z"
+          />
+        </svg>
+        
+        {/* Subtle glow effects */}
+        <div className="absolute top-1/3 left-1/4 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl" />
+        <div className="absolute top-1/2 right-1/4 w-48 h-48 bg-cyan-500/10 rounded-full blur-3xl" />
+      </div>
 
-      {/* Scene container - smaller on mobile */}
-      <div className="absolute bottom-0 left-0 right-0 h-[38%] sm:h-[45%]">
-        {/* Land/Beach - right side */}
-        <div className="absolute bottom-0 right-0 w-[60%] h-full">
-          <svg className="w-full h-full" viewBox="0 0 600 300" preserveAspectRatio="none">
-            {/* Sandy beach */}
-            <path d="M0,100 Q150,50 300,80 Q450,60 600,40 L600,300 L0,300 Z" fill="#E8D5A3" />
-            {/* Grass on top */}
-            <path d="M200,70 Q350,40 500,50 Q550,45 600,40 L600,60 Q500,55 400,60 Q300,65 200,80 Z" fill="#7CB342" />
-            {/* Grass tufts */}
-            <g fill="#558B2F">
-              <path d="M220,75 L225,55 L230,75" />
-              <path d="M260,65 L265,45 L270,65" />
-              <path d="M310,60 L315,40 L320,60" />
-              <path d="M380,55 L385,35 L390,55" />
-              <path d="M450,50 L455,30 L460,50" />
-              <path d="M520,45 L525,25 L530,45" />
-            </g>
-          </svg>
-        </div>
-
-        {/* Water - left side and bottom */}
-        <div className="absolute bottom-0 left-0 w-full h-full">
-          <svg className="w-full h-full" viewBox="0 0 1000 300" preserveAspectRatio="none">
-            {/* Deep water */}
-            <rect x="0" y="0" width="500" height="300" fill="#1E88E5" />
-            {/* Water meeting beach */}
-            <path d="M400,300 Q450,280 500,290 Q550,285 600,300 L400,300 Z" fill="#42A5F5" />
-            {/* Shallow water/waves */}
-            <path 
-              className="animate-wave-slow"
-              d="M0,180 Q100,160 200,180 Q300,200 400,180 Q450,170 500,190 L500,300 L0,300 Z" 
-              fill="#42A5F5" 
-            />
-            <path 
-              className="animate-wave-medium"
-              d="M0,200 Q80,180 160,200 Q240,220 320,200 Q400,180 480,210 L500,300 L0,300 Z" 
-              fill="#64B5F6" 
-            />
-            <path 
-              className="animate-wave-fast"
-              d="M0,220 Q60,200 120,220 Q180,240 240,220 Q320,200 400,230 Q450,220 500,240 L500,300 L0,300 Z" 
-              fill="#90CAF9" 
-            />
-          </svg>
-        </div>
-
-        {/* Animated Hippo - smaller on mobile */}
-        <div 
-          className="absolute bottom-[20%] sm:bottom-[22%] transition-all duration-100"
-          style={{ 
-            left: `${hippoX}%`,
-            transform: `translateX(-50%)`
-          }}
-        >
-          <svg 
-            viewBox="0 0 180 120" 
-            className={`w-16 h-12 sm:w-28 sm:h-20 md:w-36 md:h-24 drop-shadow-lg ${
-              phase === 'walking' ? 'animate-hippo-bob' : ''
-            }`}
-          >
-            {/* Hippo Shadow */}
-            <ellipse cx="90" cy="115" rx="50" ry="8" fill="rgba(0,0,0,0.2)" />
-            
-            {/* Back legs */}
-            <g className={phase === 'walking' ? 'animate-leg-back' : ''}>
-              <rect x="35" y="75" width="16" height="35" rx="7" fill="#6B6B6B" />
-              <rect x="55" y="77" width="16" height="33" rx="7" fill="#7D7D7D" />
-            </g>
-            
-            {/* Hippo Body */}
-            <ellipse cx="85" cy="60" rx="55" ry="38" fill="#808080" />
-            
-            {/* Belly */}
-            <ellipse cx="85" cy="70" rx="40" ry="25" fill="#9E9E9E" />
-            
-            {/* Front legs */}
-            <g className={phase === 'walking' ? 'animate-leg-front' : ''}>
-              <rect x="105" y="75" width="16" height="35" rx="7" fill="#7D7D7D" />
-              <rect x="125" y="77" width="16" height="33" rx="7" fill="#6B6B6B" />
-            </g>
-            
-            {/* Tail */}
-            <path 
-              d="M28 55 Q 15 50 18 65 Q 22 75 30 65" 
-              fill="#808080" 
-              className={phase === 'walking' ? 'animate-tail-wag' : ''}
-            />
-            
-            {/* Hippo Head */}
-            <ellipse cx="140" cy="45" rx="35" ry="30" fill="#8B8B8B" />
-            
-            {/* Snout */}
-            <ellipse cx="168" cy="55" rx="18" ry="16" fill="#A0A0A0" />
-            
-            {/* Nostrils */}
-            <ellipse cx="163" cy="52" rx="4" ry="3" fill="#4A4A4A" />
-            <ellipse cx="175" cy="52" rx="4" ry="3" fill="#4A4A4A" />
-            
-            {/* Smile */}
-            <path d="M158 65 Q 168 72 178 65" stroke="#5A5A5A" strokeWidth="2.5" fill="none" strokeLinecap="round" />
-            
-            {/* Eyes */}
-            <ellipse cx="130" cy="35" rx="8" ry="9" fill="white" />
-            <ellipse cx="130" cy="36" rx="5" ry="6" fill="#2D2D2D" />
-            <circle cx="128" cy="34" r="2" fill="white" />
-            
-            {/* Ears */}
-            <ellipse cx="115" cy="20" rx="8" ry="12" fill="#8B8B8B" />
-            <ellipse cx="115" cy="20" rx="4" ry="7" fill="#C4A0A0" />
-            <ellipse cx="135" cy="18" rx="8" ry="12" fill="#8B8B8B" />
-            <ellipse cx="135" cy="18" rx="4" ry="7" fill="#C4A0A0" />
-            
-            {/* Water droplets on body when emerging */}
-            {(phase === 'emerging' || phase === 'walking') && (
-              <g className="animate-drip">
-                <circle cx="60" cy="45" r="3" fill="#87CEEB" opacity="0.8" />
-                <circle cx="95" cy="40" r="2.5" fill="#87CEEB" opacity="0.7" />
-                <circle cx="45" cy="60" r="2" fill="#87CEEB" opacity="0.6" />
-                <circle cx="110" cy="50" r="2" fill="#87CEEB" opacity="0.7" />
-              </g>
-            )}
-          </svg>
+      {/* Main centered content */}
+      <div className="relative z-10 flex flex-col items-center justify-center px-4">
+        
+        {/* Logo Container with water effect */}
+        <div className={`relative transition-all duration-1000 ease-out ${
+          phase === 'rising' 
+            ? 'translate-y-8 opacity-0 scale-95' 
+            : 'translate-y-0 opacity-100 scale-100'
+        }`}>
+          {/* Water ripple effect behind logo */}
+          <div className="absolute -inset-8 sm:-inset-12">
+            <div className="absolute inset-0 rounded-full bg-cyan-500/20 animate-ping-slow" />
+            <div className="absolute inset-4 rounded-full bg-blue-500/15 animate-ping-slower" />
+          </div>
           
-          {/* Water splash effect when in water */}
-          {hippoX < 35 && (
-            <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 flex gap-1">
-              {[...Array(5)].map((_, i) => (
-                <div 
+          {/* Logo with professional border */}
+          <div className="relative w-24 h-24 sm:w-32 sm:h-32 md:w-40 md:h-40 rounded-2xl bg-white p-3 sm:p-4 shadow-2xl border-4 border-blue-500/30">
+            <img 
+              src="/lwsc-logo.png" 
+              alt="LWSC" 
+              className="w-full h-full object-contain"
+            />
+            {/* Live indicator */}
+            <div className="absolute -top-1 -right-1 w-4 h-4 sm:w-5 sm:h-5 bg-emerald-500 rounded-full border-2 border-white flex items-center justify-center">
+              <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
+            </div>
+          </div>
+        </div>
+
+        {/* Company Name */}
+        <div className={`mt-6 sm:mt-8 text-center transition-all duration-700 delay-300 ${
+          phase === 'rising' ? 'opacity-0 translate-y-4' : 'opacity-100 translate-y-0'
+        }`}>
+          <h1 className="text-2xl sm:text-4xl md:text-5xl font-bold text-white tracking-tight">
+            LWSC
+          </h1>
+          <p className="text-blue-300/90 text-xs sm:text-sm md:text-base mt-1 font-medium">
+            Lusaka Water & Sewerage Company
+          </p>
+        </div>
+
+        {/* System Title Badge */}
+        <div className={`mt-4 sm:mt-6 transition-all duration-700 delay-500 ${
+          phase === 'rising' ? 'opacity-0 scale-90' : 'opacity-100 scale-100'
+        }`}>
+          <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600/30 to-cyan-600/30 rounded-full border border-blue-400/40 backdrop-blur-sm">
+            <div className="w-2 h-2 bg-cyan-400 rounded-full animate-pulse" />
+            <span className="text-cyan-300 text-xs sm:text-sm font-semibold tracking-wide">
+              NRW Detection System
+            </span>
+            <span className="px-1.5 py-0.5 bg-cyan-500/30 rounded text-[9px] sm:text-[10px] text-cyan-200 font-bold">
+              AI
+            </span>
+          </div>
+        </div>
+
+        {/* Features */}
+        <div className={`mt-6 sm:mt-8 grid grid-cols-3 gap-3 sm:gap-6 transition-all duration-700 delay-700 ${
+          phase === 'rising' ? 'opacity-0' : 'opacity-100'
+        }`}>
+          <div className="text-center">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-2 rounded-xl bg-blue-500/20 flex items-center justify-center">
+              <svg className="w-5 h-5 sm:w-6 sm:h-6 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+              </svg>
+            </div>
+            <p className="text-[9px] sm:text-[10px] text-slate-400 font-medium">Real-time Analytics</p>
+          </div>
+          <div className="text-center">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-2 rounded-xl bg-emerald-500/20 flex items-center justify-center">
+              <svg className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+              </svg>
+            </div>
+            <p className="text-[9px] sm:text-[10px] text-slate-400 font-medium">Leak Detection</p>
+          </div>
+          <div className="text-center">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-2 rounded-xl bg-amber-500/20 flex items-center justify-center">
+              <svg className="w-5 h-5 sm:w-6 sm:h-6 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+            </div>
+            <p className="text-[9px] sm:text-[10px] text-slate-400 font-medium">Smart Automation</p>
+          </div>
+        </div>
+
+        {/* Progress bar */}
+        <div className={`mt-8 sm:mt-10 w-56 sm:w-72 md:w-80 transition-all duration-700 delay-900 ${
+          phase === 'rising' ? 'opacity-0' : 'opacity-100'
+        }`}>
+          <div className="h-1.5 sm:h-2 bg-white/10 rounded-full overflow-hidden backdrop-blur">
+            <div 
+              className="h-full bg-gradient-to-r from-blue-500 via-cyan-500 to-blue-500 rounded-full transition-all duration-100 ease-out relative"
+              style={{ width: `${progress}%` }}
+            >
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-shimmer" />
+            </div>
+          </div>
+          <p className="text-center text-slate-400 text-[10px] sm:text-xs mt-3 font-medium">
+            {progress < 20 ? 'Initializing system...' : 
+             progress < 40 ? 'Connecting to sensors...' : 
+             progress < 60 ? 'Loading AI models...' : 
+             progress < 80 ? 'Preparing dashboard...' : 
+             progress < 100 ? 'Almost ready...' :
+             '✓ System Ready'}
+          </p>
+        </div>
+      </div>
+
+      {/* Footer */}
+      <div className="absolute bottom-4 sm:bottom-6 left-0 right-0 text-center">
+        <p className="text-slate-500 text-[9px] sm:text-[10px]">
+          © 2026 LWSC | Powered by AI Technology
+        </p>
+      </div>
+
+      {/* Styles for animations */}
+      <style jsx>{`
+        @keyframes wave-slow {
+          0%, 100% { transform: translateX(0); }
+          50% { transform: translateX(-30px); }
+        }
+        @keyframes wave-medium {
+          0%, 100% { transform: translateX(0); }
+          50% { transform: translateX(30px); }
+        }
+        @keyframes wave-fast {
+          0%, 100% { transform: translateX(0); }
+          50% { transform: translateX(-20px); }
+        }
+        @keyframes ping-slow {
+          0% { transform: scale(1); opacity: 0.3; }
+          75%, 100% { transform: scale(1.5); opacity: 0; }
+        }
+        @keyframes ping-slower {
+          0% { transform: scale(1); opacity: 0.2; }
+          75%, 100% { transform: scale(1.8); opacity: 0; }
+        }
+        @keyframes shimmer {
+          0% { transform: translateX(-100%); }
+          100% { transform: translateX(100%); }
+        }
+        .animate-wave-slow { animation: wave-slow 4s ease-in-out infinite; }
+        .animate-wave-medium { animation: wave-medium 3s ease-in-out infinite; }
+        .animate-wave-fast { animation: wave-fast 2.5s ease-in-out infinite; }
+        .animate-ping-slow { animation: ping-slow 2s cubic-bezier(0, 0, 0.2, 1) infinite; }
+        .animate-ping-slower { animation: ping-slower 2.5s cubic-bezier(0, 0, 0.2, 1) infinite; }
+        .animate-shimmer { animation: shimmer 2s ease-in-out infinite; }
+      `}</style>
+    </div>
+  )
+} 
                   key={i} 
                   className="w-2 h-2 bg-blue-300 rounded-full animate-splash-up"
                   style={{ animationDelay: `${i * 0.1}s` }}
