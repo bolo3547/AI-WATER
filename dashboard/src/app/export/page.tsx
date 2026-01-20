@@ -114,14 +114,14 @@ export default function ExportPage() {
   ]
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-3 sm:p-6">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-2 sm:p-3 md:p-4 lg:p-6">
       {/* Header */}
-      <div className="mb-4 sm:mb-6">
-        <h1 className="text-xl sm:text-3xl font-bold text-slate-900">Data Export</h1>
-        <p className="text-xs sm:text-sm text-slate-500 mt-0.5">Export system data in multiple formats</p>
+      <div className="mb-2 sm:mb-3 md:mb-4 lg:mb-6">
+        <h1 className="text-base sm:text-lg md:text-xl lg:text-3xl font-bold text-slate-900">Data Export</h1>
+        <p className="text-[10px] sm:text-xs md:text-sm text-slate-500 mt-0.5">Export data in multiple formats</p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-2 sm:gap-3 md:gap-4 lg:gap-6">
         {/* Data Selection */}
         <div className="lg:col-span-2 space-y-4">
           <div className="bg-white rounded-2xl p-4 sm:p-6 shadow-sm border border-slate-100">

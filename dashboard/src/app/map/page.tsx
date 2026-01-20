@@ -72,13 +72,13 @@ export default function MapPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-3 sm:p-6">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-2 sm:p-3 md:p-4 lg:p-6">
       {/* Header */}
-      <div className="mb-4 sm:mb-6">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+      <div className="mb-2 sm:mb-3 md:mb-4 lg:mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3">
           <div>
-            <h1 className="text-xl sm:text-3xl font-bold text-slate-900">Network Map</h1>
-            <p className="text-xs sm:text-sm text-slate-500 mt-0.5">Interactive map of Lusaka water distribution network</p>
+            <h1 className="text-base sm:text-lg md:text-xl lg:text-3xl font-bold text-slate-900">Network Map</h1>
+            <p className="text-[10px] sm:text-xs md:text-sm text-slate-500 mt-0.5">Lusaka water distribution network</p>
           </div>
           
           {/* Controls */}
@@ -108,12 +108,12 @@ export default function MapPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 sm:gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-2 sm:gap-3 md:gap-4 lg:gap-6">
         {/* Map Area */}
         <div className="lg:col-span-3">
           <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
             {/* Map Container */}
-            <div className="relative h-[400px] sm:h-[600px] bg-slate-100">
+            <div className="relative h-[280px] xs:h-[320px] sm:h-[400px] md:h-[500px] lg:h-[600px] bg-slate-100">
               {/* Simulated Map Background */}
               <div 
                 className="absolute inset-0 bg-gradient-to-br from-blue-50 to-cyan-50"

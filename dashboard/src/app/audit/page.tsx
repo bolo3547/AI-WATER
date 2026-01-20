@@ -205,13 +205,13 @@ export default function AuditPage() {
   )
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-3 sm:p-6">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-2 sm:p-3 md:p-4 lg:p-6">
       {/* Header */}
-      <div className="mb-4 sm:mb-6">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+      <div className="mb-2 sm:mb-3 md:mb-4 lg:mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3">
           <div>
-            <h1 className="text-xl sm:text-3xl font-bold text-slate-900">Audit & Compliance</h1>
-            <p className="text-xs sm:text-sm text-slate-500 mt-0.5">System audit trail and compliance monitoring</p>
+            <h1 className="text-base sm:text-lg md:text-xl lg:text-3xl font-bold text-slate-900">Audit & Compliance</h1>
+            <p className="text-[10px] sm:text-xs md:text-sm text-slate-500 mt-0.5">Audit trail and compliance monitoring</p>
           </div>
           <div className="flex gap-2">
             <button className="flex items-center gap-2 px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs sm:text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors">
@@ -223,27 +223,27 @@ export default function AuditPage() {
       </div>
 
       {/* Tab Switcher */}
-      <div className="flex bg-white rounded-xl shadow-sm p-1 mb-4 sm:mb-6">
+      <div className="flex bg-white rounded-xl shadow-sm p-0.5 sm:p-1 mb-2 sm:mb-3 md:mb-4 lg:mb-6">
         <button
           onClick={() => setActiveTab('logs')}
-          className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+          className={`flex-1 flex items-center justify-center gap-1 sm:gap-2 py-2 sm:py-2.5 rounded-lg text-xs sm:text-sm font-medium transition-colors ${
             activeTab === 'logs'
               ? 'bg-blue-600 text-white'
               : 'text-slate-600 hover:bg-slate-50'
           }`}
         >
-          <Clock className="w-4 h-4" />
-          Audit Logs
+          <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+          Logs
         </button>
         <button
           onClick={() => setActiveTab('compliance')}
-          className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+          className={`flex-1 flex items-center justify-center gap-1 sm:gap-2 py-2 sm:py-2.5 rounded-lg text-xs sm:text-sm font-medium transition-colors ${
             activeTab === 'compliance'
               ? 'bg-blue-600 text-white'
               : 'text-slate-600 hover:bg-slate-50'
           }`}
         >
-          <Shield className="w-4 h-4" />
+          <Shield className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
           Compliance
         </button>
       </div>

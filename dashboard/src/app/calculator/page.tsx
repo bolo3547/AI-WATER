@@ -81,13 +81,13 @@ export default function CalculatorPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-3 sm:p-6">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-2 sm:p-3 md:p-4 lg:p-6">
       {/* Header */}
-      <div className="mb-4 sm:mb-6">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+      <div className="mb-2 sm:mb-3 md:mb-4 lg:mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3">
           <div>
-            <h1 className="text-xl sm:text-3xl font-bold text-slate-900">Financial Impact Calculator</h1>
-            <p className="text-xs sm:text-sm text-slate-500 mt-0.5">Calculate ROI and savings from NRW reduction</p>
+            <h1 className="text-base sm:text-lg md:text-xl lg:text-3xl font-bold text-slate-900">Financial Calculator</h1>
+            <p className="text-[10px] sm:text-xs md:text-sm text-slate-500 mt-0.5">Calculate ROI from NRW reduction</p>
           </div>
           <div className="flex gap-2">
             <button className="flex items-center gap-2 px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs sm:text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors">
@@ -102,7 +102,7 @@ export default function CalculatorPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-2 sm:gap-3 md:gap-4 lg:gap-6">
         {/* Input Parameters */}
         <div className="lg:col-span-1 space-y-4">
           <div className="bg-white rounded-2xl p-4 sm:p-6 shadow-sm border border-slate-100">
@@ -251,41 +251,41 @@ export default function CalculatorPage() {
         {/* Results */}
         <div className="lg:col-span-2 space-y-4">
           {/* Key Metrics */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <div className="bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-2xl p-3 sm:p-4 text-white">
-              <div className="flex items-center justify-between mb-2">
-                <PiggyBank className="w-5 h-5 sm:w-6 sm:h-6 opacity-80" />
-                <TrendingUp className="w-4 h-4" />
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
+            <div className="bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl sm:rounded-2xl p-2 sm:p-3 md:p-4 text-white">
+              <div className="flex items-center justify-between mb-1 sm:mb-2">
+                <PiggyBank className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 opacity-80" />
+                <TrendingUp className="w-3 h-3 sm:w-4 sm:h-4" />
               </div>
-              <p className="text-[10px] sm:text-xs text-emerald-100">Annual Savings</p>
-              <p className="text-lg sm:text-2xl font-bold">{formatCurrency(results.totalBenefitAnnual)}</p>
+              <p className="text-[8px] sm:text-[10px] md:text-xs text-emerald-100">Annual Savings</p>
+              <p className="text-sm sm:text-lg md:text-xl lg:text-2xl font-bold">{formatCurrency(results.totalBenefitAnnual)}</p>
             </div>
             
-            <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl p-3 sm:p-4 text-white">
-              <div className="flex items-center justify-between mb-2">
-                <Clock className="w-5 h-5 sm:w-6 sm:h-6 opacity-80" />
-                <span className="text-xs px-2 py-0.5 bg-white/20 rounded-full">ROI</span>
+            <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl sm:rounded-2xl p-2 sm:p-3 md:p-4 text-white">
+              <div className="flex items-center justify-between mb-1 sm:mb-2">
+                <Clock className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 opacity-80" />
+                <span className="text-[8px] sm:text-[10px] md:text-xs px-1.5 sm:px-2 py-0.5 bg-white/20 rounded-full">ROI</span>
               </div>
-              <p className="text-[10px] sm:text-xs text-blue-100">Payback Period</p>
-              <p className="text-lg sm:text-2xl font-bold">{results.paybackMonths.toFixed(1)} <span className="text-sm font-normal">months</span></p>
+              <p className="text-[8px] sm:text-[10px] md:text-xs text-blue-100">Payback</p>
+              <p className="text-sm sm:text-lg md:text-xl lg:text-2xl font-bold">{results.paybackMonths.toFixed(1)} <span className="text-[10px] sm:text-xs md:text-sm font-normal">mo</span></p>
             </div>
 
-            <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl p-3 sm:p-4 text-white">
-              <div className="flex items-center justify-between mb-2">
-                <Target className="w-5 h-5 sm:w-6 sm:h-6 opacity-80" />
-                <TrendingDown className="w-4 h-4" />
+            <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl sm:rounded-2xl p-2 sm:p-3 md:p-4 text-white">
+              <div className="flex items-center justify-between mb-1 sm:mb-2">
+                <Target className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 opacity-80" />
+                <TrendingDown className="w-3 h-3 sm:w-4 sm:h-4" />
               </div>
-              <p className="text-[10px] sm:text-xs text-purple-100">NRW Reduction</p>
-              <p className="text-lg sm:text-2xl font-bold">{results.nrwReduction.toFixed(1)}%</p>
+              <p className="text-[8px] sm:text-[10px] md:text-xs text-purple-100">NRW Reduction</p>
+              <p className="text-sm sm:text-lg md:text-xl lg:text-2xl font-bold">{results.nrwReduction.toFixed(1)}%</p>
             </div>
 
-            <div className="bg-gradient-to-br from-cyan-500 to-cyan-600 rounded-2xl p-3 sm:p-4 text-white">
-              <div className="flex items-center justify-between mb-2">
-                <Zap className="w-5 h-5 sm:w-6 sm:h-6 opacity-80" />
-                <span className="text-xs">{results.roi5Year > 0 ? '+' : ''}{results.roi5Year.toFixed(0)}%</span>
+            <div className="bg-gradient-to-br from-cyan-500 to-cyan-600 rounded-xl sm:rounded-2xl p-2 sm:p-3 md:p-4 text-white">
+              <div className="flex items-center justify-between mb-1 sm:mb-2">
+                <Zap className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 opacity-80" />
+                <span className="text-[8px] sm:text-[10px] md:text-xs">{results.roi5Year > 0 ? '+' : ''}{results.roi5Year.toFixed(0)}%</span>
               </div>
-              <p className="text-[10px] sm:text-xs text-cyan-100">5-Year ROI</p>
-              <p className="text-lg sm:text-2xl font-bold">{formatCurrency(results.npv5Year)}</p>
+              <p className="text-[8px] sm:text-[10px] md:text-xs text-cyan-100">5-Year ROI</p>
+              <p className="text-sm sm:text-lg md:text-xl lg:text-2xl font-bold">{formatCurrency(results.npv5Year)}</p>
             </div>
           </div>
 

@@ -129,30 +129,30 @@ export default function ReportLeakPage() {
       </div>
 
       {/* Main Content */}
-      <div className="max-w-4xl mx-auto px-4 py-6">
+      <div className="max-w-4xl mx-auto px-2 sm:px-4 py-3 sm:py-4 md:py-6">
         {/* Tab Switcher */}
-        <div className="flex bg-white rounded-xl shadow-sm p-1 mb-6">
+        <div className="flex bg-white rounded-xl shadow-sm p-0.5 sm:p-1 mb-3 sm:mb-4 md:mb-6">
           <button
             onClick={() => { setActiveTab('report'); setIsSubmitted(false); setStep(1); }}
-            className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-lg text-sm font-medium transition-colors ${
+            className={`flex-1 flex items-center justify-center gap-1 sm:gap-2 py-2 sm:py-2.5 md:py-3 rounded-lg text-xs sm:text-sm font-medium transition-colors ${
               activeTab === 'report'
                 ? 'bg-blue-600 text-white'
                 : 'text-slate-600 hover:bg-slate-50'
             }`}
           >
-            <AlertTriangle className="w-4 h-4" />
-            Report a Leak
+            <AlertTriangle className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+            <span>Report Leak</span>
           </button>
           <button
             onClick={() => setActiveTab('track')}
-            className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-lg text-sm font-medium transition-colors ${
+            className={`flex-1 flex items-center justify-center gap-1 sm:gap-2 py-2 sm:py-2.5 md:py-3 rounded-lg text-xs sm:text-sm font-medium transition-colors ${
               activeTab === 'track'
                 ? 'bg-blue-600 text-white'
                 : 'text-slate-600 hover:bg-slate-50'
             }`}
           >
-            <FileText className="w-4 h-4" />
-            Track Report
+            <FileText className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+            <span>Track</span>
           </button>
         </div>
 
@@ -200,7 +200,7 @@ export default function ReportLeakPage() {
                 {[1, 2, 3].map((s) => (
                   <div
                     key={s}
-                    className={`flex-1 py-3 text-center text-xs sm:text-sm font-medium transition-colors ${
+                    className={`flex-1 py-2 sm:py-3 text-center text-[10px] sm:text-xs md:text-sm font-medium transition-colors ${
                       step === s
                         ? 'text-blue-600 bg-blue-50 border-b-2 border-blue-600'
                         : step > s
@@ -208,12 +208,12 @@ export default function ReportLeakPage() {
                         : 'text-slate-400'
                     }`}
                   >
-                    {s === 1 ? '1. Issue Type' : s === 2 ? '2. Location' : '3. Contact'}
+                    {s === 1 ? '1. Type' : s === 2 ? '2. Location' : '3. Contact'}
                   </div>
                 ))}
               </div>
 
-              <div className="p-4 sm:p-6">
+              <div className="p-3 sm:p-4 md:p-6">
                 {step === 1 && (
                   <div className="space-y-4">
                     <h2 className="text-base sm:text-lg font-semibold text-slate-900">What type of issue are you reporting?</h2>

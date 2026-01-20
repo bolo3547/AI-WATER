@@ -7,6 +7,14 @@ const config: Config = {
     './src/app/**/*.{js,ts,jsx,tsx,mdx}',
   ],
   theme: {
+    screens: {
+      'xs': '375px',   // iPhone SE, small phones
+      'sm': '640px',   // Large phones landscape
+      'md': '768px',   // Tablets
+      'lg': '1024px',  // Laptops
+      'xl': '1280px',  // Desktops
+      '2xl': '1536px', // Large screens
+    },
     extend: {
       colors: {
         // Primary palette - Deep professional blues
