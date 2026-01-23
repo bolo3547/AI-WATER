@@ -100,6 +100,73 @@ python app.py
 
 ---
 
+## Database Migrations (Multi-Tenancy)
+
+AquaWatch supports **multi-tenancy** for SaaS deployments. Each water utility gets isolated data while sharing the same infrastructure.
+
+### Prerequisites
+```bash
+pip install alembic psycopg2-binary
+```
+
+### Run Migrations
+```bash
+# Set database environment variables
+export DB_HOST=localhost
+export DB_PORT=5432
+export DB_NAME=aquawatch
+export DB_USER=aquawatch
+export DB_PASSWORD=your_secure_password
+
+# Or use DATABASE_URL
+export DATABASE_URL=postgresql://user:pass@host:5432/aquawatch
+
+# Check current migration status
+alembic current
+
+# Apply all pending migrations
+alembic upgrade head
+
+# Rollback to previous migration (use with caution!)
+alembic downgrade -1
+```
+
+### Multi-Tenancy Structure
+
+| Table | Description |
+|-------|-------------|
+| `tenants` | Organization accounts (water utilities) |
+| `tenant_users` | User memberships with roles per tenant |
+
+**Tables with `tenant_id`:**
+- `dmas` - District Metered Areas
+- `sensors` - IoT sensor devices
+- `alerts` - System alerts
+- `work_orders` - Field work orders
+- `audit_logs` - Audit trail
+
+### Default Tenant
+On first migration, a `default-tenant` is created and all existing data is linked to it:
+```sql
+-- Check default tenant
+SELECT * FROM tenants WHERE id = 'default-tenant';
+
+-- View tenant users
+SELECT t.name, u.email, tu.role 
+FROM tenant_users tu
+JOIN tenants t ON tu.tenant_id = t.id
+JOIN users u ON tu.user_id = u.id;
+```
+
+### Creating a New Tenant
+```sql
+INSERT INTO tenants (id, name, country, timezone, plan)
+VALUES ('lwsc-lusaka', 'LWSC Lusaka Division', 'ZMB', 'Africa/Lusaka', 'enterprise');
+```
+
+
+---
+
 ## Project Structure
 
 ```
@@ -177,5 +244,6 @@ MIT License - See [LICENSE](LICENSE) for details.
 For deployment inquiries, partnerships, or technical support:
 - Technical: engineering@aquawatch.io
 - Business: partnerships@aquawatch.io
-#   A I - W A T E R  
+#   A I - W A T E R 
+ 
  

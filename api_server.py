@@ -112,18 +112,45 @@ def require_auth(f):
     return decorated
 
 def seed_database():
-    """Seed initial data to MongoDB"""
+    """Seed initial data to MongoDB including multi-tenancy support"""
     database = get_db()
     if database is None:
         print("⚠️ Running without database - using in-memory storage")
         return
     
-    # Seed users
+    # =========================================================================
+    # STEP 1: Seed default tenant for multi-tenancy
+    # =========================================================================
+    DEFAULT_TENANT_ID = 'default-tenant'
+    
+    tenants_col = database.tenants
+    existing_tenant = tenants_col.find_one({"_id": DEFAULT_TENANT_ID})
+    if not existing_tenant:
+        tenants_col.insert_one({
+            "_id": DEFAULT_TENANT_ID,
+            "name": "LWSC Zambia (Default)",
+            "country": "ZMB",
+            "timezone": "Africa/Lusaka",
+            "plan": "professional",
+            "contact_email": "admin@lwsc.co.zm",
+            "settings": {},
+            "created_at": datetime.now().isoformat(),
+            "is_active": True
+        })
+        print(f"  Created default tenant: {DEFAULT_TENANT_ID}")
+    
+    # =========================================================================
+    # STEP 2: Seed users and link to default tenant
+    # =========================================================================
     users_col = database.users
+    tenant_users_col = database.tenant_users
+    
     for username, data in DEFAULT_USERS.items():
         existing = users_col.find_one({"username": username})
         if not existing:
+            user_id = str(uuid.uuid4())
             users_col.insert_one({
+                "_id": user_id,
                 "username": username,
                 "password_hash": hash_password(data["password"]),
                 "role": data["role"],
@@ -133,22 +160,54 @@ def seed_database():
                 "status": "active"
             })
             print(f"  Created user: {username}")
+            
+            # Link user to default tenant
+            tenant_users_col.insert_one({
+                "tenant_id": DEFAULT_TENANT_ID,
+                "user_id": user_id,
+                "role": data["role"],
+                "status": "active",
+                "created_at": datetime.now().isoformat()
+            })
+            print(f"    Linked {username} to tenant: {DEFAULT_TENANT_ID}")
+        else:
+            # Ensure existing users are linked to tenant
+            user_id = existing.get("_id")
+            if user_id and not tenant_users_col.find_one({"tenant_id": DEFAULT_TENANT_ID, "user_id": user_id}):
+                tenant_users_col.insert_one({
+                    "tenant_id": DEFAULT_TENANT_ID,
+                    "user_id": user_id,
+                    "role": existing.get("role", "operator"),
+                    "status": "active",
+                    "created_at": datetime.now().isoformat()
+                })
+                print(f"    Linked existing user {username} to tenant: {DEFAULT_TENANT_ID}")
     
-    # Seed DMAs
+    # =========================================================================
+    # STEP 3: Seed DMAs with tenant_id
+    # =========================================================================
     dmas_col = database.dmas
     if dmas_col.count_documents({}) == 0:
         default_dmas = [
-            {"dma_id": "dma-001", "name": "Kabulonga North", "nrw_percent": 28.5, "priority_score": 85, "status": "warning"},
-            {"dma_id": "dma-002", "name": "Woodlands Central", "nrw_percent": 35.2, "priority_score": 92, "status": "critical"},
-            {"dma_id": "dma-003", "name": "Roma Industrial", "nrw_percent": 22.1, "priority_score": 65, "status": "healthy"},
-            {"dma_id": "dma-004", "name": "Chelstone East", "nrw_percent": 31.8, "priority_score": 78, "status": "warning"},
-            {"dma_id": "dma-005", "name": "Matero South", "nrw_percent": 42.5, "priority_score": 95, "status": "critical"},
-            {"dma_id": "dma-006", "name": "Chilenje", "nrw_percent": 19.3, "priority_score": 45, "status": "healthy"},
+            {"dma_id": "dma-001", "name": "Kabulonga North", "nrw_percent": 28.5, "priority_score": 85, "status": "warning", "tenant_id": DEFAULT_TENANT_ID},
+            {"dma_id": "dma-002", "name": "Woodlands Central", "nrw_percent": 35.2, "priority_score": 92, "status": "critical", "tenant_id": DEFAULT_TENANT_ID},
+            {"dma_id": "dma-003", "name": "Roma Industrial", "nrw_percent": 22.1, "priority_score": 65, "status": "healthy", "tenant_id": DEFAULT_TENANT_ID},
+            {"dma_id": "dma-004", "name": "Chelstone East", "nrw_percent": 31.8, "priority_score": 78, "status": "warning", "tenant_id": DEFAULT_TENANT_ID},
+            {"dma_id": "dma-005", "name": "Matero South", "nrw_percent": 42.5, "priority_score": 95, "status": "critical", "tenant_id": DEFAULT_TENANT_ID},
+            {"dma_id": "dma-006", "name": "Chilenje", "nrw_percent": 19.3, "priority_score": 45, "status": "healthy", "tenant_id": DEFAULT_TENANT_ID},
         ]
         dmas_col.insert_many(default_dmas)
-        print("  Seeded DMAs")
+        print("  Seeded DMAs with tenant_id")
+    else:
+        # Backfill existing DMAs with tenant_id
+        result = dmas_col.update_many(
+            {"tenant_id": {"$exists": False}},
+            {"$set": {"tenant_id": DEFAULT_TENANT_ID}}
+        )
+        if result.modified_count > 0:
+            print(f"  Backfilled {result.modified_count} DMAs with tenant_id")
     
-    print("✅ Database seeded successfully")
+    print("✅ Database seeded successfully with multi-tenancy support")
 
 # ============================================================================
 # AUTH ENDPOINTS

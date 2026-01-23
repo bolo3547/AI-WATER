@@ -85,6 +85,121 @@ class WorkOrderStatus(str, Enum):
     CANCELLED = "cancelled"
 
 
+class TenantPlan(str, Enum):
+    """Subscription plans for tenants."""
+    FREE = "free"
+    STARTER = "starter"
+    PROFESSIONAL = "professional"
+    ENTERPRISE = "enterprise"
+
+
+class TenantRole(str, Enum):
+    """Roles for users within a tenant."""
+    OWNER = "owner"
+    ADMIN = "admin"
+    OPERATOR = "operator"
+    TECHNICIAN = "technician"
+    VIEWER = "viewer"
+
+
+class TenantUserStatus(str, Enum):
+    """Status of tenant user membership."""
+    ACTIVE = "active"
+    INVITED = "invited"
+    SUSPENDED = "suspended"
+    REMOVED = "removed"
+
+
+# =============================================================================
+# MULTI-TENANCY MODELS
+# =============================================================================
+
+class Tenant(Base):
+    """
+    Multi-tenant organization.
+    
+    Each tenant represents a water utility organization that uses the system.
+    All data is isolated by tenant_id for security and data separation.
+    """
+    __tablename__ = "tenants"
+    
+    id = Column(String(50), primary_key=True)  # e.g., "lwsc-zambia", "default-tenant"
+    name = Column(String(200), nullable=False)
+    country = Column(String(3))  # ISO 3166-1 alpha-3 code
+    timezone = Column(String(50), default="UTC")
+    plan = Column(SQLEnum(TenantPlan), default=TenantPlan.FREE)
+    
+    # Contact
+    contact_email = Column(String(200))
+    contact_phone = Column(String(50))
+    
+    # Settings
+    settings = Column(JSONB, default={})
+    
+    # Metadata
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    is_active = Column(Boolean, default=True)
+    
+    # Relationships
+    tenant_users = relationship("TenantUser", back_populates="tenant", cascade="all, delete-orphan")
+    dmas = relationship("DMA", back_populates="tenant")
+    sensors = relationship("Sensor", back_populates="tenant")
+    alerts = relationship("Alert", back_populates="tenant")
+    work_orders = relationship("WorkOrder", back_populates="tenant")
+    
+    __table_args__ = (
+        Index("ix_tenants_country", "country"),
+        Index("ix_tenants_plan", "plan"),
+    )
+    
+    def __repr__(self):
+        return f"<Tenant {self.id}: {self.name}>"
+
+
+class TenantUser(Base):
+    """
+    User membership within a tenant.
+    
+    Links users to tenants with specific roles.
+    A user can belong to multiple tenants with different roles.
+    """
+    __tablename__ = "tenant_users"
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    tenant_id = Column(String(50), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    
+    # Role within this tenant
+    role = Column(SQLEnum(TenantRole), default=TenantRole.VIEWER)
+    
+    # Status
+    status = Column(SQLEnum(TenantUserStatus), default=TenantUserStatus.ACTIVE)
+    
+    # Invitation
+    invited_by = Column(UUID(as_uuid=True), ForeignKey("users.id"))
+    invited_at = Column(DateTime(timezone=True))
+    
+    # Metadata
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    last_access_at = Column(DateTime(timezone=True))
+    
+    # Relationships
+    tenant = relationship("Tenant", back_populates="tenant_users")
+    user = relationship("User", back_populates="tenant_memberships", foreign_keys=[user_id])
+    inviter = relationship("User", foreign_keys=[invited_by])
+    
+    __table_args__ = (
+        UniqueConstraint("tenant_id", "user_id", name="uq_tenant_user"),
+        Index("ix_tenant_users_tenant", "tenant_id"),
+        Index("ix_tenant_users_user", "user_id"),
+    )
+    
+    def __repr__(self):
+        return f"<TenantUser {self.tenant_id}/{self.user_id}: {self.role}>"
+
+
 # =============================================================================
 # LOCATION & ORGANIZATION MODELS
 # =============================================================================
@@ -138,6 +253,7 @@ class DMA(Base):
     
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     utility_id = Column(UUID(as_uuid=True), ForeignKey("utilities.id"), nullable=False)
+    tenant_id = Column(String(50), ForeignKey("tenants.id"), nullable=True)  # Multi-tenancy
     code = Column(String(50), nullable=False)
     name = Column(String(200), nullable=False)
     
@@ -170,12 +286,14 @@ class DMA(Base):
     
     # Relationships
     utility = relationship("Utility", back_populates="dmas")
+    tenant = relationship("Tenant", back_populates="dmas")
     sensors = relationship("Sensor", back_populates="dma")
     pipes = relationship("Pipe", back_populates="dma")
     alerts = relationship("Alert", back_populates="dma")
     
     __table_args__ = (
         UniqueConstraint("utility_id", "code", name="uq_dma_utility_code"),
+        Index("ix_dmas_tenant_id", "tenant_id"),
     )
 
 
@@ -189,6 +307,7 @@ class Sensor(Base):
     
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     dma_id = Column(UUID(as_uuid=True), ForeignKey("dmas.id"), nullable=False)
+    tenant_id = Column(String(50), ForeignKey("tenants.id"), nullable=True)  # Multi-tenancy
     
     # Identification
     device_id = Column(String(50), unique=True, nullable=False)  # Hardware ID
@@ -237,11 +356,13 @@ class Sensor(Base):
     
     # Relationships
     dma = relationship("DMA", back_populates="sensors")
+    tenant = relationship("Tenant", back_populates="sensors")
     readings = relationship("SensorReading", back_populates="sensor")
     
     __table_args__ = (
         Index("ix_sensors_dma_type", "dma_id", "sensor_type"),
         Index("ix_sensors_status", "status"),
+        Index("ix_sensors_tenant_id", "tenant_id"),
     )
 
 
@@ -484,6 +605,7 @@ class Alert(Base):
     
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     dma_id = Column(UUID(as_uuid=True), ForeignKey("dmas.id"), nullable=False)
+    tenant_id = Column(String(50), ForeignKey("tenants.id"), nullable=True)  # Multi-tenancy
     
     # Alert identification
     alert_number = Column(String(50), unique=True, nullable=False)  # ALT-2026-00001
@@ -531,12 +653,14 @@ class Alert(Base):
     
     # Relationships
     dma = relationship("DMA", back_populates="alerts")
+    tenant = relationship("Tenant", back_populates="alerts")
     work_orders = relationship("WorkOrder", back_populates="alert")
     
     __table_args__ = (
         Index("ix_alerts_status", "status"),
         Index("ix_alerts_severity", "severity"),
         Index("ix_alerts_created", "created_at"),
+        Index("ix_alerts_tenant_id", "tenant_id"),
     )
 
 
@@ -548,6 +672,7 @@ class WorkOrder(Base):
     
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     alert_id = Column(UUID(as_uuid=True), ForeignKey("alerts.id"))
+    tenant_id = Column(String(50), ForeignKey("tenants.id"), nullable=True)  # Multi-tenancy
     
     # Identification
     work_order_number = Column(String(50), unique=True, nullable=False)  # WO-2026-00001
@@ -593,10 +718,12 @@ class WorkOrder(Base):
     
     # Relationships
     alert = relationship("Alert", back_populates="work_orders")
+    tenant = relationship("Tenant", back_populates="work_orders")
     
     __table_args__ = (
         Index("ix_work_orders_status", "status"),
         Index("ix_work_orders_assigned", "assigned_to_id"),
+        Index("ix_work_orders_tenant_id", "tenant_id"),
     )
 
 
@@ -696,6 +823,7 @@ class User(Base):
     
     # Relationships
     utility = relationship("Utility", back_populates="users")
+    tenant_memberships = relationship("TenantUser", back_populates="user", foreign_keys="TenantUser.user_id")
 
 
 # =============================================================================
@@ -707,6 +835,7 @@ class AuditLog(Base):
     __tablename__ = "audit_logs"
     
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    tenant_id = Column(String(50), ForeignKey("tenants.id"), nullable=True)  # Multi-tenancy
     timestamp = Column(DateTime(timezone=True), server_default=func.now())
     
     # Who
@@ -729,6 +858,7 @@ class AuditLog(Base):
     __table_args__ = (
         Index("ix_audit_timestamp", "timestamp"),
         Index("ix_audit_user", "user_id"),
+        Index("ix_audit_tenant_id", "tenant_id"),
     )
 
 
