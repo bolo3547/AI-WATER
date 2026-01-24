@@ -7,6 +7,7 @@ import {
   ArrowRight, Shield, Clock, Users, CheckCircle, Smartphone,
   Globe, Zap, Award, ChevronRight, QrCode, ExternalLink
 } from 'lucide-react'
+import contactConfig from '@/lib/contact-config'
 
 export default function PublicLandingPage() {
   const [showQR, setShowQR] = useState(false)
@@ -116,7 +117,7 @@ export default function PublicLandingPage() {
             </Link>
 
             {/* WhatsApp */}
-            <a href="https://wa.me/260971234567?text=Hi%20AquaWatch" target="_blank" rel="noopener noreferrer" className="group p-6 bg-slate-800/50 hover:bg-slate-800 rounded-2xl border border-slate-700 hover:border-emerald-500/50 transition-all">
+            <a href={contactConfig.whatsapp.url} target="_blank" rel="noopener noreferrer" className="group p-6 bg-slate-800/50 hover:bg-slate-800 rounded-2xl border border-slate-700 hover:border-emerald-500/50 transition-all">
               <div className="p-3 bg-emerald-500/20 rounded-xl w-fit mb-4 group-hover:scale-110 transition-transform">
                 <MessageCircle className="w-8 h-8 text-emerald-400" />
               </div>
@@ -125,7 +126,7 @@ export default function PublicLandingPage() {
                 Chat with our bot to report issues step by step
               </p>
               <div className="flex items-center gap-2 text-emerald-400 font-medium">
-                +260 97 123 4567 <ExternalLink className="w-4 h-4" />
+                {contactConfig.whatsapp.display} <ExternalLink className="w-4 h-4" />
               </div>
             </a>
 
@@ -139,7 +140,7 @@ export default function PublicLandingPage() {
                 Works on any phone, no internet required
               </p>
               <div className="flex items-center gap-2 text-amber-400 font-medium font-mono text-lg">
-                *384*123#
+                {contactConfig.ussd.display}
               </div>
             </div>
           </div>
@@ -343,9 +344,9 @@ export default function PublicLandingPage() {
             <div>
               <h4 className="font-semibold text-white mb-4">Contact</h4>
               <ul className="space-y-2 text-slate-400 text-sm">
-                <li>📞 +260 211 123 456</li>
-                <li>📱 WhatsApp: +260 97 123 4567</li>
-                <li>📧 support@aquawatch.io</li>
+                <li>📞 {contactConfig.support.phoneDisplay}</li>
+                <li>📱 WhatsApp: {contactConfig.whatsapp.display}</li>
+                <li>📧 {contactConfig.support.email}</li>
               </ul>
             </div>
             <div>
@@ -354,7 +355,7 @@ export default function PublicLandingPage() {
                 For burst mains or flooding:
               </p>
               <p className="text-xl font-bold text-red-400">
-                📞 +260 211 999 000
+                📞 {contactConfig.emergency.display}
               </p>
             </div>
           </div>

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { QRCodeSVG } from 'qrcode.react'
 import { Copy, Check, Download, Share2 } from 'lucide-react'
+import contactConfig from '@/lib/contact-config'
 
 interface QRCodeGeneratorProps {
   url?: string
@@ -190,11 +191,11 @@ export function QRPoster({ url }: { url?: string }) {
         <div className="flex justify-center gap-4 text-sm">
           <div className="text-center">
             <p className="font-medium text-emerald-600">WhatsApp</p>
-            <p className="text-slate-500">+260 97 123 4567</p>
+            <p className="text-slate-500">{contactConfig.whatsapp.display}</p>
           </div>
           <div className="text-center">
             <p className="font-medium text-amber-600">USSD</p>
-            <p className="text-slate-500">*384*123#</p>
+            <p className="text-slate-500">{contactConfig.ussd.display}</p>
           </div>
         </div>
       </div>
