@@ -32,7 +32,7 @@ try:
     
     # The correct method signature
     result = engine.process_reading(
-        sensor_id='test_001',
+        pipe_id='test_001',
         pressure=2.5,
         flow=45.0
     )
@@ -198,7 +198,8 @@ print("─" * 75)
 
 try:
     from src.ai.autonomous_system import AutonomousResponseSystem
-    ars = AutonomousResponseSystem()
+    # Create with None digital_twin for testing
+    ars = AutonomousResponseSystem(digital_twin=None)  # type: ignore
     print(f"  ✅ AutonomousResponseSystem: LOADED")
     print(f"     - Features: Automated valve control, pressure management")
     working.append("Autonomous Response System")

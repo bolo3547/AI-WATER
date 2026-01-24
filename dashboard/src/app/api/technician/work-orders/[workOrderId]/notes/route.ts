@@ -55,7 +55,7 @@ export async function POST(
     const formattedNote = `[${new Date(timestamp).toLocaleString()}] ${note}`
     
     // Build update
-    const existingNotes = existing.notes || []
+    const existingNotes = (existing as any).notes || []
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const update: any = {
       notes: [...existingNotes, formattedNote],

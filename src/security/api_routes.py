@@ -45,9 +45,9 @@ from .auth_service import auth_service
 
 class LoginRequest(BaseModel):
     """Login request body."""
-    email: str = Field(..., example="operator@lwsc.co.zm")
-    password: str = Field(..., example="operator123")
-    tenant_id: Optional[str] = Field(None, example="default-tenant")
+    email: str = Field(..., json_schema_extra={"example": "operator@lwsc.co.zm"})
+    password: str = Field(..., json_schema_extra={"example": "operator123"})
+    tenant_id: Optional[str] = Field(default=None, json_schema_extra={"example": "default-tenant"})
 
 
 class LoginResponse(BaseModel):
@@ -100,7 +100,7 @@ class LeakAcknowledgeRequest(BaseModel):
 
 class LeakResolveRequest(BaseModel):
     """Leak resolution request."""
-    resolution_type: str = Field(..., example="repaired")
+    resolution_type: str = Field(..., json_schema_extra={"example": "repaired"})
     notes: Optional[str] = None
     repair_cost: Optional[float] = None
     water_saved_m3: Optional[float] = None
@@ -131,11 +131,11 @@ async def login(request: Request, body: LoginRequest):
     success, token_response, error = auth_service.authenticate(
         email=body.email,
         password=body.password,
-        tenant_id=body.tenant_id,
+        tenant_id=body.tenant_id or "default-tenant",
         request=request
     )
     
-    if not success:
+    if not success or token_response is None:
         return LoginResponse(success=False, error=error)
     
     return LoginResponse(
@@ -195,9 +195,9 @@ async def logout(request: Request, user: CurrentUser = Depends(get_current_user)
         user_id=user.user_id,
         action=AuditAction.LOGOUT,
         resource_type="auth",
-        resource_id=user.email,
+        resource_id=user.email or user.user_id,
         request=request,
-        user_email=user.email
+        user_email=user.email or "unknown"
     )
     
     return {"success": True, "message": "Logged out successfully"}
@@ -290,7 +290,7 @@ async def create_work_order(
         user_id=user.user_id,
         workorder_id=work_order_id,
         request=request,
-        user_email=user.email,
+        user_email=user.email or "unknown",
         details={
             "title": body.title,
             "priority": body.priority,
@@ -325,7 +325,7 @@ async def update_work_order(
         user_id=user.user_id,
         workorder_id=work_order_id,
         request=request,
-        user_email=user.email,
+        user_email=user.email or "unknown",
         changes=body.dict(exclude_none=True)
     )
     
@@ -355,7 +355,7 @@ async def complete_work_order(
         resource_type="workorder",
         resource_id=work_order_id,
         request=request,
-        user_email=user.email
+        user_email=user.email or "unknown"
     )
     
     return {
@@ -420,7 +420,7 @@ async def acknowledge_leak(
         user_id=user.user_id,
         leak_id=leak_id,
         request=request,
-        user_email=user.email,
+        user_email=user.email or "unknown",
         details={"notes": body.notes}
     )
     
@@ -452,7 +452,7 @@ async def resolve_leak(
         user_id=user.user_id,
         leak_id=leak_id,
         request=request,
-        user_email=user.email,
+        user_email=user.email or "unknown",
         details={
             "resolution_type": body.resolution_type,
             "notes": body.notes,
@@ -511,7 +511,7 @@ async def acknowledge_alert(
         resource_type="alert",
         resource_id=alert_id,
         request=request,
-        user_email=user.email
+        user_email=user.email or "unknown"
     )
     
     return {

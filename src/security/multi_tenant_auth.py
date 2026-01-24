@@ -285,10 +285,10 @@ class MultiTenantTokenManager:
     
     def __init__(
         self,
-        secret_key: str = None,
-        algorithm: str = None,
-        access_token_expire_minutes: int = None,
-        refresh_token_expire_days: int = None
+        secret_key: Optional[str] = None,
+        algorithm: Optional[str] = None,
+        access_token_expire_minutes: Optional[int] = None,
+        refresh_token_expire_days: Optional[int] = None
     ):
         self.secret_key = secret_key or AuthConfig.JWT_SECRET_KEY
         self.algorithm = algorithm or AuthConfig.JWT_ALGORITHM
@@ -300,9 +300,9 @@ class MultiTenantTokenManager:
         user_id: str,
         tenant_id: str,
         role: TenantRole,
-        email: str = None,
-        name: str = None,
-        extra_claims: Dict = None
+        email: Optional[str] = None,
+        name: Optional[str] = None,
+        extra_claims: Optional[Dict] = None
     ) -> str:
         """
         Create JWT access token with tenant context.
@@ -888,11 +888,11 @@ class MultiTenantAuditLogger:
         action: AuditAction,
         resource_type: str,
         resource_id: str,
-        request: Request = None,
-        user_email: str = None,
-        details: Dict = None,
+        request: Optional[Request] = None,
+        user_email: Optional[str] = None,
+        details: Optional[Dict] = None,
         success: bool = True,
-        error_message: str = None
+        error_message: Optional[str] = None
     ) -> AuditLogEntry:
         """
         Create audit log entry.
@@ -963,7 +963,7 @@ class MultiTenantAuditLogger:
         user_email: str,
         request: Request,
         success: bool = True,
-        error_message: str = None
+        error_message: Optional[str] = None
     ) -> AuditLogEntry:
         """Log login attempt."""
         return self.log(
@@ -985,8 +985,8 @@ class MultiTenantAuditLogger:
         user_id: str,
         leak_id: str,
         request: Request,
-        user_email: str = None,
-        details: Dict = None
+        user_email: Optional[str] = None,
+        details: Optional[Dict] = None
     ) -> AuditLogEntry:
         """Log leak acknowledgment."""
         return self.log(
@@ -1006,8 +1006,8 @@ class MultiTenantAuditLogger:
         user_id: str,
         leak_id: str,
         request: Request,
-        user_email: str = None,
-        details: Dict = None
+        user_email: Optional[str] = None,
+        details: Optional[Dict] = None
     ) -> AuditLogEntry:
         """Log leak resolution."""
         return self.log(
@@ -1027,8 +1027,8 @@ class MultiTenantAuditLogger:
         user_id: str,
         workorder_id: str,
         request: Request,
-        user_email: str = None,
-        details: Dict = None
+        user_email: Optional[str] = None,
+        details: Optional[Dict] = None
     ) -> AuditLogEntry:
         """Log work order creation."""
         return self.log(
@@ -1048,8 +1048,8 @@ class MultiTenantAuditLogger:
         user_id: str,
         workorder_id: str,
         request: Request,
-        user_email: str = None,
-        changes: Dict = None
+        user_email: Optional[str] = None,
+        changes: Optional[Dict] = None
     ) -> AuditLogEntry:
         """Log work order update."""
         return self.log(
@@ -1066,9 +1066,9 @@ class MultiTenantAuditLogger:
     def get_logs_for_tenant(
         self,
         tenant_id: str,
-        start_time: datetime = None,
-        end_time: datetime = None,
-        action: AuditAction = None,
+        start_time: Optional[datetime] = None,
+        end_time: Optional[datetime] = None,
+        action: Optional[AuditAction] = None,
         limit: int = 100
     ) -> List[AuditLogEntry]:
         """Get audit logs for a tenant."""

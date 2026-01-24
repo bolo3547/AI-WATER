@@ -258,7 +258,7 @@ export function useSmartMeterStream(): UseSmartMeterStreamResult {
       },
       onMeterUpdate: (data) => {
         setRecentUpdates(prev => [{
-          type: 'meter',
+          type: 'meter' as const,
           id: data.meterId,
           timestamp: new Date(data.timestamp),
           data
@@ -266,7 +266,7 @@ export function useSmartMeterStream(): UseSmartMeterStreamResult {
       },
       onDMAUpdate: (data) => {
         setRecentUpdates(prev => [{
-          type: 'dma',
+          type: 'dma' as const,
           id: data.dmaId,
           timestamp: new Date(data.timestamp),
           data
@@ -274,7 +274,7 @@ export function useSmartMeterStream(): UseSmartMeterStreamResult {
       },
       onAlert: (alert) => {
         setRecentUpdates(prev => [{
-          type: 'alert',
+          type: 'alert' as const,
           id: alert.id,
           timestamp: new Date(alert.timestamp),
           data: alert

@@ -67,14 +67,16 @@ export function OperatorDashboard() {
   const [error, setError] = useState<string | null>(null)
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
+  const [dataAvailable, setDataAvailable] = useState(false)
+  const [dataFresh, setDataFresh] = useState(false)
 
   // Fetch real-time data
   const fetchData = useCallback(async () => {
     try {
       const [metricsRes, dmasRes, sensorsRes, leaksRes] = await Promise.all([
-        fetch('/api/realtime?type=metrics'),
-        fetch('/api/realtime?type=dmas'),
-        fetch('/api/realtime?type=sensors'),
+        fetch('/api/metrics'),
+        fetch('/api/dmas'),
+        fetch('/api/sensors'),
         fetch('/api/leaks')
       ])
       
@@ -85,19 +87,38 @@ export function OperatorDashboard() {
         leaksRes.json()
       ])
       
-      if (metricsData.metrics) setMetrics(metricsData.metrics)
-      if (dmasData.dmas) setDMAs(dmasData.dmas)
-      if (sensorsData.sensors) setSensors(sensorsData.sensors)
+      // Handle the new response format with data_available flag
+      setDataAvailable(metricsData.data_available || false)
+      setDataFresh(metricsData.data_available && metricsData.last_data_received !== null)
+      
+      if (metricsData.data_available) {
+        setMetrics(metricsData)
+      }
+      
+      if (dmasData.data_available && dmasData.data) {
+        setDMAs(dmasData.data)
+      } else if (Array.isArray(dmasData)) {
+        setDMAs(dmasData)
+      }
+      
+      if (sensorsData.data_available && sensorsData.data) {
+        setSensors(sensorsData.data)
+      } else if (Array.isArray(sensorsData)) {
+        setSensors(sensorsData)
+      }
+      
       if (leaksData.success) setLeaks(leaksData.data || [])
       
-      // Generate trend based on real metrics
-      const baseNrw = metricsData.metrics?.total_nrw_percent || 32
-      const trend = Array.from({ length: 30 }, (_, i) => ({
-        timestamp: new Date(Date.now() - (29 - i) * 86400000).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }),
-        nrw: baseNrw + 6 - (i * 0.2) + (Math.random() * 2 - 1),
-        target: 25
-      }))
-      setTrendData(trend)
+      // Only generate trend if we have real data
+      if (metricsData.data_available && metricsData.total_nrw_percent !== null) {
+        const baseNrw = metricsData.total_nrw_percent
+        const trend = Array.from({ length: 30 }, (_, i) => ({
+          timestamp: new Date(Date.now() - (29 - i) * 86400000).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }),
+          nrw: baseNrw + 6 - (i * 0.2),
+          target: 25
+        }))
+        setTrendData(trend)
+      }
       
       setLastUpdate(new Date())
       setError(null)

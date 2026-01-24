@@ -4,18 +4,18 @@
  * AQUAWATCH NRW - LEAKS LIST PAGE
  * ================================
  * 
- * Step 8: Enhanced leaks list with AI confidence indicators
- * Shows all detected leaks with quick AI insights
+ * Production-ready leak alerts page with:
+ * - Real API data fetching with SWR
+ * - Working action buttons (Acknowledge, Dispatch, Resolve)
+ * - Loading skeletons and empty states
+ * - No mock/fake data
  */
 
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import Link from 'next/link'
 import {
   AlertTriangle,
   CheckCircle,
-  Clock,
-  Droplets,
-  Filter,
   Loader2,
   MapPin,
   RefreshCw,
@@ -23,34 +23,28 @@ import {
   Users,
   Brain,
   ChevronRight,
-  ArrowUpDown,
+  CheckCheck,
+  Wrench,
 } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Input } from '@/components/ui/input'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
+import useSWR from 'swr'
+import { useSystemStatus } from '@/contexts/SystemStatusContext'
+import { 
+  EmptyState, 
+  NoSearchResults,
+  ErrorState 
+} from '@/components/ui/EmptyState'
+import { StatCardSkeleton, ListItemSkeleton } from '@/components/ui/Skeleton'
 
 // =============================================================================
 // TYPES
 // =============================================================================
 
 interface Leak {
+  _id?: string
   id: string
   location: string
   dma_id: string
+  dma_name?: string
   estimated_loss: number
   priority: 'high' | 'medium' | 'low'
   confidence: number
@@ -68,6 +62,23 @@ interface Leak {
       overall_confidence: number
     }
   } | null
+}
+
+interface LeaksResponse {
+  success: boolean
+  data: Leak[]
+  total: number
+  message?: string
+}
+
+// =============================================================================
+// DATA FETCHER
+// =============================================================================
+
+const fetcher = async (url: string): Promise<LeaksResponse> => {
+  const res = await fetch(url)
+  if (!res.ok) throw new Error('Failed to fetch leaks')
+  return res.json()
 }
 
 // =============================================================================
@@ -98,7 +109,7 @@ const getStatusIcon = (status: string): React.ReactNode => {
     new: <AlertTriangle className="w-4 h-4" />,
     acknowledged: <CheckCircle className="w-4 h-4" />,
     dispatched: <Users className="w-4 h-4" />,
-    resolved: <CheckCircle className="w-4 h-4" />,
+    resolved: <CheckCheck className="w-4 h-4" />,
   }
   return icons[status] || null
 }
@@ -113,113 +124,120 @@ function getTimeSince(dateString: string): string {
 
   if (diffDays > 0) return `${diffDays}d ago`
   if (diffHours > 0) return `${diffHours}h ago`
-  return `${diffMins}m ago`
+  if (diffMins > 0) return `${diffMins}m ago`
+  return 'Just now'
 }
-
-// =============================================================================
-// MOCK DATA
-// =============================================================================
-
-const mockLeaks: Leak[] = [
-  {
-    id: 'LEAK-001',
-    location: 'Chilenje South, Plot 234, Main Distribution Line',
-    dma_id: 'DMA-001',
-    estimated_loss: 45,
-    priority: 'high',
-    confidence: 87,
-    detected_at: new Date(Date.now() - 3600000).toISOString(),
-    status: 'new',
-    ai_reason: {
-      top_signals: ['multi_sensor_agreement', 'pressure_drop', 'flow_rise'],
-      explanation: 'High confidence leak detection. Multiple sensors showing correlated anomalies.',
-      confidence: { overall_confidence: 0.87 }
-    }
-  },
-  {
-    id: 'LEAK-002',
-    location: 'Kabwata Zone 5, Near Main Road Junction',
-    dma_id: 'DMA-002',
-    estimated_loss: 28,
-    priority: 'medium',
-    confidence: 72,
-    detected_at: new Date(Date.now() - 7200000).toISOString(),
-    status: 'acknowledged',
-    acknowledged_at: new Date(Date.now() - 5400000).toISOString(),
-    ai_reason: {
-      top_signals: ['pressure_drop', 'flow_rise'],
-      explanation: 'Moderate confidence detection based on pressure and flow anomalies.',
-      confidence: { overall_confidence: 0.72 }
-    }
-  },
-  {
-    id: 'LEAK-003',
-    location: 'Mtendere East, Block 12',
-    dma_id: 'DMA-003',
-    estimated_loss: 65,
-    priority: 'high',
-    confidence: 92,
-    detected_at: new Date(Date.now() - 10800000).toISOString(),
-    status: 'dispatched',
-    acknowledged_at: new Date(Date.now() - 9000000).toISOString(),
-    dispatched_at: new Date(Date.now() - 7200000).toISOString(),
-    ai_reason: {
-      top_signals: ['acoustic_anomaly', 'multi_sensor_agreement', 'pressure_drop'],
-      explanation: 'Very high confidence detection with acoustic confirmation.',
-      confidence: { overall_confidence: 0.92 }
-    }
-  },
-  {
-    id: 'LEAK-004',
-    location: 'Kalingalinga Main, Service Connection 456',
-    dma_id: 'DMA-001',
-    estimated_loss: 12,
-    priority: 'low',
-    confidence: 58,
-    detected_at: new Date(Date.now() - 86400000).toISOString(),
-    status: 'resolved',
-    resolved_at: new Date(Date.now() - 43200000).toISOString(),
-    ai_reason: {
-      top_signals: ['night_flow_deviation'],
-      explanation: 'Low confidence detection based on night flow analysis.',
-      confidence: { overall_confidence: 0.58 }
-    }
-  },
-]
 
 // =============================================================================
 // MAIN COMPONENT
 // =============================================================================
 
 export default function LeaksListPage() {
-  const [leaks, setLeaks] = useState<Leak[]>([])
-  const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<string>('all')
   const [search, setSearch] = useState('')
   const [sortBy, setSortBy] = useState<'detected_at' | 'confidence' | 'estimated_loss'>('detected_at')
-
-  useEffect(() => {
-    const fetchLeaks = async () => {
-      try {
-        const response = await fetch('/api/leaks')
-        const data = await response.json()
-        if (data.success && data.data.length > 0) {
-          setLeaks(data.data)
-        } else {
-          // Use mock data if no leaks found
-          setLeaks(mockLeaks)
-        }
-      } catch (err) {
-        console.error('Error fetching leaks:', err)
-        setLeaks(mockLeaks)
-      } finally {
-        setLoading(false)
-      }
+  const [actionLoading, setActionLoading] = useState<string | null>(null)
+  const [actionError, setActionError] = useState<string | null>(null)
+  
+  // System status for connection awareness
+  const { status: systemStatus, isLoading: systemLoading, hasAnySensorData } = useSystemStatus()
+  
+  // Fetch leaks from API
+  const { data, error, isLoading, mutate } = useSWR<LeaksResponse>(
+    '/api/leaks',
+    fetcher,
+    {
+      refreshInterval: 30000,
+      revalidateOnFocus: true,
     }
-    fetchLeaks()
-  }, [])
+  )
+  
+  const leaks = data?.data || []
+  const hasData = leaks.length > 0
 
-  // Filter and sort leaks
+  // =============================================================================
+  // ACTION HANDLERS (Real API calls)
+  // =============================================================================
+
+  const handleAcknowledge = async (e: React.MouseEvent, leakId: string) => {
+    e.preventDefault()
+    e.stopPropagation()
+    
+    setActionLoading(leakId)
+    setActionError(null)
+    
+    try {
+      const res = await fetch('/api/leaks', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: leakId, action: 'acknowledge' })
+      })
+      
+      if (!res.ok) throw new Error('Failed to acknowledge leak')
+      
+      await mutate()
+    } catch (err) {
+      setActionError('Failed to acknowledge leak. Please try again.')
+      console.error('Acknowledge error:', err)
+    } finally {
+      setActionLoading(null)
+    }
+  }
+
+  const handleDispatch = async (e: React.MouseEvent, leakId: string) => {
+    e.preventDefault()
+    e.stopPropagation()
+    
+    setActionLoading(leakId)
+    setActionError(null)
+    
+    try {
+      const res = await fetch('/api/leaks', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: leakId, action: 'dispatch' })
+      })
+      
+      if (!res.ok) throw new Error('Failed to dispatch crew')
+      
+      await mutate()
+    } catch (err) {
+      setActionError('Failed to dispatch crew. Please try again.')
+      console.error('Dispatch error:', err)
+    } finally {
+      setActionLoading(null)
+    }
+  }
+
+  const handleResolve = async (e: React.MouseEvent, leakId: string) => {
+    e.preventDefault()
+    e.stopPropagation()
+    
+    setActionLoading(leakId)
+    setActionError(null)
+    
+    try {
+      const res = await fetch('/api/leaks', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: leakId, action: 'resolve' })
+      })
+      
+      if (!res.ok) throw new Error('Failed to resolve leak')
+      
+      await mutate()
+    } catch (err) {
+      setActionError('Failed to resolve leak. Please try again.')
+      console.error('Resolve error:', err)
+    } finally {
+      setActionLoading(null)
+    }
+  }
+
+  // =============================================================================
+  // FILTERING & SORTING
+  // =============================================================================
+
   const filteredLeaks = leaks
     .filter(leak => {
       if (filter !== 'all' && leak.status !== filter) return false
@@ -237,188 +255,300 @@ export default function LeaksListPage() {
       return b.estimated_loss - a.estimated_loss
     })
 
-  // Stats
+  // Stats (only from real data)
   const stats = {
     total: leaks.length,
     new: leaks.filter(l => l.status === 'new').length,
     acknowledged: leaks.filter(l => l.status === 'acknowledged').length,
     dispatched: leaks.filter(l => l.status === 'dispatched').length,
     resolved: leaks.filter(l => l.status === 'resolved').length,
-    totalLoss: leaks.filter(l => l.status !== 'resolved').reduce((sum, l) => sum + l.estimated_loss, 0),
+    totalLoss: leaks.filter(l => l.status !== 'resolved').reduce((sum, l) => sum + (l.estimated_loss || 0), 0),
+  }
+
+  // =============================================================================
+  // RENDER
+  // =============================================================================
+
+  // Show system offline state
+  if (!systemLoading && systemStatus && !systemStatus.database_connected) {
+    return (
+      <div className="min-h-screen bg-slate-50 p-4 sm:p-6 lg:p-8">
+        <div className="max-w-7xl mx-auto">
+          <ErrorState 
+            error="Unable to connect to the database. Please check your connection and try again."
+            onRetry={() => mutate()}
+          />
+        </div>
+      </div>
+    )
   }
 
   return (
-    <div className="min-h-screen bg-muted/30 p-4 sm:p-6 lg:p-8">
+    <div className="min-h-screen bg-slate-50 p-4 sm:p-6 lg:p-8">
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
-            <h1 className="text-2xl font-bold">Leak Alerts</h1>
-            <p className="text-muted-foreground">
-              AI-detected leaks with explainable insights
+            <h1 className="text-2xl font-bold text-slate-900">Leak Alerts</h1>
+            <p className="text-slate-500">
+              {hasData 
+                ? `AI-detected leaks with explainable insights • ${stats.total} total`
+                : 'No leak alerts detected'}
             </p>
           </div>
-          <Button onClick={() => window.location.reload()}>
-            <RefreshCw className="w-4 h-4 mr-2" />
+          <button 
+            onClick={() => mutate()}
+            disabled={isLoading}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
+          >
+            <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
             Refresh
-          </Button>
+          </button>
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-          <Card>
-            <CardContent className="p-4">
-              <div className="text-2xl font-bold">{stats.total}</div>
-              <div className="text-sm text-muted-foreground">Total Leaks</div>
-            </CardContent>
-          </Card>
-          <Card className="border-red-200 bg-red-50/50">
-            <CardContent className="p-4">
-              <div className="text-2xl font-bold text-red-600">{stats.new}</div>
-              <div className="text-sm text-red-600">New</div>
-            </CardContent>
-          </Card>
-          <Card className="border-amber-200 bg-amber-50/50">
-            <CardContent className="p-4">
-              <div className="text-2xl font-bold text-amber-600">{stats.acknowledged}</div>
-              <div className="text-sm text-amber-600">Acknowledged</div>
-            </CardContent>
-          </Card>
-          <Card className="border-blue-200 bg-blue-50/50">
-            <CardContent className="p-4">
-              <div className="text-2xl font-bold text-blue-600">{stats.dispatched}</div>
-              <div className="text-sm text-blue-600">Dispatched</div>
-            </CardContent>
-          </Card>
-          <Card className="border-green-200 bg-green-50/50">
-            <CardContent className="p-4">
-              <div className="text-2xl font-bold text-green-600">{stats.resolved}</div>
-              <div className="text-sm text-green-600">Resolved</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="text-2xl font-bold text-red-600">{stats.totalLoss}</div>
-              <div className="text-sm text-muted-foreground">m³/day Loss</div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Filters */}
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex flex-col sm:flex-row gap-4">
-              <div className="flex-1 relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input 
-                  placeholder="Search by location or ID..."
-                  className="pl-10"
-                  value={search}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearch(e.target.value)}
-                />
-              </div>
-              <Select value={filter} onValueChange={setFilter}>
-                <SelectTrigger className="w-full sm:w-40">
-                  <Filter className="w-4 h-4 mr-2" />
-                  <SelectValue placeholder="Filter by status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="new">New</SelectItem>
-                  <SelectItem value="acknowledged">Acknowledged</SelectItem>
-                  <SelectItem value="dispatched">Dispatched</SelectItem>
-                  <SelectItem value="resolved">Resolved</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select value={sortBy} onValueChange={(v: string) => setSortBy(v as typeof sortBy)}>
-                <SelectTrigger className="w-full sm:w-40">
-                  <ArrowUpDown className="w-4 h-4 mr-2" />
-                  <SelectValue placeholder="Sort by" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="detected_at">Most Recent</SelectItem>
-                  <SelectItem value="confidence">Highest Confidence</SelectItem>
-                  <SelectItem value="estimated_loss">Highest Loss</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Leaks List */}
-        {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        {/* Error Alert */}
+        {actionError && (
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-center justify-between">
+            <span>{actionError}</span>
+            <button onClick={() => setActionError(null)} className="text-red-500 hover:text-red-700">
+              ×
+            </button>
           </div>
-        ) : filteredLeaks.length === 0 ? (
-          <Card>
-            <CardContent className="py-12 text-center">
-              <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold">No Leaks Found</h3>
-              <p className="text-muted-foreground">
-                {search || filter !== 'all' 
-                  ? 'Try adjusting your filters'
-                  : 'No active leak alerts at this time'}
-              </p>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="space-y-3">
-            {filteredLeaks.map((leak) => (
-              <Link key={leak.id} href={`/leaks/${leak.id}`}>
-                <Card className="hover:shadow-md transition-shadow cursor-pointer">
-                  <CardContent className="p-4">
-                    <div className="flex items-start gap-4">
-                      {/* Priority Indicator */}
-                      <div className={`w-1 self-stretch rounded-full ${getPriorityColor(leak.priority)}`} />
-                      
-                      {/* Main Content */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap mb-1">
-                          <span className="font-semibold">{leak.id}</span>
-                          <Badge className={getStatusColor(leak.status)}>
-                            {getStatusIcon(leak.status)}
-                            <span className="ml-1 capitalize">{leak.status}</span>
-                          </Badge>
-                          <Badge variant="outline" className="capitalize">{leak.priority}</Badge>
-                        </div>
-                        
-                        <p className="text-sm text-muted-foreground flex items-center gap-1 mb-2">
-                          <MapPin className="w-3 h-3" />
-                          {leak.location}
-                        </p>
-                        
-                        {/* AI Insight Preview */}
-                        {leak.ai_reason && (
-                          <div className="flex items-center gap-2 text-xs text-purple-600 bg-purple-50 dark:bg-purple-950/20 px-2 py-1 rounded w-fit">
-                            <Brain className="w-3 h-3" />
-                            <span className="truncate max-w-xs">{leak.ai_reason.top_signals.join(', ')}</span>
+        )}
+
+        {/* API Error */}
+        {error && (
+          <ErrorState 
+            error={error.message || 'Failed to load leak alerts'}
+            onRetry={() => mutate()}
+          />
+        )}
+
+        {/* Loading State */}
+        {isLoading && (
+          <div className="space-y-6">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+              {[...Array(6)].map((_, i) => (
+                <StatCardSkeleton key={i} />
+              ))}
+            </div>
+            <div className="space-y-3">
+              {[...Array(4)].map((_, i) => (
+                <ListItemSkeleton key={i} />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Data Loaded */}
+        {!isLoading && !error && (
+          <>
+            {/* Stats Cards - Only show real numbers */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+              <div className="bg-white rounded-xl border border-slate-200 p-4">
+                <div className="text-2xl font-bold text-slate-900">{hasData ? stats.total : '--'}</div>
+                <div className="text-sm text-slate-500">Total Leaks</div>
+              </div>
+              <div className="bg-red-50 rounded-xl border border-red-200 p-4">
+                <div className="text-2xl font-bold text-red-600">{hasData ? stats.new : '--'}</div>
+                <div className="text-sm text-red-600">New</div>
+              </div>
+              <div className="bg-amber-50 rounded-xl border border-amber-200 p-4">
+                <div className="text-2xl font-bold text-amber-600">{hasData ? stats.acknowledged : '--'}</div>
+                <div className="text-sm text-amber-600">Acknowledged</div>
+              </div>
+              <div className="bg-blue-50 rounded-xl border border-blue-200 p-4">
+                <div className="text-2xl font-bold text-blue-600">{hasData ? stats.dispatched : '--'}</div>
+                <div className="text-sm text-blue-600">Dispatched</div>
+              </div>
+              <div className="bg-emerald-50 rounded-xl border border-emerald-200 p-4">
+                <div className="text-2xl font-bold text-emerald-600">{hasData ? stats.resolved : '--'}</div>
+                <div className="text-sm text-emerald-600">Resolved</div>
+              </div>
+              <div className="bg-white rounded-xl border border-slate-200 p-4">
+                <div className="text-2xl font-bold text-red-600">{hasData ? stats.totalLoss.toFixed(0) : '--'}</div>
+                <div className="text-sm text-slate-500">m³/day Loss</div>
+              </div>
+            </div>
+
+            {/* Filters */}
+            <div className="bg-white rounded-xl border border-slate-200 p-4">
+              <div className="flex flex-col sm:flex-row gap-4">
+                <div className="flex-1 relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  <input 
+                    type="text"
+                    placeholder="Search by location or ID..."
+                    className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                  />
+                </div>
+                <select 
+                  value={filter} 
+                  onChange={(e) => setFilter(e.target.value)}
+                  className="px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                >
+                  <option value="all">All Status</option>
+                  <option value="new">New</option>
+                  <option value="acknowledged">Acknowledged</option>
+                  <option value="dispatched">Dispatched</option>
+                  <option value="resolved">Resolved</option>
+                </select>
+                <select 
+                  value={sortBy} 
+                  onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
+                  className="px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                >
+                  <option value="detected_at">Most Recent</option>
+                  <option value="confidence">Highest Confidence</option>
+                  <option value="estimated_loss">Highest Loss</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Empty State - No leaks detected */}
+            {!hasData && (
+              <EmptyState
+                icon={<CheckCircle className="w-8 h-8" />}
+                title="No Leaks Detected"
+                description={
+                  hasAnySensorData 
+                    ? "Great news! The AI system hasn't detected any leaks. The network is operating normally."
+                    : "Connect your ESP32 sensors via MQTT to start receiving real-time leak detection alerts."
+                }
+                variant={hasAnySensorData ? 'default' : 'no-sensors'}
+                action={!hasAnySensorData ? {
+                  label: 'Configure Sensors',
+                  onClick: () => window.location.href = '/admin/firmware'
+                } : undefined}
+              />
+            )}
+
+            {/* Search found nothing */}
+            {hasData && filteredLeaks.length === 0 && (search || filter !== 'all') && (
+              <NoSearchResults 
+                query={search || filter}
+                onClearSearch={() => { setSearch(''); setFilter('all'); }}
+              />
+            )}
+
+            {/* Leaks List */}
+            {filteredLeaks.length > 0 && (
+              <div className="space-y-3">
+                {filteredLeaks.map((leak) => (
+                  <Link key={leak._id || leak.id} href={`/leaks/${leak.id}`}>
+                    <div className="bg-white rounded-xl border border-slate-200 hover:shadow-md hover:border-slate-300 transition-all cursor-pointer">
+                      <div className="p-4">
+                        <div className="flex items-start gap-4">
+                          {/* Priority Indicator */}
+                          <div className={`w-1 self-stretch rounded-full ${getPriorityColor(leak.priority)}`} />
+                          
+                          {/* Main Content */}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap mb-1">
+                              <span className="font-semibold text-slate-900">{leak.id}</span>
+                              <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${getStatusColor(leak.status)}`}>
+                                {getStatusIcon(leak.status)}
+                                <span className="capitalize">{leak.status}</span>
+                              </span>
+                              <span className="px-2 py-0.5 bg-slate-100 text-slate-600 rounded-full text-xs font-medium capitalize">
+                                {leak.priority}
+                              </span>
+                            </div>
+                            
+                            <p className="text-sm text-slate-500 flex items-center gap-1 mb-2">
+                              <MapPin className="w-3 h-3" />
+                              {leak.location}
+                            </p>
+                            
+                            {/* AI Insight Preview */}
+                            {leak.ai_reason && leak.ai_reason.top_signals && (
+                              <div className="flex items-center gap-2 text-xs text-purple-600 bg-purple-50 px-2 py-1 rounded w-fit">
+                                <Brain className="w-3 h-3" />
+                                <span className="truncate max-w-xs">{leak.ai_reason.top_signals.join(', ')}</span>
+                              </div>
+                            )}
+
+                            {/* Quick Actions */}
+                            <div className="flex items-center gap-2 mt-3">
+                              {leak.status === 'new' && (
+                                <button
+                                  onClick={(e) => handleAcknowledge(e, leak.id)}
+                                  disabled={actionLoading === leak.id}
+                                  className="flex items-center gap-1 px-3 py-1.5 bg-amber-100 text-amber-700 rounded-lg text-xs font-medium hover:bg-amber-200 disabled:opacity-50 transition-colors"
+                                >
+                                  {actionLoading === leak.id ? (
+                                    <Loader2 className="w-3 h-3 animate-spin" />
+                                  ) : (
+                                    <CheckCircle className="w-3 h-3" />
+                                  )}
+                                  Acknowledge
+                                </button>
+                              )}
+                              {leak.status === 'acknowledged' && (
+                                <button
+                                  onClick={(e) => handleDispatch(e, leak.id)}
+                                  disabled={actionLoading === leak.id}
+                                  className="flex items-center gap-1 px-3 py-1.5 bg-blue-100 text-blue-700 rounded-lg text-xs font-medium hover:bg-blue-200 disabled:opacity-50 transition-colors"
+                                >
+                                  {actionLoading === leak.id ? (
+                                    <Loader2 className="w-3 h-3 animate-spin" />
+                                  ) : (
+                                    <Users className="w-3 h-3" />
+                                  )}
+                                  Dispatch Crew
+                                </button>
+                              )}
+                              {leak.status === 'dispatched' && (
+                                <button
+                                  onClick={(e) => handleResolve(e, leak.id)}
+                                  disabled={actionLoading === leak.id}
+                                  className="flex items-center gap-1 px-3 py-1.5 bg-emerald-100 text-emerald-700 rounded-lg text-xs font-medium hover:bg-emerald-200 disabled:opacity-50 transition-colors"
+                                >
+                                  {actionLoading === leak.id ? (
+                                    <Loader2 className="w-3 h-3 animate-spin" />
+                                  ) : (
+                                    <CheckCheck className="w-3 h-3" />
+                                  )}
+                                  Mark Resolved
+                                </button>
+                              )}
+                              <Link 
+                                href={`/work-orders/new?leak_id=${leak.id}`}
+                                onClick={(e) => e.stopPropagation()}
+                                className="flex items-center gap-1 px-3 py-1.5 bg-slate-100 text-slate-700 rounded-lg text-xs font-medium hover:bg-slate-200 transition-colors"
+                              >
+                                <Wrench className="w-3 h-3" />
+                                Create Work Order
+                              </Link>
+                            </div>
                           </div>
-                        )}
-                      </div>
-                      
-                      {/* Stats */}
-                      <div className="flex items-center gap-6 text-sm">
-                        <div className="text-center">
-                          <div className="font-bold text-red-600">{leak.estimated_loss}</div>
-                          <div className="text-xs text-muted-foreground">m³/day</div>
+                          
+                          {/* Stats */}
+                          <div className="flex items-center gap-6 text-sm">
+                            <div className="text-center">
+                              <div className="font-bold text-red-600">{leak.estimated_loss || 0}</div>
+                              <div className="text-xs text-slate-500">m³/day</div>
+                            </div>
+                            <div className="text-center">
+                              <div className="font-bold text-purple-600">{leak.confidence || 0}%</div>
+                              <div className="text-xs text-slate-500">AI conf.</div>
+                            </div>
+                            <div className="text-center">
+                              <div className="font-medium text-slate-700">{getTimeSince(leak.detected_at)}</div>
+                              <div className="text-xs text-slate-500">detected</div>
+                            </div>
+                            <ChevronRight className="w-5 h-5 text-slate-400" />
+                          </div>
                         </div>
-                        <div className="text-center">
-                          <div className="font-bold text-purple-600">{leak.confidence}%</div>
-                          <div className="text-xs text-muted-foreground">AI conf.</div>
-                        </div>
-                        <div className="text-center">
-                          <div className="font-medium">{getTimeSince(leak.detected_at)}</div>
-                          <div className="text-xs text-muted-foreground">detected</div>
-                        </div>
-                        <ChevronRight className="w-5 h-5 text-muted-foreground" />
                       </div>
                     </div>
-                  </CardContent>
-                </Card>
-              </Link>
-            ))}
-          </div>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>

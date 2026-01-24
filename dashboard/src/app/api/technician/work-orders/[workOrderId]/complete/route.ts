@@ -66,7 +66,7 @@ export async function POST(
     
     // Add completion note if provided
     if (completionNote) {
-      const existingNotes = existing.notes || []
+      const existingNotes = (existing as any).notes || []
       update.notes = [
         ...existingNotes, 
         `[${new Date(now).toLocaleString()}] ✅ COMPLETED: ${completionNote}`

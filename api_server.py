@@ -230,7 +230,7 @@ def login():
         password_hash = hash_password(password)
         
         # Try database first
-        if database:
+        if database is not None:
             users_col = database.users
             user = users_col.find_one({"username": username, "password_hash": password_hash})
             if user:
@@ -283,10 +283,10 @@ def health():
         "status": "healthy",
         "timestamp": datetime.now().isoformat(),
         "version": "2.0.0",
-        "database": "connected" if database else "disconnected",
+        "database": "connected" if database is not None else "disconnected",
         "services": {
             "api": "running",
-            "database": "connected" if database else "disconnected",
+            "database": "connected" if database is not None else "disconnected",
             "ai_engine": "ready"
         }
     })
@@ -299,7 +299,7 @@ def health():
 def get_sensors():
     database = get_db()
     
-    if database:
+    if database is not None:
         sensors_col = database.sensors
         sensors = list(sensors_col.find({}, {"_id": 0}))
         if sensors:
@@ -313,7 +313,7 @@ def get_sensors():
 def post_sensor_reading(sensor_id):
     """Receive sensor reading from ESP32"""
     database = get_db()
-    if not database:
+    if database is None:
         return jsonify({"error": "Database not connected"}), 503
     
     data = request.get_json()
@@ -347,7 +347,7 @@ def post_sensor_reading(sensor_id):
 def get_leaks():
     database = get_db()
     
-    if database:
+    if database is not None:
         leaks_col = database.leaks
         leaks = list(leaks_col.find({"status": {"$ne": "resolved"}}, {"_id": 0}).sort("detected_at", -1))
         return jsonify({"success": True, "data": leaks, "total": len(leaks), "source": "database"})
@@ -371,7 +371,7 @@ def create_leak():
         "source": data.get("source", "manual")
     }
     
-    if database:
+    if database is not None:
         database.leaks.insert_one(leak)
     
     return jsonify({"success": True, "data": leak})
@@ -396,7 +396,7 @@ def update_leak():
     elif action == "resolve":
         update = {"status": "resolved", "resolved_at": datetime.now().isoformat(), "resolved_by": user}
     
-    if database:
+    if database is not None:
         result = database.leaks.find_one_and_update(
             {"id": leak_id},
             {"$set": update},
@@ -416,7 +416,7 @@ def update_leak():
 def get_work_orders():
     database = get_db()
     
-    if database:
+    if database is not None:
         orders = list(database.work_orders.find({}, {"_id": 0}).sort("created_at", -1))
         return jsonify({"success": True, "data": orders, "total": len(orders), "source": "database"})
     
@@ -442,7 +442,7 @@ def create_work_order():
         "created_by": data.get("created_by", "System")
     }
     
-    if database:
+    if database is not None:
         database.work_orders.insert_one(order)
     
     return jsonify({"success": True, "data": order})
@@ -455,7 +455,7 @@ def create_work_order():
 def get_dmas():
     database = get_db()
     
-    if database:
+    if database is not None:
         dmas = list(database.dmas.find({}, {"_id": 0}))
         if dmas:
             return jsonify({"success": True, "dmas": dmas, "source": "database"})
@@ -489,7 +489,7 @@ def get_metrics():
         "last_data_received": datetime.now().isoformat()
     }
     
-    if database:
+    if database is not None:
         # Get actual counts
         metrics["sensor_count"] = database.sensors.count_documents({})
         metrics["dma_count"] = database.dmas.count_documents({})
@@ -534,7 +534,7 @@ def realtime():
 def get_alerts():
     database = get_db()
     
-    if database:
+    if database is not None:
         alerts = list(database.alerts.find({}, {"_id": 0}).sort("created_at", -1).limit(50))
         return jsonify({"success": True, "data": alerts, "total": len(alerts)})
     
@@ -556,7 +556,7 @@ def create_alert():
         "status": "active"
     }
     
-    if database:
+    if database is not None:
         database.alerts.insert_one(alert)
     
     return jsonify({"success": True, "data": alert})

@@ -69,7 +69,8 @@ export default function SmartMetersPage() {
   
   // Get unique DMAs for filter
   const uniqueDMAs = useMemo(() => {
-    return [...new Set(meters.map(m => m.dma))];
+    const dmas = meters.map((m) => m.dma)
+    return dmas.filter((dma, index) => dmas.indexOf(dma) === index)
   }, [meters]);
   
   const connectionDisplay = getConnectionQualityDisplay(connectionQuality);
@@ -419,7 +420,7 @@ export default function SmartMetersPage() {
         <div className={`bg-gray-800 rounded-xl p-4 border ${isConnected ? 'border-blue-500/30' : 'border-gray-700'}`}>
           <div className="text-gray-400 text-xs mb-1">Total Flow</div>
           <div className="text-2xl font-bold text-blue-400">
-            {isConnected && stats?.totalFlow !== null ? (stats.totalFlow / 1000).toFixed(1) : '--'}
+            {isConnected && stats && stats.totalFlow !== null ? (stats.totalFlow / 1000).toFixed(1) : '--'}
           </div>
           <div className="text-blue-400 text-xs">m³/hour</div>
         </div>
@@ -427,7 +428,7 @@ export default function SmartMetersPage() {
         <div className={`bg-gray-800 rounded-xl p-4 border ${isConnected ? 'border-purple-500/30' : 'border-gray-700'}`}>
           <div className="text-gray-400 text-xs mb-1">Daily Usage</div>
           <div className="text-2xl font-bold text-purple-400">
-            {isConnected && stats?.totalDailyUsage !== null ? stats.totalDailyUsage.toFixed(0) : '--'}
+            {isConnected && stats && stats.totalDailyUsage !== null ? stats.totalDailyUsage.toFixed(0) : '--'}
           </div>
           <div className="text-purple-400 text-xs">m³ today</div>
         </div>
@@ -435,7 +436,7 @@ export default function SmartMetersPage() {
         <div className={`bg-gray-800 rounded-xl p-4 border ${isConnected ? 'border-[#EF7D00]/30' : 'border-gray-700'}`}>
           <div className="text-gray-400 text-xs mb-1">Avg NRW</div>
           <div className="text-2xl font-bold text-[#EF7D00]">
-            {isConnected && stats?.avgNRW !== null ? `${stats.avgNRW.toFixed(1)}%` : '--%'}
+            {isConnected && stats && stats.avgNRW !== null ? `${stats.avgNRW.toFixed(1)}%` : '--%'}
           </div>
           <div className="text-[#EF7D00] text-xs">Network Loss</div>
         </div>

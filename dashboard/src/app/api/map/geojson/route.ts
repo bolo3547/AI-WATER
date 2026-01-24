@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 
+export const dynamic = 'force-dynamic'
+
 /**
  * MAP GEOJSON API ROUTE
  * =====================
@@ -19,7 +21,7 @@ interface GeoJSONFeature {
   id?: string
   geometry: {
     type: 'Point' | 'Polygon'
-    coordinates: number[] | number[][]
+    coordinates: number[] | number[][] | number[][][]
   }
   properties: Record<string, any>
 }

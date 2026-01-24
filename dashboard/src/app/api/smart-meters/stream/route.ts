@@ -7,6 +7,10 @@
 
 import { NextRequest } from 'next/server';
 
+// Force dynamic rendering for SSE
+export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs'
+
 // Track connection state (shared with main route)
 let streamConnected = false;
 let connectionQuality: 'excellent' | 'good' | 'fair' | 'poor' | 'disconnected' = 'disconnected';

@@ -406,7 +406,7 @@ class SyncService {
       
       this.emit({
         type: 'sync_completed',
-        data: actionResult,
+        data: { result: actionResult },
         timestamp: new Date().toISOString(),
       })
       

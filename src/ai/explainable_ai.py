@@ -734,7 +734,8 @@ if __name__ == "__main__":
     print("EXPLAINABLE AI - LEAK DETECTION RESULT")
     print("=" * 60)
     
-    print(f"\nOverall Confidence: {result.confidence.overall_confidence:.1%}")
+    if result.confidence:
+        print(f"\nOverall Confidence: {result.confidence.overall_confidence:.1%}")
     print(f"Detection Method: {result.detection_method}")
     print(f"\nTop Signals: {result.top_signals}")
     print(f"\nExplanation:\n{result.explanation}")
@@ -742,12 +743,13 @@ if __name__ == "__main__":
     for rec in result.recommendations:
         print(f"  • {rec}")
     
-    print(f"\nConfidence Breakdown:")
-    print(f"  Statistical: {result.confidence.statistical_confidence:.1%}")
-    print(f"  ML Model: {result.confidence.ml_confidence:.1%}")
-    print(f"  Temporal: {result.confidence.temporal_confidence:.1%}")
-    print(f"  Spatial: {result.confidence.spatial_confidence:.1%}")
-    print(f"  Acoustic: {result.confidence.acoustic_confidence:.1%}")
+    if result.confidence:
+        print(f"\nConfidence Breakdown:")
+        print(f"  Statistical: {result.confidence.statistical_confidence:.1%}")
+        print(f"  ML Model: {result.confidence.ml_confidence:.1%}")
+        print(f"  Temporal: {result.confidence.temporal_confidence:.1%}")
+        print(f"  Spatial: {result.confidence.spatial_confidence:.1%}")
+        print(f"  Acoustic: {result.confidence.acoustic_confidence:.1%}")
     
     print(f"\nJSON Output (ai_reason field):")
     import json

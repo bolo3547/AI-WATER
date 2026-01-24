@@ -414,7 +414,7 @@ export async function POST(request: NextRequest) {
         };
         
         // Simulate all meters coming online
-        for (const meterId of registeredMeters.keys()) {
+        for (const meterId of Array.from(registeredMeters.keys())) {
           simulateMeterConnection(meterId);
         }
         
@@ -476,7 +476,7 @@ export async function POST(request: NextRequest) {
           }, { status: 503 });
         }
         
-        for (const meterId of registeredMeters.keys()) {
+        for (const meterId of Array.from(registeredMeters.keys())) {
           simulateMeterConnection(meterId);
         }
         

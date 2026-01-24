@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
+
+export const dynamic = 'force-dynamic'
 import { getWorkOrdersCollection, initializeDatabase } from '@/lib/mongodb'
 
 // =============================================================================
@@ -110,32 +112,36 @@ export async function GET(request: NextRequest) {
       .toArray()
     
     // Map to expected format
-    const mappedOrders = workOrders.map(wo => ({
-      id: wo.id,
-      title: wo.title,
-      type: wo.type || 'inspection',
-      description: wo.description || '',
-      location: wo.location || wo.address || '',
-      dma: wo.dma,
-      lat: wo.lat || wo.latitude || -15.4,
-      lng: wo.lng || wo.longitude || 28.3,
-      priority: wo.priority || 'medium',
-      status: wo.status,
-      createdAt: wo.created_at || wo.createdAt,
-      scheduledDate: wo.scheduled_date || wo.scheduledDate || wo.created_at,
-      assignedTo: wo.assignee || wo.assigned_to || null,
-      assignedToId: wo.assigned_to_id || wo.assignedToId || null,
-      assignedTeam: wo.team || wo.assigned_team || null,
-      estimatedDuration: wo.estimated_duration || wo.estimatedDuration || 2,
-      actualDuration: wo.actual_duration || wo.actualDuration || null,
-      materials: wo.materials || [],
-      notes: wo.notes || [],
-      photos: wo.photos || [],
-      customerContact: wo.customer_contact || wo.customerContact || null,
-      customerPhone: wo.customer_phone || wo.customerPhone || null,
-      leakId: wo.leak_id || wo.leakId || null,
-      completedAt: wo.completed_at || wo.completedAt || null,
-    }))
+    const mappedOrders = workOrders.map((wo) => {
+      const raw = wo as unknown as Record<string, any>
+
+      return {
+        id: raw.id || raw._id?.toString(),
+        title: raw.title || 'Work Order',
+        type: raw.type || 'inspection',
+        description: raw.description || '',
+        location: raw.location || raw.address || '',
+        dma: raw.dma,
+        lat: raw.lat || raw.latitude || -15.4,
+        lng: raw.lng || raw.longitude || 28.3,
+        priority: raw.priority || 'medium',
+        status: raw.status,
+        createdAt: raw.created_at || raw.createdAt,
+        scheduledDate: raw.scheduled_date || raw.scheduledDate || raw.created_at,
+        assignedTo: raw.assignee || raw.assigned_to || null,
+        assignedToId: raw.assigned_to_id || raw.assignedToId || null,
+        assignedTeam: raw.team || raw.assigned_team || null,
+        estimatedDuration: raw.estimated_duration || raw.estimatedDuration || 2,
+        actualDuration: raw.actual_duration || raw.actualDuration || null,
+        materials: raw.materials || [],
+        notes: raw.notes || [],
+        photos: raw.photos || [],
+        customerContact: raw.customer_contact || raw.customerContact || null,
+        customerPhone: raw.customer_phone || raw.customerPhone || null,
+        leakId: raw.leak_id || raw.leakId || null,
+        completedAt: raw.completed_at || raw.completedAt || null,
+      }
+    })
     
     console.log(`[Technician API] Fetched ${mappedOrders.length} work orders for ${assignedTo}`)
     

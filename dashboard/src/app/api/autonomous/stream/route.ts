@@ -7,6 +7,10 @@
 
 import { NextRequest } from 'next/server'
 
+// Force dynamic rendering for SSE
+export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs'
+
 // Store for connected clients and system state
 let decisionCounter = 0
 let lastIncidentTime = Date.now()

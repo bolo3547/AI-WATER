@@ -1,35 +1,114 @@
 import { NextResponse } from 'next/server'
+import clientPromise from '@/lib/mongodb'
 
-function randomFloat(min: number, max: number): number {
-  return Math.random() * (max - min) + min
-}
+export const dynamic = 'force-dynamic'
 
-function randomInt(min: number, max: number): number {
-  return Math.floor(Math.random() * (max - min + 1)) + min
+const OFFLINE_THRESHOLD_MINUTES = 5
+
+interface Sensor {
+  id: string
+  type: string
+  dma: string
+  value: number | null
+  unit: string
+  status: 'online' | 'offline' | 'warning'
+  battery: number | null
+  last_reading: string | null
 }
 
 export async function GET() {
-  const now = new Date()
-  const sensors = []
+  try {
+    const client = await clientPromise
+    const db = client.db('lwsc_nrw')
+    
+    const now = new Date()
+    const offlineThreshold = new Date(now.getTime() - OFFLINE_THRESHOLD_MINUTES * 60 * 1000)
+    
+    // Fetch real sensors from database
+    const sensors = await db.collection('sensors').find({}).toArray()
+    
+    if (sensors.length === 0) {
+      return NextResponse.json({
+        success: true,
+        data: [],
+        data_available: false,
+        message: 'No sensors registered. Connect ESP32 sensors to begin monitoring.',
+        online_count: 0,
+        offline_count: 0,
+        total_count: 0,
+        timestamp: now.toISOString()
+      })
+    }
 
-  for (let i = 1; i <= 26; i++) {
-    const dma = `DMA-00${(i % 5) + 1}`
-    const sensorType = i % 2 === 0 ? 'pressure' : 'flow'
-    const value = sensorType === 'pressure'
-      ? parseFloat((3.0 + randomFloat(-0.5, 0.5)).toFixed(1))
-      : Math.round(50 + randomFloat(-10, 10))
+    // Enrich sensors with latest readings and online status
+    const enrichedSensors: Sensor[] = await Promise.all(sensors.map(async (sensor) => {
+      // Get latest reading for this sensor
+      const latestReading = await db.collection('sensor_readings').findOne(
+        { sensor_id: sensor.sensor_id || sensor.id },
+        { sort: { timestamp: -1 } }
+      )
 
-    sensors.push({
-      id: `${sensorType === 'pressure' ? 'PRESS' : 'FLOW'}-${String(i).padStart(3, '0')}`,
-      type: sensorType,
-      dma: dma,
-      value: value,
-      unit: sensorType === 'pressure' ? 'bar' : 'm³/h',
-      status: Math.random() < 0.08 ? 'offline' : 'online',
-      battery: randomInt(60, 100),
-      last_reading: new Date(now.getTime() - randomInt(1, 15) * 60 * 1000).toISOString()
+      const lastSeenDate = latestReading?.timestamp ? new Date(latestReading.timestamp) : 
+                           sensor.last_seen ? new Date(sensor.last_seen) : null
+      
+      // Determine status based on last_seen
+      let status: Sensor['status'] = 'offline'
+      if (lastSeenDate && lastSeenDate >= offlineThreshold) {
+        status = sensor.battery && sensor.battery < 20 ? 'warning' : 'online'
+      }
+
+      // Get the appropriate value based on sensor type
+      let value: number | null = null
+      let unit = ''
+      if (latestReading) {
+        if (sensor.type === 'pressure' || sensor.type === 'pressure_sensor') {
+          value = latestReading.pressure ?? null
+          unit = 'bar'
+        } else if (sensor.type === 'flow' || sensor.type === 'flow_meter') {
+          value = latestReading.flow_rate ?? null
+          unit = 'm³/h'
+        } else if (sensor.type === 'acoustic' || sensor.type === 'acoustic_sensor') {
+          value = latestReading.acoustic_level ?? null
+          unit = 'dB'
+        }
+      }
+
+      return {
+        id: sensor.sensor_id || sensor.id,
+        type: sensor.type || 'unknown',
+        dma: sensor.dma || 'Unassigned',
+        value,
+        unit,
+        status,
+        battery: sensor.battery ?? latestReading?.battery_level ?? null,
+        last_reading: lastSeenDate?.toISOString() || null
+      }
+    }))
+
+    const onlineCount = enrichedSensors.filter(s => s.status === 'online').length
+    const offlineCount = enrichedSensors.filter(s => s.status === 'offline').length
+
+    return NextResponse.json({
+      success: true,
+      data: enrichedSensors,
+      data_available: true,
+      online_count: onlineCount,
+      offline_count: offlineCount,
+      total_count: enrichedSensors.length,
+      timestamp: now.toISOString()
+    })
+
+  } catch (error) {
+    console.error('[Sensors API] Error:', error)
+    return NextResponse.json({
+      success: true,
+      data: [],
+      data_available: false,
+      message: 'Database unavailable. Connect to MongoDB to see sensor data.',
+      online_count: 0,
+      offline_count: 0,
+      total_count: 0,
+      timestamp: new Date().toISOString()
     })
   }
-
-  return NextResponse.json(sensors)
 }

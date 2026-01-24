@@ -201,6 +201,19 @@ export async function PATCH(request: NextRequest) {
         { returnDocument: 'after' }
       )
       if (result) {
+        // Create audit log
+        await db.collection('audit_logs').insertOne({
+          id: `audit-${Date.now()}`,
+          timestamp: now,
+          action: `leak.${action}`,
+          entity_type: 'leak',
+          entity_id: id,
+          user_id: user || 'unknown',
+          user_name: user || 'Unknown User',
+          user_role: 'operator',
+          tenant_id: 'default',
+          details: { previous_status: result.status, new_status: update.status }
+        })
         return NextResponse.json({ success: true, data: result, message: `Leak ${action}d` })
       }
     } else {

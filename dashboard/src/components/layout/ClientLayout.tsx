@@ -5,9 +5,11 @@ import { useEffect, useState } from 'react'
 import { Sidebar } from './Sidebar'
 import { TopBar } from './TopBar'
 import { NotificationProvider } from '@/lib/notifications'
+import { SystemStatusProvider } from '@/contexts/SystemStatusContext'
 import AIChatAssistant from '@/components/ai/AIChatAssistant'
 import { InstallPrompt } from '@/components/pwa/InstallPrompt'
 import { SplashScreen } from '@/components/ui/SplashScreen'
+import { SystemStatusBanner } from '@/components/SystemStatus'
 
 export function ClientLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
@@ -122,31 +124,38 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
 
   // Dashboard pages - with sidebar/topbar and notifications
   return (
-    <NotificationProvider>
-      <div className="flex min-h-screen">
-        {/* Sidebar - Desktop: always visible. Mobile: hamburger menu */}
-        <Sidebar isExpanded={sidebarExpanded} onToggle={handleSidebarToggle} isMobile={isMobile} />
-        
-        {/* Main Content Area - Adjusts margin based on sidebar state */}
-        <div 
-          className="flex-1 min-w-0 transition-all duration-300"
-          style={{ marginLeft: `${sidebarWidth}px` }}
-        >
-          {/* Top Status Bar */}
-          <TopBar />
+    <SystemStatusProvider>
+      <NotificationProvider>
+        <div className="flex min-h-screen">
+          {/* Sidebar - Desktop: always visible. Mobile: hamburger menu */}
+          <Sidebar isExpanded={sidebarExpanded} onToggle={handleSidebarToggle} isMobile={isMobile} />
           
-          {/* Page Content - tighter padding on mobile, account for government banner */}
-          <main className="mt-[76px] sm:mt-[86px] p-2 sm:p-4 lg:p-6">
-            {children}
-          </main>
+          {/* Main Content Area - Adjusts margin based on sidebar state */}
+          <div 
+            className="flex-1 min-w-0 transition-all duration-300"
+            style={{ marginLeft: `${sidebarWidth}px` }}
+          >
+            {/* System Status Banner - Shows when data is stale/offline */}
+            <div className="fixed top-0 right-0 z-50" style={{ left: `${sidebarWidth}px` }}>
+              <SystemStatusBanner />
+            </div>
+            
+            {/* Top Status Bar */}
+            <TopBar />
+            
+            {/* Page Content - tighter padding on mobile, account for government banner */}
+            <main className="mt-[76px] sm:mt-[86px] p-2 sm:p-4 lg:p-6">
+              {children}
+            </main>
+          </div>
+          
+          {/* AI Chat Assistant - floating button */}
+          <AIChatAssistant />
+          
+          {/* PWA Install Prompt */}
+          <InstallPrompt />
         </div>
-        
-        {/* AI Chat Assistant - floating button */}
-        <AIChatAssistant />
-        
-        {/* PWA Install Prompt */}
-        <InstallPrompt />
-      </div>
-    </NotificationProvider>
+      </NotificationProvider>
+    </SystemStatusProvider>
   )
 }

@@ -33,7 +33,7 @@ export async function GET(
     const { workOrderId } = await params
     
     const collection = await getWorkOrdersCollection()
-    const workOrder = await collection.findOne({ id: workOrderId })
+    const workOrder = await collection.findOne({ id: workOrderId }) as any
     
     if (!workOrder) {
       return NextResponse.json(
@@ -43,36 +43,38 @@ export async function GET(
     }
     
     // Map to expected format
-    const mapped = {
-      id: workOrder.id,
-      title: workOrder.title,
-      type: workOrder.type || 'inspection',
-      description: workOrder.description || '',
-      location: workOrder.location || workOrder.address || '',
-      dma: workOrder.dma,
-      lat: workOrder.lat || workOrder.latitude || -15.4,
-      lng: workOrder.lng || workOrder.longitude || 28.3,
-      priority: workOrder.priority || 'medium',
-      status: workOrder.status,
-      createdAt: workOrder.created_at || workOrder.createdAt,
-      scheduledDate: workOrder.scheduled_date || workOrder.scheduledDate,
-      assignedTo: workOrder.assignee || workOrder.assigned_to || null,
-      assignedToId: workOrder.assigned_to_id || workOrder.assignedToId || null,
-      assignedTeam: workOrder.team || workOrder.assigned_team || null,
-      estimatedDuration: workOrder.estimated_duration || workOrder.estimatedDuration || 2,
-      actualDuration: workOrder.actual_duration || workOrder.actualDuration || null,
-      materials: workOrder.materials || [],
-      notes: workOrder.notes || [],
-      photos: workOrder.photos || [],
-      customerContact: workOrder.customer_contact || workOrder.customerContact || null,
-      customerPhone: workOrder.customer_phone || workOrder.customerPhone || null,
-      leakId: workOrder.leak_id || workOrder.leakId || null,
-      completedAt: workOrder.completed_at || workOrder.completedAt || null,
+    const raw = workOrder as unknown as Record<string, any>
+
+    const mappedOrder = {
+      id: raw.id || raw._id?.toString(),
+      title: raw.title || 'Work Order',
+      type: raw.type || 'inspection',
+      description: raw.description || '',
+      location: raw.location || raw.address || '',
+      dma: raw.dma,
+      lat: raw.lat || raw.latitude || -15.4,
+      lng: raw.lng || raw.longitude || 28.3,
+      priority: raw.priority || 'medium',
+      status: raw.status,
+      createdAt: raw.created_at || raw.createdAt,
+      scheduledDate: raw.scheduled_date || raw.scheduledDate,
+      assignedTo: raw.assignee || raw.assigned_to || null,
+      assignedToId: raw.assigned_to_id || raw.assignedToId || null,
+      assignedTeam: raw.team || raw.assigned_team || null,
+      estimatedDuration: raw.estimated_duration || raw.estimatedDuration || 2,
+      actualDuration: raw.actual_duration || raw.actualDuration || null,
+      materials: raw.materials || [],
+      notes: raw.notes || [],
+      photos: raw.photos || [],
+      customerContact: raw.customer_contact || raw.customerContact || null,
+      customerPhone: raw.customer_phone || raw.customerPhone || null,
+      leakId: raw.leak_id || raw.leakId || null,
+      completedAt: raw.completed_at || raw.completedAt || null,
     }
     
     return NextResponse.json({
       success: true,
-      workOrder: mapped,
+      workOrder: mappedOrder,
     })
     
   } catch (error) {

@@ -12,6 +12,27 @@ if (!MONGODB_URI) {
 let cachedClient: MongoClient | null = null
 let cachedDb: Db | null = null
 
+// Global clientPromise for Next.js API routes
+let clientPromise: Promise<MongoClient>
+
+if (process.env.NODE_ENV === 'development') {
+  // In development, use a global variable to preserve the MongoClient across HMR
+  let globalWithMongo = global as typeof globalThis & {
+    _mongoClientPromise?: Promise<MongoClient>
+  }
+  if (!globalWithMongo._mongoClientPromise) {
+    const client = new MongoClient(MONGODB_URI)
+    globalWithMongo._mongoClientPromise = client.connect()
+  }
+  clientPromise = globalWithMongo._mongoClientPromise
+} else {
+  // In production, create a new client
+  const client = new MongoClient(MONGODB_URI)
+  clientPromise = client.connect()
+}
+
+export default clientPromise
+
 export interface WorkOrder {
   _id?: string
   id: string

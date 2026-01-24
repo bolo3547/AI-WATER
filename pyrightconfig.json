@@ -1,0 +1,20 @@
+{
+  "include": ["src", "api_server.py"],
+  "exclude": ["**/node_modules", "**/__pycache__", "migrations", "tests", "demo_*.py"],
+  "typeCheckingMode": "basic",
+  "reportMissingImports": "none",
+  "reportMissingTypeStubs": "none",
+  "reportUnknownMemberType": "none",
+  "reportUnknownArgumentType": "none",
+  "reportUnknownVariableType": "none",
+  "reportGeneralTypeIssues": "warning",
+  "reportOptionalMemberAccess": "warning",
+  "reportOptionalCall": "warning",
+  "reportPrivateUsage": "none",
+  "reportUntypedFunctionDecorator": "none",
+  "reportInvalidTypeForm": "none",
+  "reportArgumentType": "warning",
+  "pythonVersion": "3.11",
+  "venvPath": ".",
+  "venv": ".venv"
+}

@@ -155,7 +155,7 @@ export default function WorkOrderDetailPage() {
     setUpdating(true)
     
     try {
-      await completeWorkOrderOffline(order.id, actualDuration)
+      await completeWorkOrderOffline(order.id, actualDuration ?? 0)
       setShowCompleteModal(false)
       
       // Reload to reflect changes
@@ -181,11 +181,13 @@ export default function WorkOrderDetailPage() {
   }
   
   const openMaps = () => {
-    if (order?.coordinates) {
-      const url = `https://www.google.com/maps/dir/?api=1&destination=${order.coordinates.lat},${order.coordinates.lng}`
+    const orderDetails = order as (WorkOrder & { coordinates?: { lat: number; lng: number } }) | null
+
+    if (orderDetails?.coordinates) {
+      const url = `https://www.google.com/maps/dir/?api=1&destination=${orderDetails.coordinates.lat},${orderDetails.coordinates.lng}`
       window.open(url, '_blank')
-    } else if (order?.location) {
-      const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(order.location)}`
+    } else if (orderDetails?.location) {
+      const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(orderDetails.location)}`
       window.open(url, '_blank')
     }
   }
@@ -213,6 +215,15 @@ export default function WorkOrderDetailPage() {
       </div>
     )
   }
+
+  const orderDetails = order as WorkOrder & {
+    coordinates?: { lat: number; lng: number }
+    relatedLeakId?: string
+    materialsUsed?: Array<{ name: string; quantity?: number; unit?: string }>
+    updatedAt?: string
+  }
+
+  const materialsUsed = orderDetails.materialsUsed || order.materials || []
   
   const priorityColors: Record<Priority, { bg: string; text: string; border: string }> = {
     critical: { bg: 'bg-red-100', text: 'text-red-700', border: 'border-red-300' },
@@ -277,7 +288,7 @@ export default function WorkOrderDetailPage() {
               <MapPin className="w-4 h-4 text-slate-400" />
               <span>{order.location || order.dma || 'Location not set'}</span>
             </div>
-            {(order.coordinates || order.location) && (
+            {(orderDetails.coordinates || orderDetails.location) && (
               <button
                 onClick={openMaps}
                 className="flex items-center gap-1 px-3 py-1.5 bg-blue-100 text-blue-700 text-xs font-medium rounded-lg"
@@ -385,10 +396,10 @@ export default function WorkOrderDetailPage() {
               </div>
             )}
             
-            {order.relatedLeakId && (
+            {orderDetails.relatedLeakId && (
               <div>
                 <p className="text-xs font-medium text-slate-500 mb-1">Related Leak</p>
-                <p className="text-sm text-blue-600 font-mono">{order.relatedLeakId}</p>
+                <p className="text-sm text-blue-600 font-mono">{orderDetails.relatedLeakId}</p>
               </div>
             )}
             
@@ -436,19 +447,24 @@ export default function WorkOrderDetailPage() {
         
         {/* Materials Section */}
         <CollapsibleSection
-          title={`Materials (${order.materialsUsed?.length || 0})`}
+          title={`Materials (${materialsUsed.length || 0})`}
           icon={<Package className="w-4 h-4" />}
           expanded={expandedSections.materials}
           onToggle={() => toggleSection('materials')}
         >
           <div className="space-y-3">
-            {order.materialsUsed && order.materialsUsed.length > 0 ? (
-              order.materialsUsed.map((mat, i) => (
-                <div key={i} className="flex items-center justify-between bg-slate-50 rounded-xl p-3">
-                  <span className="text-sm text-slate-700">{mat.name}</span>
-                  <span className="text-sm font-medium text-slate-600">x{mat.quantity}</span>
-                </div>
-              ))
+            {materialsUsed.length > 0 ? (
+              materialsUsed.map((mat, i) => {
+                const label = 'name' in mat ? mat.name : (mat as { item: string }).item
+                const qty = 'quantity' in mat ? mat.quantity : (mat as { used?: number }).used
+
+                return (
+                  <div key={i} className="flex items-center justify-between bg-slate-50 rounded-xl p-3">
+                    <span className="text-sm text-slate-700">{label}</span>
+                    <span className="text-sm font-medium text-slate-600">x{qty}</span>
+                  </div>
+                )
+              })
             ) : (
               <p className="text-sm text-slate-500 italic">No materials recorded</p>
             )}
@@ -461,7 +477,7 @@ export default function WorkOrderDetailPage() {
             Created: {new Date(order.createdAt).toLocaleString()}
           </p>
           <p className="text-xs text-slate-400">
-            Last updated: {new Date(order.updatedAt).toLocaleString()}
+            Last updated: {new Date(orderDetails.updatedAt || orderDetails.createdAt).toLocaleString()}
           </p>
         </div>
         

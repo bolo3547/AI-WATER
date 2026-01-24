@@ -73,7 +73,7 @@ export async function PATCH(
     // If note provided, add it
     if (note) {
       const existing = await collection.findOne({ id: workOrderId })
-      const existingNotes = existing?.notes || []
+      const existingNotes = (existing as any)?.notes || []
       update.notes = [...existingNotes, `[${new Date().toLocaleString()}] Status → ${newStatus}: ${note}`]
     }
     

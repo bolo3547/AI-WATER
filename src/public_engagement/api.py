@@ -213,7 +213,7 @@ class MergeReportsSchema(BaseModel):
     """Schema for merging duplicate reports."""
     master_report_id: str = Field(..., description="ID of the master report")
     duplicate_report_ids: List[str] = Field(..., description="IDs of reports to merge as duplicates")
-    reason: Optional[str] = Field("manual", description="Reason for merging")
+    reason: str = Field(default="manual", description="Reason for merging")
 
 
 class CreateWorkOrderSchema(BaseModel):
@@ -373,7 +373,7 @@ def create_public_engagement_api() -> APIRouter:
     async def create_report(
         tenant_id: str = Path(..., description="Tenant identifier"),
         body: ReportCreateSchema = Body(...),
-        request: Request = None,
+        request: Optional[Request] = None,
     ):
         """
         Create a new public report.
@@ -382,7 +382,7 @@ def create_public_engagement_api() -> APIRouter:
         Rate limiting is applied to prevent abuse.
         """
         # Rate limiting
-        client_ip = request.client.host if request.client else None
+        client_ip = request.client.host if request and request.client else None
         if client_ip:
             key = f"report:{tenant_id}:{client_ip}"
             if not check_rate_limit(key, max_requests=5, window_seconds=3600):
@@ -467,7 +467,7 @@ def create_public_engagement_api() -> APIRouter:
         tenant_id: str = Path(..., description="Tenant identifier"),
         ticket: str = Path(..., description="Ticket ID"),
         file: UploadFile = File(..., description="Photo or video file"),
-        request: Request = None,
+        request: Optional[Request] = None,
     ):
         """
         Upload media attachment to a report.

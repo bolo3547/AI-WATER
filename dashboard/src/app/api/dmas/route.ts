@@ -1,108 +1,100 @@
 import { NextResponse } from 'next/server'
+import clientPromise from '@/lib/mongodb'
 
-function randomFloat(min: number, max: number): number {
-  return Math.random() * (max - min) + min
+export const dynamic = 'force-dynamic'
+
+interface DMA {
+  dma_id: string
+  name: string
+  nrw_percent: number | null
+  priority_score: number | null
+  status: 'critical' | 'warning' | 'healthy' | 'unknown'
+  trend: 'up' | 'down' | 'stable' | 'unknown'
+  connections: number
+  pressure: number | null
+  inflow: number | null
+  consumption: number | null
+  real_losses: number | null
+  leak_count: number
+  confidence: number | null
+  last_updated: string | null
 }
 
 export async function GET() {
-  const dmas = [
-    {
-      dma_id: "dma-001",
-      name: "Kabulonga North",
-      nrw_percent: parseFloat((45.2 + randomFloat(-2, 2)).toFixed(1)),
-      priority_score: 87,
-      status: "critical" as const,
-      trend: "up" as const,
-      connections: 1250,
-      pressure: parseFloat((2.1 + randomFloat(-0.2, 0.2)).toFixed(1)),
-      inflow: 1250,
-      consumption: 685,
-      real_losses: 565,
-      leak_count: 3,
-      confidence: 92,
-      last_updated: new Date().toISOString()
-    },
-    {
-      dma_id: "dma-002",
-      name: "Roma Industrial",
-      nrw_percent: parseFloat((38.7 + randomFloat(-2, 2)).toFixed(1)),
-      priority_score: 72,
-      status: "warning" as const,
-      trend: "stable" as const,
-      connections: 2100,
-      pressure: parseFloat((2.8 + randomFloat(-0.2, 0.2)).toFixed(1)),
-      inflow: 980,
-      consumption: 600,
-      real_losses: 380,
-      leak_count: 2,
-      confidence: 88,
-      last_updated: new Date().toISOString()
-    },
-    {
-      dma_id: "dma-003",
-      name: "Longacres",
-      nrw_percent: parseFloat((31.5 + randomFloat(-2, 2)).toFixed(1)),
-      priority_score: 58,
-      status: "warning" as const,
-      trend: "down" as const,
-      connections: 450,
-      pressure: parseFloat((3.2 + randomFloat(-0.2, 0.2)).toFixed(1)),
-      inflow: 720,
-      consumption: 490,
-      real_losses: 230,
-      leak_count: 1,
-      confidence: 91,
-      last_updated: new Date().toISOString()
-    },
-    {
-      dma_id: "dma-004",
-      name: "Chelstone East",
-      nrw_percent: parseFloat((28.3 + randomFloat(-2, 2)).toFixed(1)),
-      priority_score: 45,
-      status: "healthy" as const,
-      trend: "down" as const,
-      connections: 1800,
-      pressure: parseFloat((3.5 + randomFloat(-0.2, 0.2)).toFixed(1)),
-      inflow: 850,
-      consumption: 610,
-      real_losses: 240,
-      leak_count: 0,
-      confidence: 95,
-      last_updated: new Date().toISOString()
-    },
-    {
-      dma_id: "dma-005",
-      name: "Woodlands Central",
-      nrw_percent: parseFloat((35.8 + randomFloat(-2, 2)).toFixed(1)),
-      priority_score: 65,
-      status: "warning" as const,
-      trend: "stable" as const,
-      connections: 980,
-      pressure: parseFloat((3.0 + randomFloat(-0.2, 0.2)).toFixed(1)),
-      inflow: 920,
-      consumption: 590,
-      real_losses: 330,
-      leak_count: 2,
-      confidence: 89,
-      last_updated: new Date().toISOString()
-    },
-    {
-      dma_id: "dma-006",
-      name: "Chilenje South",
-      nrw_percent: parseFloat((22.1 + randomFloat(-2, 2)).toFixed(1)),
-      priority_score: 32,
-      status: "healthy" as const,
-      trend: "down" as const,
-      connections: 1450,
-      pressure: parseFloat((3.4 + randomFloat(-0.2, 0.2)).toFixed(1)),
-      inflow: 680,
-      consumption: 530,
-      real_losses: 150,
-      leak_count: 0,
-      confidence: 96,
-      last_updated: new Date().toISOString()
+  try {
+    const client = await clientPromise
+    const db = client.db('lwsc_nrw')
+    
+    // Fetch real DMAs from database
+    const dmas = await db.collection('dmas').find({}).toArray()
+    
+    if (dmas.length === 0) {
+      // Return empty state - no fake data
+      return NextResponse.json({
+        success: true,
+        data: [],
+        data_available: false,
+        message: 'No DMAs configured. Add DMAs in the admin panel to begin monitoring.',
+        timestamp: new Date().toISOString()
+      })
     }
-  ]
 
-  return NextResponse.json(dmas)
+    // Get latest sensor readings and leak counts for each DMA
+    const enrichedDmas: DMA[] = await Promise.all(dmas.map(async (dma) => {
+      // Count active leaks for this DMA
+      const leakCount = await db.collection('leaks').countDocuments({
+        dma_id: dma.dma_id,
+        status: { $ne: 'resolved' }
+      })
+
+      // Get latest pressure reading for this DMA
+      const latestReading = await db.collection('sensor_readings').findOne(
+        { dma: dma.dma_id },
+        { sort: { timestamp: -1 } }
+      )
+
+      // Determine status based on NRW percentage
+      let status: DMA['status'] = 'unknown'
+      if (dma.nrw_percent !== null && dma.nrw_percent !== undefined) {
+        if (dma.nrw_percent > 40) status = 'critical'
+        else if (dma.nrw_percent > 25) status = 'warning'
+        else status = 'healthy'
+      }
+
+      return {
+        dma_id: dma.dma_id || dma.id,
+        name: dma.name || 'Unnamed DMA',
+        nrw_percent: dma.nrw_percent ?? null,
+        priority_score: dma.priority_score ?? null,
+        status,
+        trend: dma.trend || 'unknown',
+        connections: dma.connections || 0,
+        pressure: latestReading?.pressure ?? dma.pressure ?? null,
+        inflow: dma.inflow ?? null,
+        consumption: dma.consumption ?? null,
+        real_losses: dma.real_losses ?? null,
+        leak_count: leakCount,
+        confidence: dma.confidence ?? null,
+        last_updated: latestReading?.timestamp || dma.last_updated || null
+      }
+    }))
+
+    return NextResponse.json({
+      success: true,
+      data: enrichedDmas,
+      data_available: true,
+      total: enrichedDmas.length,
+      timestamp: new Date().toISOString()
+    })
+
+  } catch (error) {
+    console.error('[DMAs API] Error:', error)
+    return NextResponse.json({
+      success: true,
+      data: [],
+      data_available: false,
+      message: 'Database unavailable. Connect to MongoDB to see DMA data.',
+      timestamp: new Date().toISOString()
+    })
+  }
 }
