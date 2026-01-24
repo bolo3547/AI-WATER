@@ -1,297 +1,204 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+// =============================================================================
+// AUTONOMOUS OPERATIONS PAGE - PRODUCTION VERSION
+// =============================================================================
+// Real-time autonomous valve control, AI decisions, and self-healing network
+// Connected to live API - NO DEMO DATA
+// =============================================================================
+
+import { useState, useEffect, useCallback } from 'react'
 import { 
   Cpu, Power, Wifi, AlertTriangle, CheckCircle, 
   Settings, Activity, Zap, Shield, RefreshCw,
   Play, Pause, ChevronRight, ArrowRight, Clock,
   Network, GitBranch, Gauge, BarChart3, Eye,
-  Globe, Server, Radio, Bot, Brain, Sparkles
+  Globe, Server, Radio, Bot, Brain, Sparkles,
+  XCircle, CheckCircle2, AlertCircle, Loader2,
+  Users, Droplets, Timer, TrendingUp, WifiOff
 } from 'lucide-react'
 import { SectionCard } from '@/components/ui/Cards'
 import { Button, Tabs, Select } from '@/components/ui/Controls'
-
-interface Valve {
-  id: string
-  name: string
-  location: string
-  dma: string
-  status: 'open' | 'closed' | 'partial' | 'error'
-  openPercent: number
-  pressure: number
-  flow: number
-  autoMode: boolean
-  lastAction: string
-  controlledBy: 'manual' | 'ai' | 'schedule'
-  health: number
-}
-
-interface NetworkSegment {
-  id: string
-  name: string
-  dma: string
-  status: 'healthy' | 'isolated' | 'rerouting' | 'alert'
-  flowIn: number
-  flowOut: number
-  pressure: number
-  activeValves: number
-  leakDetected: boolean
-  autoHealing: boolean
-  lastIncident: string | null
-}
-
-interface AIDecision {
-  id: string
-  timestamp: string
-  type: 'valve_control' | 'isolation' | 'reroute' | 'pressure_adjust' | 'alert'
-  action: string
-  reason: string
-  affectedArea: string
-  status: 'executed' | 'pending' | 'overridden' | 'failed'
-  impact: string
-  confidence: number
-}
+import {
+  Valve,
+  NetworkSegment,
+  AIDecision,
+  PendingAction,
+  AutonomousStats,
+  getValves,
+  getNetworkSegments,
+  getDecisions,
+  getPendingActions,
+  getStats,
+  controlValve,
+  toggleValveAutoMode,
+  setAutonomyLevel,
+  toggleEmergencyMode,
+  approveAction,
+  rejectAction,
+  simulateIncident,
+  subscribeToUpdates,
+  getValveStatusColor,
+  getSegmentStatusColor,
+  getAutonomyLevelInfo,
+  formatTimeAgo
+} from '@/lib/autonomous-service'
 
 export default function AutonomousPage() {
+  // State
   const [activeTab, setActiveTab] = useState('valves')
   const [valves, setValves] = useState<Valve[]>([])
   const [segments, setSegments] = useState<NetworkSegment[]>([])
   const [decisions, setDecisions] = useState<AIDecision[]>([])
+  const [pendingActions, setPendingActions] = useState<PendingAction[]>([])
+  const [stats, setStats] = useState<AutonomousStats | null>(null)
   const [selectedValve, setSelectedValve] = useState<Valve | null>(null)
-  const [autonomousMode, setAutonomousMode] = useState(true)
-  const [isEmergencyMode, setIsEmergencyMode] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [actionLoading, setActionLoading] = useState<string | null>(null)
+  
+  // Computed values
+  const autonomousMode = stats?.autonomyLevel ? stats.autonomyLevel >= 2 : false
+  const isEmergencyMode = stats?.emergencyMode || false
 
-  useEffect(() => {
-    loadValves()
-    loadSegments()
-    loadDecisions()
+  // Load all data
+  const loadData = useCallback(async () => {
+    try {
+      const [valvesData, segmentsData, decisionsData, pendingData, statsData] = await Promise.all([
+        getValves(),
+        getNetworkSegments(),
+        getDecisions(50),
+        getPendingActions(),
+        getStats()
+      ])
+      
+      setValves(valvesData)
+      setSegments(segmentsData)
+      setDecisions(decisionsData)
+      setPendingActions(pendingData)
+      setStats(statsData)
+      setError(null)
+    } catch (err) {
+      console.error('Failed to load autonomous data:', err)
+      setError('Failed to load system data')
+    } finally {
+      setLoading(false)
+    }
   }, [])
 
-  const loadValves = () => {
-    setValves([
-      {
-        id: 'VLV-001',
-        name: 'Main Trunk Valve K1',
-        location: 'Kabulonga Reservoir',
-        dma: 'Kabulonga',
-        status: 'open',
-        openPercent: 100,
-        pressure: 4.2,
-        flow: 850,
-        autoMode: true,
-        lastAction: '2 hours ago',
-        controlledBy: 'ai',
-        health: 95
-      },
-      {
-        id: 'VLV-002',
-        name: 'Roma Distribution Gate',
-        location: 'Roma Junction',
-        dma: 'Roma',
-        status: 'partial',
-        openPercent: 65,
-        pressure: 3.8,
-        flow: 420,
-        autoMode: true,
-        lastAction: '30 min ago',
-        controlledBy: 'ai',
-        health: 88
-      },
-      {
-        id: 'VLV-003',
-        name: 'Chelstone Pressure Reducer',
-        location: 'Chelstone Main',
-        dma: 'Chelstone',
-        status: 'partial',
-        openPercent: 45,
-        pressure: 2.5,
-        flow: 310,
-        autoMode: true,
-        lastAction: '15 min ago',
-        controlledBy: 'schedule',
-        health: 92
-      },
-      {
-        id: 'VLV-004',
-        name: 'Matero Isolation Valve',
-        location: 'Matero Industrial',
-        dma: 'Matero',
-        status: 'closed',
-        openPercent: 0,
-        pressure: 0,
-        flow: 0,
-        autoMode: true,
-        lastAction: '5 min ago',
-        controlledBy: 'ai',
-        health: 100
-      },
-      {
-        id: 'VLV-005',
-        name: 'Woodlands Branch Gate',
-        location: 'Woodlands Shopping',
-        dma: 'Woodlands',
-        status: 'error',
-        openPercent: 78,
-        pressure: 3.2,
-        flow: 180,
-        autoMode: false,
-        lastAction: 'Manual override',
-        controlledBy: 'manual',
-        health: 45
-      },
-      {
-        id: 'VLV-006',
-        name: 'Chilenje PRV Station',
-        location: 'Chilenje South',
-        dma: 'Chilenje',
-        status: 'open',
-        openPercent: 100,
-        pressure: 3.9,
-        flow: 520,
-        autoMode: true,
-        lastAction: '1 hour ago',
-        controlledBy: 'ai',
-        health: 98
+  // Initial load and real-time updates
+  useEffect(() => {
+    loadData()
+    
+    // Subscribe to real-time updates
+    const unsubscribe = subscribeToUpdates((state) => {
+      setValves(state.valves)
+      setSegments(state.segments)
+      setDecisions(state.decisions)
+      setPendingActions(state.pendingActions)
+      if (state.stats) {
+        setStats({
+          ...state.stats,
+          autonomyLevel: state.autonomyLevel,
+          emergencyMode: state.emergencyMode,
+        } as AutonomousStats)
       }
-    ])
-  }
+    }, 5000) // Update every 5 seconds
+    
+    return () => unsubscribe()
+  }, [loadData])
 
-  const loadSegments = () => {
-    setSegments([
-      {
-        id: 'SEG-001',
-        name: 'Kabulonga Main Line',
-        dma: 'Kabulonga',
-        status: 'healthy',
-        flowIn: 850,
-        flowOut: 830,
-        pressure: 4.0,
-        activeValves: 3,
-        leakDetected: false,
-        autoHealing: true,
-        lastIncident: null
-      },
-      {
-        id: 'SEG-002',
-        name: 'Roma Supply Network',
-        dma: 'Roma',
-        status: 'rerouting',
-        flowIn: 620,
-        flowOut: 580,
-        pressure: 3.5,
-        activeValves: 4,
-        leakDetected: true,
-        autoHealing: true,
-        lastIncident: '2026-01-29 08:30'
-      },
-      {
-        id: 'SEG-003',
-        name: 'Matero Industrial Zone',
-        dma: 'Matero',
-        status: 'isolated',
-        flowIn: 0,
-        flowOut: 0,
-        pressure: 0,
-        activeValves: 2,
-        leakDetected: true,
-        autoHealing: true,
-        lastIncident: '2026-01-29 10:15'
-      },
-      {
-        id: 'SEG-004',
-        name: 'Chelstone Residential',
-        dma: 'Chelstone',
-        status: 'healthy',
-        flowIn: 450,
-        flowOut: 440,
-        pressure: 2.8,
-        activeValves: 3,
-        leakDetected: false,
-        autoHealing: true,
-        lastIncident: null
+  // Handlers
+  const handleValveControl = async (valveId: string, position: number) => {
+    setActionLoading(valveId)
+    const result = await controlValve(valveId, position, 'Manual operator adjustment', true)
+    if (result.success && result.valve) {
+      setValves(prev => prev.map(v => v.id === valveId ? result.valve! : v))
+      if (result.decision) {
+        setDecisions(prev => [result.decision!, ...prev])
       }
-    ])
-  }
-
-  const loadDecisions = () => {
-    setDecisions([
-      {
-        id: 'DEC-001',
-        timestamp: '2026-01-29 10:15',
-        type: 'isolation',
-        action: 'Close VLV-004 (Matero Isolation)',
-        reason: 'Major leak detected - flow anomaly 280% above normal',
-        affectedArea: 'Matero Industrial Zone',
-        status: 'executed',
-        impact: 'Isolated leak, prevented 450 m³/hr water loss',
-        confidence: 97
-      },
-      {
-        id: 'DEC-002',
-        timestamp: '2026-01-29 10:16',
-        type: 'reroute',
-        action: 'Increase flow through VLV-002 to 65%',
-        reason: 'Maintain pressure for Roma after Matero isolation',
-        affectedArea: 'Roma Distribution',
-        status: 'executed',
-        impact: 'Maintained service to 12,000 customers',
-        confidence: 94
-      },
-      {
-        id: 'DEC-003',
-        timestamp: '2026-01-29 09:45',
-        type: 'pressure_adjust',
-        action: 'Reduce VLV-003 to 45% open',
-        reason: 'Night-time pressure optimization',
-        affectedArea: 'Chelstone',
-        status: 'executed',
-        impact: 'Reduced background losses by 15%',
-        confidence: 89
-      },
-      {
-        id: 'DEC-004',
-        timestamp: '2026-01-29 08:30',
-        type: 'alert',
-        action: 'Generate work order WO-2854',
-        reason: 'Valve VLV-005 health degradation detected',
-        affectedArea: 'Woodlands',
-        status: 'pending',
-        impact: 'Scheduled maintenance to prevent failure',
-        confidence: 86
-      }
-    ])
-  }
-
-  const getValveStatusColor = (status: string) => {
-    switch (status) {
-      case 'open': return 'bg-green-100 text-green-700 border-green-200'
-      case 'closed': return 'bg-red-100 text-red-700 border-red-200'
-      case 'partial': return 'bg-yellow-100 text-yellow-700 border-yellow-200'
-      case 'error': return 'bg-red-100 text-red-700 border-red-200 animate-pulse'
-      default: return 'bg-gray-100 text-gray-700'
     }
+    setActionLoading(null)
   }
 
-  const getSegmentStatusColor = (status: string) => {
-    switch (status) {
-      case 'healthy': return 'bg-green-500'
-      case 'isolated': return 'bg-red-500'
-      case 'rerouting': return 'bg-yellow-500 animate-pulse'
-      case 'alert': return 'bg-orange-500 animate-pulse'
-      default: return 'bg-gray-500'
+  const handleToggleAutoMode = async (valveId: string, enabled: boolean) => {
+    setActionLoading(valveId)
+    const result = await toggleValveAutoMode(valveId, enabled)
+    if (result.success && result.valve) {
+      setValves(prev => prev.map(v => v.id === valveId ? result.valve! : v))
+      setSelectedValve(result.valve)
     }
+    setActionLoading(null)
   }
 
-  const stats = {
-    totalValves: valves.length,
-    autoValves: valves.filter(v => v.autoMode).length,
-    aiControlled: valves.filter(v => v.controlledBy === 'ai').length,
-    errors: valves.filter(v => v.status === 'error').length,
-    healthySegments: segments.filter(s => s.status === 'healthy').length,
-    isolatedSegments: segments.filter(s => s.status === 'isolated').length,
-    decisionsToday: decisions.length,
-    waterSaved: 450 // m³
+  const handleSetAutonomyLevel = async (level: number) => {
+    setActionLoading('autonomy')
+    const result = await setAutonomyLevel(level)
+    if (result.success) {
+      setStats(prev => prev ? { ...prev, autonomyLevel: level } : null)
+    }
+    setActionLoading(null)
   }
+
+  const handleToggleEmergency = async () => {
+    setActionLoading('emergency')
+    const newState = !isEmergencyMode
+    const result = await toggleEmergencyMode(newState, newState ? 'Manual emergency activation' : 'Emergency resolved')
+    if (result.success) {
+      setStats(prev => prev ? { ...prev, emergencyMode: newState } : null)
+      await loadData() // Reload all data as emergency mode changes valve states
+    }
+    setActionLoading(null)
+  }
+
+  const handleApproveAction = async (actionId: string) => {
+    setActionLoading(actionId)
+    const result = await approveAction(actionId)
+    if (result.success) {
+      setPendingActions(prev => prev.filter(a => a.id !== actionId))
+      await loadData() // Reload decisions
+    }
+    setActionLoading(null)
+  }
+
+  const handleRejectAction = async (actionId: string) => {
+    setActionLoading(actionId)
+    const result = await rejectAction(actionId)
+    if (result.success) {
+      setPendingActions(prev => prev.filter(a => a.id !== actionId))
+    }
+    setActionLoading(null)
+  }
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="text-center">
+          <Loader2 className="w-12 h-12 text-purple-600 animate-spin mx-auto mb-4" />
+          <p className="text-slate-600">Loading Autonomous Operations...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="text-center">
+          <WifiOff className="w-12 h-12 text-red-500 mx-auto mb-4" />
+          <p className="text-red-600 font-semibold">{error}</p>
+          <Button variant="secondary" onClick={loadData} className="mt-4">
+            <RefreshCw className="w-4 h-4 mr-2" />
+            Retry
+          </Button>
+        </div>
+      </div>
+    )
+  }
+
+  const autonomyInfo = getAutonomyLevelInfo(stats?.autonomyLevel || 0)
 
   return (
     <div className="space-y-4 sm:space-y-6">
@@ -303,28 +210,51 @@ export default function AutonomousPage() {
             Autonomous Operations
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 mt-1">
-            AI-controlled valve management & self-healing network
+            AI-controlled valve management & self-healing network • Level {stats?.autonomyLevel || 0}: {autonomyInfo.name}
           </p>
         </div>
         <div className="flex items-center gap-2 sm:gap-3">
-          {/* Autonomous Mode Toggle */}
+          {/* Autonomy Level Selector */}
+          <select
+            value={stats?.autonomyLevel || 0}
+            onChange={(e) => handleSetAutonomyLevel(parseInt(e.target.value))}
+            disabled={actionLoading === 'autonomy'}
+            className="px-3 py-2 rounded-lg border border-slate-200 text-sm font-medium bg-white"
+          >
+            <option value={0}>Level 0: Manual</option>
+            <option value={1}>Level 1: Assisted</option>
+            <option value={2}>Level 2: Supervised</option>
+            <option value={3}>Level 3: Conditional</option>
+            <option value={4}>Level 4: High Autonomy</option>
+            <option value={5}>Level 5: Full Autonomy</option>
+          </select>
+
+          {/* Autonomous Mode Indicator */}
           <div className={`flex items-center gap-2 px-4 py-2 rounded-xl ${autonomousMode ? 'bg-green-100' : 'bg-slate-100'}`}>
             <span className={`w-2 h-2 rounded-full ${autonomousMode ? 'bg-green-500 animate-pulse' : 'bg-slate-400'}`} />
             <span className={`text-sm font-medium ${autonomousMode ? 'text-green-700' : 'text-slate-600'}`}>
               {autonomousMode ? 'Autonomous Active' : 'Manual Mode'}
             </span>
-            <button
-              onClick={() => setAutonomousMode(!autonomousMode)}
-              className={`w-12 h-6 rounded-full transition-colors relative ${autonomousMode ? 'bg-green-500' : 'bg-slate-300'}`}
-            >
-              <span className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all ${autonomousMode ? 'left-7' : 'left-1'}`} />
-            </button>
           </div>
-          {isEmergencyMode && (
-            <span className="px-3 py-1 bg-red-500 text-white rounded-lg text-sm font-semibold animate-pulse">
-              🚨 EMERGENCY
-            </span>
-          )}
+
+          {/* Emergency Button */}
+          <button
+            onClick={handleToggleEmergency}
+            disabled={actionLoading === 'emergency'}
+            className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
+              isEmergencyMode 
+                ? 'bg-red-500 text-white animate-pulse hover:bg-red-600' 
+                : 'bg-slate-200 text-slate-700 hover:bg-red-100 hover:text-red-700'
+            }`}
+          >
+            {actionLoading === 'emergency' ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : isEmergencyMode ? (
+              '🚨 EMERGENCY ACTIVE'
+            ) : (
+              '🚨 Emergency'
+            )}
+          </button>
         </div>
       </div>
 
@@ -340,48 +270,104 @@ export default function AutonomousPage() {
                 AI Control Engine
                 <Sparkles className="w-4 h-4 text-yellow-300" />
               </h3>
-              <p className="text-purple-200 text-sm">Real-time network optimization</p>
+              <p className="text-purple-200 text-sm">Real-time network optimization • Live Data</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
             <span className="text-xs text-purple-200">System Status:</span>
             <span className="flex items-center gap-1 px-3 py-1 bg-white/20 rounded-full text-sm">
-              <CheckCircle className="w-4 h-4 text-green-300" />
-              All Systems Operational
+              {isEmergencyMode ? (
+                <>
+                  <AlertTriangle className="w-4 h-4 text-red-300 animate-pulse" />
+                  Emergency Mode
+                </>
+              ) : (
+                <>
+                  <CheckCircle className="w-4 h-4 text-green-300" />
+                  All Systems Operational
+                </>
+              )}
             </span>
           </div>
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-4">
           <div className="bg-white/10 rounded-xl p-3 text-center">
-            <p className="text-3xl font-bold">{stats.aiControlled}</p>
-            <p className="text-purple-200 text-xs">AI Controlled Valves</p>
+            <p className="text-3xl font-bold">{stats?.aiControlled || 0}</p>
+            <p className="text-purple-200 text-xs">AI Controlled</p>
           </div>
           <div className="bg-white/10 rounded-xl p-3 text-center">
-            <p className="text-3xl font-bold">{stats.healthySegments}/{segments.length}</p>
+            <p className="text-3xl font-bold">{stats?.healthySegments || 0}/{stats?.totalSegments || 0}</p>
             <p className="text-purple-200 text-xs">Healthy Segments</p>
           </div>
           <div className="bg-white/10 rounded-xl p-3 text-center">
-            <p className="text-3xl font-bold text-green-300">{stats.waterSaved}</p>
+            <p className="text-3xl font-bold text-green-300">{stats?.waterSavedToday || 0}</p>
             <p className="text-purple-200 text-xs">m³ Saved Today</p>
           </div>
           <div className="bg-white/10 rounded-xl p-3 text-center">
-            <p className="text-3xl font-bold text-yellow-300">{stats.decisionsToday}</p>
-            <p className="text-purple-200 text-xs">AI Decisions Today</p>
+            <p className="text-3xl font-bold text-yellow-300">{stats?.decisionsToday || 0}</p>
+            <p className="text-purple-200 text-xs">AI Decisions</p>
+          </div>
+          <div className="bg-white/10 rounded-xl p-3 text-center">
+            <p className="text-3xl font-bold text-cyan-300">{stats?.incidentsHandled || 0}</p>
+            <p className="text-purple-200 text-xs">Incidents Handled</p>
+          </div>
+          <div className="bg-white/10 rounded-xl p-3 text-center">
+            <p className="text-3xl font-bold">{stats?.uptime?.toFixed(2) || 0}%</p>
+            <p className="text-purple-200 text-xs">System Uptime</p>
           </div>
         </div>
       </div>
 
+      {/* Pending Actions Alert */}
+      {pendingActions.length > 0 && (
+        <div className="bg-orange-50 border border-orange-200 rounded-xl p-4">
+          <div className="flex items-center gap-3 mb-3">
+            <AlertCircle className="w-5 h-5 text-orange-600" />
+            <h3 className="font-semibold text-orange-800">
+              {pendingActions.length} Action{pendingActions.length > 1 ? 's' : ''} Awaiting Approval
+            </h3>
+          </div>
+          <div className="space-y-2">
+            {pendingActions.slice(0, 3).map((action) => (
+              <div key={action.id} className="flex items-center justify-between bg-white rounded-lg p-3">
+                <div>
+                  <p className="font-medium text-slate-900">{action.type}: {action.target}</p>
+                  <p className="text-xs text-slate-500">Risk: {(action.riskScore * 100).toFixed(0)}% • {action.affectedCustomers} customers affected</p>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => handleApproveAction(action.id)}
+                    disabled={actionLoading === action.id}
+                    className="px-3 py-1 bg-green-500 text-white rounded-lg text-sm hover:bg-green-600"
+                  >
+                    {actionLoading === action.id ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Approve'}
+                  </button>
+                  <button
+                    onClick={() => handleRejectAction(action.id)}
+                    disabled={actionLoading === action.id}
+                    className="px-3 py-1 bg-red-100 text-red-700 rounded-lg text-sm hover:bg-red-200"
+                  >
+                    Reject
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Tabs */}
       <Tabs
         tabs={[
-          { id: 'valves', label: 'Valve Control' },
-          { id: 'network', label: 'Self-Healing Network' },
-          { id: 'decisions', label: 'AI Decisions' }
+          { id: 'valves', label: `Valve Control (${valves.length})` },
+          { id: 'network', label: `Self-Healing Network (${segments.length})` },
+          { id: 'decisions', label: `AI Decisions (${decisions.length})` }
         ]}
         activeTab={activeTab}
         onChange={setActiveTab}
       />
 
+      {/* VALVES TAB */}
       {activeTab === 'valves' && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {valves.map((valve) => (
@@ -405,18 +391,26 @@ export default function AutonomousPage() {
                   </div>
                   <div>
                     <p className="font-mono text-xs text-slate-400">{valve.id}</p>
-                    <p className="font-semibold text-slate-900">{valve.name}</p>
+                    <p className="font-semibold text-slate-900 text-sm">{valve.name}</p>
                   </div>
                 </div>
-                <span className={`px-2 py-0.5 rounded-full text-xs font-medium border ${getValveStatusColor(valve.status)}`}>
-                  {valve.status.toUpperCase()}
-                </span>
+                <div className="flex flex-col items-end gap-1">
+                  <span className={`px-2 py-0.5 rounded-full text-xs font-medium border ${getValveStatusColor(valve.status)}`}>
+                    {valve.status.toUpperCase()}
+                  </span>
+                  <span className={`px-2 py-0.5 rounded text-[10px] ${
+                    valve.actuatorStatus === 'online' ? 'bg-green-100 text-green-700' :
+                    valve.actuatorStatus === 'degraded' ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'
+                  }`}>
+                    {valve.actuatorStatus}
+                  </span>
+                </div>
               </div>
 
               {/* Valve Visual */}
               <div className="relative h-4 bg-slate-200 rounded-full overflow-hidden mb-3">
                 <div 
-                  className={`h-full transition-all ${
+                  className={`h-full transition-all duration-500 ${
                     valve.status === 'open' ? 'bg-green-500' :
                     valve.status === 'closed' ? 'bg-red-500' : 
                     valve.status === 'error' ? 'bg-red-500' : 'bg-yellow-500'
@@ -430,7 +424,7 @@ export default function AutonomousPage() {
 
               <div className="grid grid-cols-3 gap-2 text-center text-xs mb-3">
                 <div className="bg-slate-50 rounded-lg p-2">
-                  <p className="font-semibold text-slate-900">{valve.pressure}</p>
+                  <p className="font-semibold text-slate-900">{valve.pressure.toFixed(1)}</p>
                   <p className="text-slate-500">bar</p>
                 </div>
                 <div className="bg-slate-50 rounded-lg p-2">
@@ -438,7 +432,9 @@ export default function AutonomousPage() {
                   <p className="text-slate-500">m³/hr</p>
                 </div>
                 <div className="bg-slate-50 rounded-lg p-2">
-                  <p className="font-semibold text-slate-900">{valve.health}%</p>
+                  <p className={`font-semibold ${valve.health > 80 ? 'text-green-600' : valve.health > 50 ? 'text-yellow-600' : 'text-red-600'}`}>
+                    {valve.health}%
+                  </p>
                   <p className="text-slate-500">health</p>
                 </div>
               </div>
@@ -460,50 +456,51 @@ export default function AutonomousPage() {
         </div>
       )}
 
+      {/* NETWORK TAB */}
       {activeTab === 'network' && (
         <div className="space-y-4">
           {/* Network Visualization */}
           <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-xl p-4 sm:p-6">
             <h3 className="text-white font-semibold mb-4 flex items-center gap-2">
               <Network className="w-5 h-5" />
-              Network Topology
+              Network Topology - Live Status
             </h3>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
               {segments.map((segment) => (
                 <div key={segment.id} className="bg-white/10 rounded-xl p-4">
                   <div className="flex items-center gap-2 mb-2">
-                    <span className={`w-3 h-3 rounded-full ${getSegmentStatusColor(segment.status)}`} />
-                    <span className="text-white text-sm font-medium">{segment.name}</span>
+                    <span className={`w-3 h-3 rounded-full ${getSegmentStatusColor(segment.status)} ${
+                      segment.status !== 'healthy' ? 'animate-pulse' : ''
+                    }`} />
+                    <span className="text-white text-xs font-medium truncate">{segment.name}</span>
                   </div>
                   <div className="space-y-2 text-xs">
                     <div className="flex justify-between text-slate-300">
-                      <span>Flow In:</span>
-                      <span className="text-white font-semibold">{segment.flowIn} m³/hr</span>
+                      <span>In:</span>
+                      <span className="text-white font-semibold">{segment.flowIn}</span>
                     </div>
                     <div className="flex justify-between text-slate-300">
-                      <span>Flow Out:</span>
-                      <span className="text-white font-semibold">{segment.flowOut} m³/hr</span>
+                      <span>Out:</span>
+                      <span className="text-white font-semibold">{segment.flowOut}</span>
                     </div>
                     <div className="flex justify-between text-slate-300">
-                      <span>Status:</span>
+                      <span>Loss:</span>
                       <span className={`font-semibold ${
-                        segment.status === 'healthy' ? 'text-green-400' :
-                        segment.status === 'isolated' ? 'text-red-400' :
-                        segment.status === 'rerouting' ? 'text-yellow-400' : 'text-orange-400'
+                        segment.flowIn - segment.flowOut > 50 ? 'text-red-400' : 'text-green-400'
                       }`}>
-                        {segment.status}
+                        {segment.flowIn - segment.flowOut} m³/hr
                       </span>
                     </div>
                     {segment.leakDetected && (
-                      <div className="flex items-center gap-1 text-red-400">
+                      <div className="flex items-center gap-1 text-red-400 mt-2">
                         <AlertTriangle className="w-3 h-3" />
-                        Leak Detected
+                        <span>Leak!</span>
                       </div>
                     )}
                     {segment.autoHealing && segment.status !== 'healthy' && (
                       <div className="flex items-center gap-1 text-cyan-400">
                         <RefreshCw className="w-3 h-3 animate-spin" />
-                        Self-healing active
+                        <span>Healing</span>
                       </div>
                     )}
                   </div>
@@ -522,13 +519,19 @@ export default function AutonomousPage() {
                       <div className={`w-3 h-3 rounded-full ${getSegmentStatusColor(segment.status)}`} />
                       <div>
                         <p className="font-semibold text-slate-900">{segment.name}</p>
-                        <p className="text-xs text-slate-500">{segment.dma} DMA • {segment.activeValves} valves</p>
+                        <p className="text-xs text-slate-500">
+                          {segment.dma} • {segment.activeValves} valves • {segment.affectedCustomers.toLocaleString()} customers
+                        </p>
                       </div>
                     </div>
                     <div className="flex items-center gap-4">
                       <div className="text-center">
-                        <p className="text-sm font-semibold text-slate-900">{segment.flowIn - segment.flowOut}</p>
-                        <p className="text-xs text-slate-500">Loss (m³/hr)</p>
+                        <p className={`text-sm font-semibold ${
+                          segment.flowIn - segment.flowOut > 50 ? 'text-red-600' : 'text-slate-900'
+                        }`}>
+                          {segment.flowIn - segment.flowOut} m³/hr
+                        </p>
+                        <p className="text-xs text-slate-500">Loss</p>
                       </div>
                       <div className="text-center">
                         <p className="text-sm font-semibold text-slate-900">{segment.pressure} bar</p>
@@ -543,6 +546,11 @@ export default function AutonomousPage() {
                       </span>
                     </div>
                   </div>
+                  {segment.lastIncident && (
+                    <div className="mt-2 text-xs text-slate-500">
+                      Last incident: {formatTimeAgo(segment.lastIncident)}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -550,10 +558,11 @@ export default function AutonomousPage() {
         </div>
       )}
 
+      {/* DECISIONS TAB */}
       {activeTab === 'decisions' && (
         <SectionCard 
           title="AI Decision Log" 
-          subtitle="Autonomous decisions made by the AI control engine"
+          subtitle="Autonomous decisions made by the AI control engine - Live Feed"
           noPadding
         >
           <div className="divide-y divide-slate-100">
@@ -563,17 +572,22 @@ export default function AutonomousPage() {
                   <div className={`w-10 h-10 rounded-lg flex-shrink-0 flex items-center justify-center ${
                     decision.type === 'isolation' ? 'bg-red-100' :
                     decision.type === 'reroute' ? 'bg-yellow-100' :
-                    decision.type === 'pressure_adjust' ? 'bg-blue-100' : 'bg-orange-100'
+                    decision.type === 'pressure_adjust' ? 'bg-blue-100' :
+                    decision.type === 'dispatch' ? 'bg-purple-100' :
+                    decision.type === 'notify' ? 'bg-cyan-100' : 'bg-orange-100'
                   }`}>
                     {decision.type === 'isolation' && <Shield className="w-5 h-5 text-red-600" />}
                     {decision.type === 'reroute' && <GitBranch className="w-5 h-5 text-yellow-600" />}
                     {decision.type === 'pressure_adjust' && <Gauge className="w-5 h-5 text-blue-600" />}
+                    {decision.type === 'valve_control' && <Settings className="w-5 h-5 text-slate-600" />}
+                    {decision.type === 'dispatch' && <Users className="w-5 h-5 text-purple-600" />}
+                    {decision.type === 'notify' && <Activity className="w-5 h-5 text-cyan-600" />}
                     {decision.type === 'alert' && <AlertTriangle className="w-5 h-5 text-orange-600" />}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-mono text-xs text-slate-400">{decision.id}</span>
-                      <span className="text-xs text-slate-500">{decision.timestamp}</span>
+                      <span className="font-mono text-xs text-slate-400">{decision.id.substring(0, 12)}</span>
+                      <span className="text-xs text-slate-500">{formatTimeAgo(decision.timestamp)}</span>
                       <span className={`px-2 py-0.5 rounded-full text-xs ${
                         decision.status === 'executed' ? 'bg-green-100 text-green-700' :
                         decision.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
@@ -581,12 +595,22 @@ export default function AutonomousPage() {
                       }`}>
                         {decision.status}
                       </span>
+                      <span className="text-xs text-purple-600 flex items-center gap-1">
+                        <Brain className="w-3 h-3" />
+                        {decision.confidence.toFixed(0)}% confident
+                      </span>
                     </div>
                     <p className="font-semibold text-slate-900 mt-1">{decision.action}</p>
                     <p className="text-sm text-slate-600 mt-1">{decision.reason}</p>
                     <div className="flex items-center gap-4 mt-2 text-xs text-slate-500">
                       <span>Area: {decision.affectedArea}</span>
-                      <span>Confidence: {decision.confidence}%</span>
+                      <span>By: {decision.triggeredBy}</span>
+                      {decision.waterSaved > 0 && (
+                        <span className="text-green-600 flex items-center gap-1">
+                          <Droplets className="w-3 h-3" />
+                          {decision.waterSaved} m³ saved
+                        </span>
+                      )}
                     </div>
                     <p className="text-sm text-green-600 mt-2 flex items-center gap-1">
                       <CheckCircle className="w-4 h-4" />
@@ -627,6 +651,15 @@ export default function AutonomousPage() {
                   min="0" 
                   max="100" 
                   value={selectedValve.openPercent}
+                  onChange={(e) => {
+                    const newPosition = parseInt(e.target.value)
+                    setSelectedValve({ ...selectedValve, openPercent: newPosition })
+                  }}
+                  onMouseUp={(e) => {
+                    if (!selectedValve.autoMode) {
+                      handleValveControl(selectedValve.id, selectedValve.openPercent)
+                    }
+                  }}
                   className="w-full"
                   disabled={selectedValve.autoMode}
                 />
@@ -639,17 +672,47 @@ export default function AutonomousPage() {
 
               {/* Quick Actions */}
               <div className="grid grid-cols-3 gap-2">
-                <Button variant="secondary" disabled={selectedValve.autoMode}>
-                  <Power className="w-4 h-4" />
-                  Close
+                <Button 
+                  variant="secondary" 
+                  disabled={selectedValve.autoMode || actionLoading === selectedValve.id}
+                  onClick={() => handleValveControl(selectedValve.id, 0)}
+                >
+                  {actionLoading === selectedValve.id ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Close'}
                 </Button>
-                <Button variant="secondary" disabled={selectedValve.autoMode}>
+                <Button 
+                  variant="secondary" 
+                  disabled={selectedValve.autoMode || actionLoading === selectedValve.id}
+                  onClick={() => handleValveControl(selectedValve.id, 50)}
+                >
                   50%
                 </Button>
-                <Button variant="secondary" disabled={selectedValve.autoMode}>
-                  <Power className="w-4 h-4" />
+                <Button 
+                  variant="secondary" 
+                  disabled={selectedValve.autoMode || actionLoading === selectedValve.id}
+                  onClick={() => handleValveControl(selectedValve.id, 100)}
+                >
                   Open
                 </Button>
+              </div>
+
+              {/* Valve Info */}
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div className="bg-slate-50 rounded-lg p-3">
+                  <p className="text-slate-500 text-xs">Type</p>
+                  <p className="font-semibold capitalize">{selectedValve.type}</p>
+                </div>
+                <div className="bg-slate-50 rounded-lg p-3">
+                  <p className="text-slate-500 text-xs">DMA</p>
+                  <p className="font-semibold">{selectedValve.dma}</p>
+                </div>
+                <div className="bg-slate-50 rounded-lg p-3">
+                  <p className="text-slate-500 text-xs">Last Action</p>
+                  <p className="font-semibold">{formatTimeAgo(selectedValve.lastAction)}</p>
+                </div>
+                <div className="bg-slate-50 rounded-lg p-3">
+                  <p className="text-slate-500 text-xs">By</p>
+                  <p className="font-semibold capitalize">{selectedValve.lastActionBy}</p>
+                </div>
               </div>
 
               {/* Auto Mode */}
@@ -658,7 +721,11 @@ export default function AutonomousPage() {
                   <p className="font-semibold text-slate-900">Autonomous Mode</p>
                   <p className="text-xs text-slate-500">Let AI control this valve</p>
                 </div>
-                <button className={`w-12 h-6 rounded-full transition-colors relative ${selectedValve.autoMode ? 'bg-green-500' : 'bg-slate-300'}`}>
+                <button 
+                  onClick={() => handleToggleAutoMode(selectedValve.id, !selectedValve.autoMode)}
+                  disabled={actionLoading === selectedValve.id}
+                  className={`w-12 h-6 rounded-full transition-colors relative ${selectedValve.autoMode ? 'bg-green-500' : 'bg-slate-300'}`}
+                >
                   <span className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all ${selectedValve.autoMode ? 'left-7' : 'left-1'}`} />
                 </button>
               </div>
@@ -667,6 +734,13 @@ export default function AutonomousPage() {
                 <div className="bg-purple-50 rounded-lg p-3 text-sm text-purple-700 flex items-center gap-2">
                   <Bot className="w-4 h-4" />
                   This valve is controlled by AI. Disable autonomous mode for manual control.
+                </div>
+              )}
+
+              {selectedValve.actuatorStatus !== 'online' && (
+                <div className="bg-red-50 rounded-lg p-3 text-sm text-red-700 flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4" />
+                  Actuator status: {selectedValve.actuatorStatus}. Remote control may be limited.
                 </div>
               )}
             </div>
