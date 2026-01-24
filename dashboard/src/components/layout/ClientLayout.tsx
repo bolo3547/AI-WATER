@@ -14,7 +14,9 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
   const isLoginPage = pathname === '/login'
   const isPortalPage = pathname === '/portal'
   const isPublicReportPage = pathname === '/report-leak' // Public leak reporting
-  const isPublicPage = isLoginPage || isPortalPage || isPublicReportPage
+  const isPublicLanding = pathname === '/' || pathname === '/public'
+  const isPublicUtilityPages = pathname === '/report' || pathname === '/track' || pathname === '/share'
+  const isPublicPage = isLoginPage || isPortalPage || isPublicReportPage || isPublicLanding || isPublicUtilityPages
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null)
   const [sidebarExpanded, setSidebarExpanded] = useState(false)
   const [isMobile, setIsMobile] = useState(false)

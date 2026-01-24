@@ -2,10 +2,40 @@ import type { Metadata, Viewport } from 'next'
 import './globals.css'
 import { ClientLayout } from '@/components/layout/ClientLayout'
 
+const siteUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3001'
+
 export const metadata: Metadata = {
-  title: 'LWSC NRW Detection System',
-  description: 'AI-Powered Non-Revenue Water Detection and Management System for Lusaka Water Supply Company',
+  metadataBase: new URL(siteUrl),
+  title: {
+    default: 'AquaWatch NRW | Public Water Loss Intelligence',
+    template: '%s | AquaWatch NRW'
+  },
+  description: 'AI-powered non-revenue water detection, leak reporting, and utility performance insights for the public and operators.',
   manifest: '/manifest.json',
+  alternates: {
+    canonical: '/'
+  },
+  openGraph: {
+    type: 'website',
+    url: siteUrl,
+    title: 'AquaWatch NRW | Public Water Loss Intelligence',
+    description: 'Track, report, and reduce non-revenue water with public transparency and operator-grade tools.',
+    siteName: 'AquaWatch NRW',
+    images: [
+      {
+        url: '/lwsc-logo.png',
+        width: 512,
+        height: 512,
+        alt: 'AquaWatch NRW'
+      }
+    ]
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'AquaWatch NRW | Public Water Loss Intelligence',
+    description: 'Track, report, and reduce non-revenue water with public transparency and operator-grade tools.',
+    images: ['/lwsc-logo.png']
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
@@ -22,6 +52,16 @@ export const metadata: Metadata = {
       { url: '/lwsc-logo.png' },
     ],
   },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-image-preview': 'large',
+      'max-snippet': -1
+    }
+  }
 }
 
 export const viewport: Viewport = {

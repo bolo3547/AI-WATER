@@ -31,6 +31,12 @@ export default function PublicLandingPage() {
               Track Report
             </Link>
             <Link
+              href="/login"
+              className="text-slate-300 hover:text-white transition-colors hidden sm:block"
+            >
+              Operator Login
+            </Link>
+            <Link
               href="/report"
               className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-medium transition-colors"
             >

@@ -55,7 +55,7 @@ export default function TechLayout({ children }: TechLayoutProps) {
       const userRole = user.role?.toLowerCase() || ''
       if (!ALLOWED_ROLES.includes(userRole)) {
         // Redirect non-technicians to main dashboard
-        router.push('/')
+        router.push('/app')
       }
     }
   }, [isLoading, isAuthenticated, user, router])

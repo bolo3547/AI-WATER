@@ -17,7 +17,7 @@ export default function LoginPage() {
     if (typeof window !== 'undefined') {
       const token = localStorage.getItem('access_token')
       if (token) {
-        router.replace('/')
+        router.replace('/app')
       }
     }
   }, [router])
@@ -46,7 +46,7 @@ export default function LoginPage() {
       localStorage.setItem('user', JSON.stringify(data.user))
 
       // Force redirect to dashboard
-      window.location.href = '/'
+      window.location.href = '/app'
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed')
     } finally {
