@@ -1,6 +1,7 @@
 import type { Config } from 'tailwindcss'
 
 const config: Config = {
+  darkMode: ["class"],
   content: [
     './src/pages/**/*.{js,ts,jsx,tsx,mdx}',
     './src/components/**/*.{js,ts,jsx,tsx,mdx}',
@@ -17,32 +18,63 @@ const config: Config = {
     },
     extend: {
       colors: {
-        // Zambian Flag Colors - National Branding
-        zambia: {
-          green: '#198038',      // Zambian green
-          orange: '#EF7D00',     // Zambian orange/copper
-          black: '#000000',      // Black
-          red: '#DE2010',        // Red (eagle)
-        },
-        // Primary palette - Deep professional blues
+        // Shadcn/UI compatible colors
+        border: "hsl(var(--border))",
+        input: "hsl(var(--input))",
+        ring: "hsl(var(--ring))",
+        background: "hsl(var(--background))",
+        foreground: "hsl(var(--foreground))",
         primary: {
+          DEFAULT: "hsl(var(--primary))",
+          foreground: "hsl(var(--primary-foreground))",
           50: '#eff6ff',
           100: '#dbeafe',
           200: '#bfdbfe',
           300: '#93c5fd',
           400: '#60a5fa',
-          500: '#1e40af', // Main primary
+          500: '#1e40af',
           600: '#1e3a8a',
           700: '#1e3a8a',
           800: '#1e3a8a',
           900: '#0f172a',
         },
-        // Status colors - Clear, utility-grade
+        secondary: {
+          DEFAULT: "hsl(var(--secondary))",
+          foreground: "hsl(var(--secondary-foreground))",
+        },
+        destructive: {
+          DEFAULT: "hsl(var(--destructive))",
+          foreground: "hsl(var(--destructive-foreground))",
+        },
+        muted: {
+          DEFAULT: "hsl(var(--muted))",
+          foreground: "hsl(var(--muted-foreground))",
+        },
+        accent: {
+          DEFAULT: "hsl(var(--accent))",
+          foreground: "hsl(var(--accent-foreground))",
+        },
+        popover: {
+          DEFAULT: "hsl(var(--popover))",
+          foreground: "hsl(var(--popover-foreground))",
+        },
+        card: {
+          DEFAULT: "hsl(var(--card))",
+          foreground: "hsl(var(--card-foreground))",
+        },
+        // Zambian Flag Colors - National Branding
+        zambia: {
+          green: '#198038',
+          orange: '#EF7D00',
+          black: '#000000',
+          red: '#DE2010',
+        },
+        // Status colors
         status: {
-          healthy: '#059669',    // Green - operational
-          warning: '#d97706',    // Amber - attention needed
-          critical: '#dc2626',   // Red - immediate action
-          info: '#0284c7',       // Blue - informational
+          healthy: '#059669',
+          warning: '#d97706',
+          critical: '#dc2626',
+          info: '#0284c7',
         },
         // Background system
         surface: {
@@ -63,21 +95,10 @@ const config: Config = {
         sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
         mono: ['JetBrains Mono', 'Consolas', 'monospace'],
       },
-      fontSize: {
-        'display': ['3.5rem', { lineHeight: '1.1', fontWeight: '700' }],
-        'metric': ['2.5rem', { lineHeight: '1.2', fontWeight: '600' }],
-        'heading': ['1.5rem', { lineHeight: '1.3', fontWeight: '600' }],
-        'subheading': ['1.125rem', { lineHeight: '1.4', fontWeight: '500' }],
-        'body': ['0.9375rem', { lineHeight: '1.5', fontWeight: '400' }],
-        'caption': ['0.8125rem', { lineHeight: '1.4', fontWeight: '400' }],
-        'label': ['0.75rem', { lineHeight: '1.4', fontWeight: '500' }],
-      },
-      boxShadow: {
-        'card': '0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.06)',
-        'card-hover': '0 4px 6px rgba(0, 0, 0, 0.07), 0 2px 4px rgba(0, 0, 0, 0.06)',
-        'elevated': '0 10px 15px rgba(0, 0, 0, 0.1), 0 4px 6px rgba(0, 0, 0, 0.05)',
-      },
       borderRadius: {
+        lg: "var(--radius)",
+        md: "calc(var(--radius) - 2px)",
+        sm: "calc(var(--radius) - 4px)",
         'card': '0.5rem',
       },
       spacing: {

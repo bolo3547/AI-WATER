@@ -777,6 +777,21 @@ class LeakEvent(Base):
     # For model training
     feature_snapshot = Column(JSONB)  # Features at time of detection
     
+    # =========================================================================
+    # STEP 8: EXPLAINABLE AI INSIGHTS
+    # =========================================================================
+    # AI Reason stores structured explainability data:
+    # - pressure_drop: {value, threshold, deviation, contribution, description}
+    # - flow_rise: {value, threshold, deviation, contribution, description}
+    # - multi_sensor_agreement: {sensors_triggered, agreement_score, contribution}
+    # - night_flow_deviation: {value, expected, deviation_percent, contribution}
+    # - confidence: {statistical, ml, temporal, spatial, acoustic, overall, weights}
+    # - top_signals: ["pressure_drop", "multi_sensor_agreement", ...]
+    # - evidence_timeline: [{timestamp, signal_type, value, anomaly_score, is_key_event}]
+    # - explanation: Human-readable description of why leak was detected
+    # - recommendations: ["Dispatch team...", "Monitor closely..."]
+    ai_reason = Column(JSONB)  # Explainable AI insights
+    
     # Relationships
     pipe = relationship("Pipe", back_populates="leak_events")
     
@@ -1164,6 +1179,205 @@ class NRWCalculation(Base):
         Index("ix_nrw_calc_dma_period", "dma_id", "period_start"),
         Index("ix_nrw_calc_utility_period", "utility_id", "period_start"),
     )
+
+
+# =============================================================================
+# NOTIFICATION SYSTEM MODELS
+# =============================================================================
+
+class NotificationChannel(str, Enum):
+    """Available notification delivery channels."""
+    IN_APP = "in_app"
+    EMAIL = "email"
+    SMS = "sms"
+    WHATSAPP = "whatsapp"
+    PUSH = "push"
+    WEBHOOK = "webhook"
+
+
+class NotificationSeverity(str, Enum):
+    """Notification severity levels."""
+    INFO = "info"
+    WARNING = "warning"
+    CRITICAL = "critical"
+
+
+class NotificationStatus(str, Enum):
+    """Notification delivery status."""
+    PENDING = "pending"
+    SENT = "sent"
+    DELIVERED = "delivered"
+    READ = "read"
+    FAILED = "failed"
+
+
+class NotificationRule(Base):
+    """
+    Notification rules defining when and how to send notifications.
+    
+    Configures:
+    - Which events trigger notifications
+    - Which channels to use based on severity
+    - Escalation paths and timing
+    """
+    __tablename__ = "notification_rules"
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    tenant_id = Column(String(50), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False)
+    
+    # Rule identification
+    name = Column(String(200), nullable=False)
+    description = Column(Text)
+    
+    # Trigger conditions
+    event_type = Column(String(50), nullable=False)  # leak.detected, sensor.offline, etc.
+    severity = Column(SQLEnum(NotificationSeverity), nullable=False)
+    
+    # Target roles (JSON array of roles to notify)
+    target_roles = Column(JSONB, default=["operator"])  # e.g., ["operator", "engineer"]
+    
+    # Channels configuration (JSON object mapping channel to config)
+    # e.g., {"in_app": {"enabled": true}, "email": {"enabled": true, "template": "leak_alert"}}
+    channels = Column(JSONB, nullable=False, default={
+        "in_app": {"enabled": True},
+        "email": {"enabled": False}
+    })
+    
+    # Escalation configuration (JSON array of escalation steps)
+    # e.g., [{"delay_minutes": 5, "roles": ["engineer"], "channels": ["sms"]}]
+    escalation = Column(JSONB, default=[])
+    
+    # Conditions (optional JSON filter)
+    # e.g., {"dma_id": "DMA-01", "min_loss_m3": 100}
+    conditions = Column(JSONB, default={})
+    
+    # Throttling
+    cooldown_minutes = Column(Integer, default=15)  # Don't re-notify within this period
+    
+    # Status
+    is_active = Column(Boolean, default=True)
+    
+    # Audit
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    created_by = Column(UUID(as_uuid=True), ForeignKey("users.id"))
+    
+    __table_args__ = (
+        Index("ix_notification_rules_tenant", "tenant_id"),
+        Index("ix_notification_rules_event", "event_type"),
+        Index("ix_notification_rules_severity", "severity"),
+        UniqueConstraint("tenant_id", "name", name="uq_notification_rule_name"),
+    )
+    
+    def __repr__(self):
+        return f"<NotificationRule {self.name}: {self.event_type}/{self.severity}>"
+
+
+class Notification(Base):
+    """
+    Individual notifications sent to users.
+    
+    Tracks:
+    - Notification content and metadata
+    - Delivery status per channel
+    - Read status for in-app notifications
+    """
+    __tablename__ = "notifications"
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    tenant_id = Column(String(50), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    
+    # Content
+    title = Column(String(200), nullable=False)
+    message = Column(Text, nullable=False)
+    
+    # Classification
+    severity = Column(SQLEnum(NotificationSeverity), nullable=False, default=NotificationSeverity.INFO)
+    category = Column(String(50))  # leak, sensor, work_order, system, etc.
+    
+    # Source reference
+    source_type = Column(String(50))  # alert, work_order, system, etc.
+    source_id = Column(String(100))  # ID of the source entity
+    
+    # Delivery
+    channel = Column(SQLEnum(NotificationChannel), default=NotificationChannel.IN_APP)
+    status = Column(SQLEnum(NotificationStatus), default=NotificationStatus.PENDING)
+    
+    # For in-app notifications
+    read = Column(Boolean, default=False)
+    read_at = Column(DateTime(timezone=True))
+    
+    # Action URL (for clickable notifications)
+    action_url = Column(String(500))
+    
+    # Metadata
+    metadata = Column(JSONB, default={})  # Additional context data
+    
+    # Timing
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    sent_at = Column(DateTime(timezone=True))
+    delivered_at = Column(DateTime(timezone=True))
+    expires_at = Column(DateTime(timezone=True))  # Optional expiration
+    
+    # Delivery tracking
+    delivery_attempts = Column(Integer, default=0)
+    last_error = Column(Text)
+    
+    # Link to rule that triggered this
+    rule_id = Column(UUID(as_uuid=True), ForeignKey("notification_rules.id", ondelete="SET NULL"))
+    
+    __table_args__ = (
+        Index("ix_notifications_tenant_user", "tenant_id", "user_id"),
+        Index("ix_notifications_user_read", "user_id", "read"),
+        Index("ix_notifications_created", "created_at"),
+        Index("ix_notifications_status", "status"),
+    )
+    
+    def __repr__(self):
+        return f"<Notification {self.id}: {self.title[:30]}...>"
+
+
+class EscalationTracker(Base):
+    """
+    Tracks escalation state for alerts requiring time-based escalation.
+    
+    Used by the escalation scheduler to determine when to escalate.
+    """
+    __tablename__ = "escalation_trackers"
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    tenant_id = Column(String(50), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False)
+    
+    # Source reference
+    alert_id = Column(UUID(as_uuid=True), ForeignKey("alerts.id", ondelete="CASCADE"), nullable=False)
+    
+    # Escalation state
+    current_level = Column(Integer, default=0)  # 0 = initial notification
+    max_level = Column(Integer, default=2)  # Maximum escalation level
+    
+    # Timing
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    last_escalated_at = Column(DateTime(timezone=True))
+    next_escalation_at = Column(DateTime(timezone=True))
+    
+    # Status
+    is_resolved = Column(Boolean, default=False)
+    resolved_at = Column(DateTime(timezone=True))
+    resolution_type = Column(String(50))  # acknowledged, resolved, timeout, manual
+    
+    # Notification history
+    notifications_sent = Column(JSONB, default=[])  # Array of notification IDs sent
+    
+    __table_args__ = (
+        Index("ix_escalation_tenant", "tenant_id"),
+        Index("ix_escalation_alert", "alert_id"),
+        Index("ix_escalation_next", "next_escalation_at"),
+        UniqueConstraint("alert_id", name="uq_escalation_alert"),
+    )
+    
+    def __repr__(self):
+        return f"<EscalationTracker alert={self.alert_id} level={self.current_level}>"
 
 
 # =============================================================================

@@ -1,0 +1,4 @@
+# Placeholder ACL file.
+# Example:
+# user aquawatch
+# topic readwrite aquawatch/#

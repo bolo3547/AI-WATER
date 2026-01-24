@@ -59,13 +59,11 @@ def is_port_in_use(port):
 
 def start_api():
     """Start the Python API server."""
-    print(f"{Colors.YELLOW}Starting Python API server on port 8000...{Colors.ENDC}")
+    print(f"{Colors.YELLOW}Starting Python API server (FastAPI) on port 8000...{Colors.ENDC}")
     
-    api_path = os.path.join(os.path.dirname(__file__), 'src', 'api', 'integrated_api.py')
-    
-    # Use the current Python interpreter
+    # Use uvicorn to run the modern FastAPI backend
     process = subprocess.Popen(
-        [sys.executable, api_path],
+        [sys.executable, "-m", "uvicorn", "src.cloud.api:app", "--host", "0.0.0.0", "--port", "8000", "--reload"],
         cwd=os.path.dirname(__file__),
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,

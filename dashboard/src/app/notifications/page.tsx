@@ -1,5 +1,29 @@
 'use client'
 
+// =============================================================================
+// NOTIFICATIONS PAGE
+// =============================================================================
+// This page provides a full-featured notification center with:
+// - Real-time notification updates via WebSocket
+// - API-backed notification management
+// - Escalation tracking and acknowledgment
+// - Notification rules management
+// =============================================================================
+
+import { NotificationDrawer } from '@/components/notifications'
+
+export default function NotificationsPage() {
+  return <NotificationDrawer />
+}
+
+// =============================================================================
+// LEGACY CODE BELOW (kept for reference)
+// =============================================================================
+// The original notification page implementation is preserved below for reference.
+// It can be removed in a future cleanup.
+// =============================================================================
+
+/*
 import { useState, useEffect } from 'react'
 import { 
   Bell, 

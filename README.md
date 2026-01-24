@@ -93,8 +93,12 @@ python prototype/run_simulation.py
 
 ### Run the Dashboard
 ```bash
-cd src/dashboard
-python app.py
+# Dash dashboard (classic)
+python -m src.dashboard.app
+
+# Dash dashboard (monday-style UI)
+python -m src.dashboard.monday_style_app
+
 # Open http://localhost:8050 in your browser
 ```
 

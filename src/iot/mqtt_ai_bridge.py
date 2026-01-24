@@ -775,30 +775,134 @@ def create_ai_integrated_bridge(
         # 1. Run anomaly detection on the aggregated data
         if anomaly_detector:
             try:
-                # Prepare data for anomaly detection
-                pressure_values = [r.pressure_bar for r in aggregated.readings]
-                flow_values = [r.flow_rate_lpm for r in aggregated.readings]
-                
-                # AI analyzes the data from multiple sensors
-                # This is where leak detection ACTUALLY happens
-                # (Not on the ESP32!)
-                pass  # Anomaly detector would be called here
+                anomaly_results = []
+                for reading in aggregated.readings:
+                    if reading.pressure_bar <= 0 and reading.flow_rate_lpm <= 0:
+                        continue
+
+                    if reading.timestamp_ms:
+                        ts = datetime.fromtimestamp(reading.timestamp_ms / 1000, tz=timezone.utc)
+                    else:
+                        ts = datetime.now(timezone.utc)
+
+                    result = anomaly_detector.process_reading(
+                        pipe_id=reading.device_id or aggregated.dma_id,
+                        pressure=reading.pressure_bar,
+                        flow=reading.flow_rate_lpm,
+                        timestamp=ts
+                    )
+                    anomaly_results.append(result)
+
+                if anomaly_results:
+                    highest = max(anomaly_results, key=lambda r: r.confidence)
+                    logger.info(
+                        "AI anomaly summary: dma=%s type=%s confidence=%.2f severity=%s",
+                        aggregated.dma_id,
+                        highest.anomaly_type.value,
+                        highest.confidence,
+                        highest.severity
+                    )
             except Exception as e:
                 logger.error(f"Anomaly detection failed: {e}")
         
         # 2. Calculate NRW for the DMA
         if nrw_calculator:
             try:
-                # NRW calculation would happen here
-                pass
+                window_minutes = max(int(bridge.config.aggregation_window_sec / 60), 1)
+
+                inlet_lpm = aggregated.total_inlet_flow_lpm
+                outlet_lpm = aggregated.total_outlet_flow_lpm
+                loss_lpm = max(inlet_lpm - outlet_lpm, 0.0)
+
+                siv_m3 = inlet_lpm * window_minutes / 1000.0
+                billed_m3 = outlet_lpm * window_minutes / 1000.0
+                unbilled_m3 = 0.0
+
+                if hasattr(nrw_calculator, "calculate"):
+                    end_time = aggregated.timestamp
+                    start_time = end_time - timedelta(minutes=window_minutes)
+                    nrw_result = nrw_calculator.calculate(
+                        dma_id=aggregated.dma_id,
+                        start_date=start_time,
+                        end_date=end_time,
+                        siv_m3=siv_m3,
+                        billed_m3=billed_m3,
+                        unbilled_m3=unbilled_m3,
+                        assumptions={"source": "mqtt_ai_bridge", "window_minutes": window_minutes}
+                    )
+                    logger.info(
+                        "NRW estimate: dma=%s nrw_percent=%.2f nrw_m3=%.2f",
+                        aggregated.dma_id,
+                        nrw_result.nrw_percent,
+                        nrw_result.nrw_m3
+                    )
+                else:
+                    nrw_m3 = max(siv_m3 - billed_m3 - unbilled_m3, 0.0)
+                    nrw_percent = (nrw_m3 / siv_m3 * 100) if siv_m3 > 0 else 0
+                    logger.info(
+                        "NRW estimate (simple): dma=%s nrw_percent=%.2f nrw_m3=%.2f",
+                        aggregated.dma_id,
+                        nrw_percent,
+                        nrw_m3
+                    )
             except Exception as e:
                 logger.error(f"NRW calculation failed: {e}")
         
         # 3. Run through Decision Engine to get priority
         if decision_engine:
             try:
-                # Decision engine would score the DMA here
-                pass
+                leak_prob = 0.0
+                confidence = 0.0
+                loss_m3_day = 0.0
+
+                try:
+                    loss_lpm = max(aggregated.total_inlet_flow_lpm - aggregated.total_outlet_flow_lpm, 0.0)
+                    loss_m3_day = loss_lpm * 60 * 24 / 1000.0
+                except Exception:
+                    loss_m3_day = 0.0
+
+                if anomaly_detector and aggregated.readings:
+                    anomalies = []
+                    for reading in aggregated.readings:
+                        if reading.pressure_bar <= 0 and reading.flow_rate_lpm <= 0:
+                            continue
+                        ts = datetime.fromtimestamp(reading.timestamp_ms / 1000, tz=timezone.utc) if reading.timestamp_ms else datetime.now(timezone.utc)
+                        anomalies.append(
+                            anomaly_detector.process_reading(
+                                pipe_id=reading.device_id or aggregated.dma_id,
+                                pressure=reading.pressure_bar,
+                                flow=reading.flow_rate_lpm,
+                                timestamp=ts
+                            )
+                        )
+
+                    if anomalies:
+                        top = max(anomalies, key=lambda r: r.confidence)
+                        confidence = top.confidence
+                        leak_prob = 1.0 if top.anomaly_type.value in ["leak_suspected", "burst_suspected"] else max(top.confidence - 0.2, 0.0)
+
+                if hasattr(decision_engine, "score_dma"):
+                    priority = decision_engine.score_dma(
+                        leak_prob=leak_prob,
+                        loss_m3_day=loss_m3_day,
+                        criticality=1.0,
+                        confidence=confidence
+                    )
+                    logger.info(
+                        "Decision score: dma=%s priority=%.1f leak_prob=%.2f loss_m3_day=%.2f",
+                        aggregated.dma_id,
+                        priority,
+                        leak_prob,
+                        loss_m3_day
+                    )
+                elif hasattr(decision_engine, "process_anomaly"):
+                    decision_engine.process_anomaly({
+                        "dma_id": aggregated.dma_id,
+                        "leak_prob": leak_prob,
+                        "loss_m3_day": loss_m3_day,
+                        "confidence": confidence,
+                        "timestamp": aggregated.timestamp.isoformat()
+                    })
             except Exception as e:
                 logger.error(f"Decision engine failed: {e}")
     

@@ -1,7 +1,14 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  // No rewrites needed - using Next.js API routes
+  async rewrites() {
+    return [
+      {
+        source: '/api/:path*',
+        destination: 'http://127.0.0.1:8000/api/v1/:path*', // Proxy to Python Backend
+      },
+    ]
+  },
 }
 
 module.exports = nextConfig

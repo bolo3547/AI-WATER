@@ -19,6 +19,59 @@ async function getDb() {
   }
 }
 
+// =============================================================================
+// STEP 8: EXPLAINABLE AI - TYPE DEFINITIONS
+// =============================================================================
+
+interface SignalEvidence {
+  signal_type: string
+  contribution: number  // 0-1
+  value: number
+  threshold: number
+  deviation: number
+  description: string
+  timestamp: string
+  sensor_id?: string | null
+  raw_data?: Record<string, unknown>
+}
+
+interface ConfidenceBreakdown {
+  statistical_confidence: number
+  ml_confidence: number
+  temporal_confidence: number
+  spatial_confidence: number
+  acoustic_confidence: number
+  overall_confidence: number
+  weights: Record<string, number>
+}
+
+interface EvidenceTimelinePoint {
+  timestamp: string
+  signal_type: string
+  value: number
+  anomaly_score: number
+  description: string
+  is_key_event: boolean
+}
+
+interface AIReason {
+  pressure_drop?: SignalEvidence | null
+  flow_rise?: SignalEvidence | null
+  multi_sensor_agreement?: SignalEvidence | null
+  night_flow_deviation?: SignalEvidence | null
+  acoustic_anomaly?: SignalEvidence | null
+  confidence: ConfidenceBreakdown
+  top_signals: string[]
+  evidence_timeline: EvidenceTimelinePoint[]
+  detection_method: string
+  detection_timestamp: string
+  analysis_duration_seconds: number
+  explanation: string
+  recommendations: string[]
+  model_version: string
+  feature_importance: Record<string, number>
+}
+
 interface Leak {
   id: string
   location: string
@@ -33,6 +86,8 @@ interface Leak {
   dispatched_at?: string
   resolved_at?: string
   notes?: string
+  // Step 8: Explainable AI insights
+  ai_reason?: AIReason | null
 }
 
 // Fallback in-memory store
@@ -93,7 +148,9 @@ export async function POST(request: NextRequest) {
       confidence: body.confidence || 75,
       detected_at: body.detected_at || new Date().toISOString(),
       status: 'new',
-      notes: body.notes
+      notes: body.notes,
+      // Step 8: Store AI reason when provided
+      ai_reason: body.ai_reason || null
     }
     
     const db = await getDb()
