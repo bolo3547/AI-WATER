@@ -19,17 +19,17 @@ import { AIInsightsPanel } from '@/components/ai/AIInsightsPanel'
 
 // Types for real-time data
 interface SystemMetrics {
-  total_nrw_percent: number
-  water_recovered_30d: number
-  revenue_recovered_30d: number
+  total_nrw_percent: number | null
+  water_recovered_30d: number | null
+  revenue_recovered_30d: number | null
   sensor_count: number
   dma_count: number
   active_high_priority_leaks: number
-  ai_confidence: number
-  last_data_received: string
-  total_input: number
-  total_output: number
-  nrw_change: number
+  ai_confidence: number | null
+  last_data_received: string | null
+  total_input?: number
+  total_output?: number
+  nrw_change?: number
 }
 
 interface DMAData {
