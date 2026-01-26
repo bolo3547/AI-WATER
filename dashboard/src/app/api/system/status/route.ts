@@ -101,12 +101,13 @@ export async function GET() {
   } catch (error) {
     console.error('System status check failed:', error)
     
-    // Return offline status if any critical error
+    // Return offline status if any critical error - but still return 200 so frontend can display the status
     return NextResponse.json({
       ...status,
       system_health: 'offline',
       database_connected: false,
-      error: error instanceof Error ? error.message : 'Unknown error'
-    }, { status: 503 })
+      error: error instanceof Error ? error.message : 'Unknown error',
+      last_check: new Date().toISOString()
+    })
   }
 }

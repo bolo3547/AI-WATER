@@ -80,6 +80,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = () => {
     localStorage.removeItem('access_token')
     localStorage.removeItem('user')
+    // Also clear the cookie for server-side middleware
+    document.cookie = 'access_token=; path=/; max-age=0; SameSite=Strict'
     setToken(null)
     setUser(null)
     router.push('/login')

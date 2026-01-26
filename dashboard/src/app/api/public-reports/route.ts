@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { v4 as uuidv4 } from 'uuid'
+import clientPromise from '@/lib/mongodb'
 
 // Types
 interface PublicReport {
@@ -12,6 +13,7 @@ interface PublicReport {
   longitude: number | null
   area_text: string | null
   source: string
+  severity: string
   reporter_name: string | null
   reporter_phone: string | null
   reporter_email: string | null
@@ -30,9 +32,6 @@ interface TimelineEntry {
   message: string
   timestamp: string
 }
-
-// In-memory store for demo (would use database in production)
-const reportsStore: Map<string, PublicReport> = new Map()
 
 // Status messages
 const STATUS_MESSAGES: Record<string, string> = {
@@ -54,7 +53,7 @@ function generateTicket(): string {
   return result
 }
 
-// Rate limiting (simple in-memory)
+// Rate limiting (simple in-memory for edge runtime)
 const rateLimitStore: Map<string, { count: number; resetAt: number }> = new Map()
 
 function checkRateLimit(ip: string): boolean {
@@ -66,7 +65,7 @@ function checkRateLimit(ip: string): boolean {
     return true
   }
   
-  if (limit.count >= 5) {
+  if (limit.count >= 10) { // Allow 10 reports per hour
     return false
   }
   
@@ -105,10 +104,17 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Generate ticket
+    // Connect to MongoDB
+    const client = await clientPromise
+    const db = client.db('lwsc')
+    const collection = db.collection('public_reports')
+
+    // Generate unique ticket
     let ticket = generateTicket()
-    while (reportsStore.has(ticket)) {
+    let attempts = 0
+    while (await collection.findOne({ ticket }) && attempts < 10) {
       ticket = generateTicket()
+      attempts++
     }
 
     const now = new Date().toISOString()
@@ -124,6 +130,7 @@ export async function POST(request: NextRequest) {
       longitude: body.longitude || null,
       area_text: body.area_text || null,
       source: body.source || 'web',
+      severity: body.severity || 'medium',
       reporter_name: body.reporter_name || null,
       reporter_phone: body.reporter_phone || null,
       reporter_email: body.reporter_email || null,
@@ -149,8 +156,8 @@ export async function POST(request: NextRequest) {
       report.quarantine = true
     }
 
-    // Store report
-    reportsStore.set(ticket, report)
+    // Store report in MongoDB
+    await collection.insertOne(report)
 
     console.log(`[PublicReport] Created: ${ticket} (category=${body.category}, source=${body.source || 'web'})`)
 
@@ -172,39 +179,55 @@ export async function POST(request: NextRequest) {
 
 // GET - List reports (for admin)
 export async function GET(request: NextRequest) {
-  const { searchParams } = new URL(request.url)
-  const tenantId = searchParams.get('tenant_id') || 'lwsc-zambia'
-  const status = searchParams.get('status')
-  const category = searchParams.get('category')
-  const page = parseInt(searchParams.get('page') || '1')
-  const pageSize = parseInt(searchParams.get('page_size') || '20')
+  try {
+    const { searchParams } = new URL(request.url)
+    const tenantId = searchParams.get('tenant_id') || 'lwsc-zambia'
+    const status = searchParams.get('status')
+    const category = searchParams.get('category')
+    const page = parseInt(searchParams.get('page') || '1')
+    const pageSize = parseInt(searchParams.get('page_size') || '20')
 
-  // Filter reports
-  let reports = Array.from(reportsStore.values())
-    .filter(r => r.tenant_id === tenantId)
+    // Connect to MongoDB
+    const client = await clientPromise
+    const db = client.db('lwsc')
+    const collection = db.collection('public_reports')
 
-  if (status) {
-    reports = reports.filter(r => r.status === status)
+    // Build query
+    const query: Record<string, unknown> = { tenant_id: tenantId }
+    
+    if (status) {
+      query.status = status
+    }
+    
+    if (category) {
+      query.category = category
+    }
+
+    // Get total count
+    const total = await collection.countDocuments(query)
+
+    // Get paginated results
+    const reports = await collection
+      .find(query)
+      .sort({ created_at: -1 })
+      .skip((page - 1) * pageSize)
+      .limit(pageSize)
+      .toArray()
+
+    const totalPages = Math.ceil(total / pageSize)
+
+    return NextResponse.json({
+      items: reports,
+      total,
+      page,
+      page_size: pageSize,
+      total_pages: totalPages,
+    })
+  } catch (error) {
+    console.error('[PublicReport] GET Error:', error)
+    return NextResponse.json(
+      { success: false, message: 'Failed to fetch reports.' },
+      { status: 500 }
+    )
   }
-
-  if (category) {
-    reports = reports.filter(r => r.category === category)
-  }
-
-  // Sort by created_at desc
-  reports.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-
-  // Paginate
-  const total = reports.length
-  const totalPages = Math.ceil(total / pageSize)
-  const start = (page - 1) * pageSize
-  const paginatedReports = reports.slice(start, start + pageSize)
-
-  return NextResponse.json({
-    items: paginatedReports,
-    total,
-    page,
-    page_size: pageSize,
-    total_pages: totalPages,
-  })
 }

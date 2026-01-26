@@ -76,14 +76,55 @@ export default function ReportLeakPage() {
   const [trackingId, setTrackingId] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isSubmitted, setIsSubmitted] = useState(false)
+  const [generatedTicket, setGeneratedTicket] = useState('')
+  const [submitError, setSubmitError] = useState('')
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     setIsSubmitting(true)
-    // Simulate API call
-    setTimeout(() => {
+    setSubmitError('')
+
+    try {
+      // Map leak types to API categories
+      const categoryMap: Record<string, string> = {
+        burst_pipe: 'burst',
+        leaking_valve: 'leak',
+        running_meter: 'leak',
+        wet_ground: 'leak',
+        low_pressure: 'low_pressure',
+        other: 'other',
+      }
+
+      const response = await fetch('/api/public-reports', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tenant_id: 'lwsc-zambia',
+          category: categoryMap[formData.type] || 'other',
+          description: formData.description,
+          area_text: formData.location,
+          reporter_name: formData.name || null,
+          reporter_phone: formData.phone || null,
+          reporter_email: formData.email || null,
+          reporter_consent: true,
+          source: 'web',
+          severity: formData.severity,
+        }),
+      })
+
+      const result = await response.json()
+
+      if (result.success && result.ticket) {
+        setGeneratedTicket(result.ticket)
+        setIsSubmitted(true)
+      } else {
+        setSubmitError(result.message || 'Failed to submit report. Please try again.')
+      }
+    } catch (error) {
+      console.error('Submit error:', error)
+      setSubmitError('Network error. Please check your connection and try again.')
+    } finally {
       setIsSubmitting(false)
-      setIsSubmitted(true)
-    }, 2000)
+    }
   }
 
   const getStatusColor = (status: string) => {
@@ -169,7 +210,13 @@ export default function ReportLeakPage() {
               </p>
               <div className="bg-blue-50 rounded-xl p-4 mb-6">
                 <p className="text-xs text-blue-600 mb-1">Your Tracking ID</p>
-                <p className="text-2xl font-bold text-blue-700">RPT-{Date.now().toString().slice(-6)}</p>
+                <p className="text-2xl font-bold text-blue-700 font-mono">{generatedTicket}</p>
+                <a 
+                  href={`/track/${generatedTicket}`}
+                  className="inline-block mt-2 text-sm text-blue-600 hover:text-blue-700 underline"
+                >
+                  Track your report →
+                </a>
               </div>
               <div className="space-y-3 text-left bg-slate-50 rounded-xl p-4">
                 <div className="flex items-center gap-3">

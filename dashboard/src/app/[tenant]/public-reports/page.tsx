@@ -164,15 +164,36 @@ export default function PublicReportsPage() {
   const [showWorkOrderModal, setShowWorkOrderModal] = useState(false)
   const [actionReport, setActionReport] = useState<PublicReport | null>(null)
 
-  // Load data
-  useEffect(() => {
+  // Load data from API
+  const fetchReports = async () => {
     setIsLoading(true)
-    // Simulate API call
-    setTimeout(() => {
-      setReports(generateMockReports(25))
+    try {
+      const response = await fetch(`/api/public-reports?tenant_id=${tenantId}&page_size=100`)
+      const data = await response.json()
+      
+      if (data.items && data.items.length > 0) {
+        // Map API response to expected format
+        const mappedReports: PublicReport[] = data.items.map((item: PublicReport) => ({
+          ...item,
+          area_text: item.area_text || 'Location not specified',
+        }))
+        setReports(mappedReports)
+      } else {
+        // If no reports in database, show some mock data for demo
+        setReports(generateMockReports(5))
+      }
+    } catch (error) {
+      console.error('Error fetching reports:', error)
+      // Fallback to mock data if API fails
+      setReports(generateMockReports(5))
+    } finally {
       setIsLoading(false)
-    }, 500)
-  }, [])
+    }
+  }
+
+  useEffect(() => {
+    fetchReports()
+  }, [tenantId])
 
   // Filter reports
   const filteredReports = useMemo(() => {

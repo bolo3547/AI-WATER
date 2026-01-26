@@ -41,9 +41,13 @@ export default function LoginPage() {
         throw new Error(data.error || 'Login failed')
       }
 
-      // Store token and user info
+      // Store token and user info in localStorage (for client-side access)
       localStorage.setItem('access_token', data.access_token)
       localStorage.setItem('user', JSON.stringify(data.user))
+      
+      // Also store token in cookie (for server-side middleware protection)
+      // HttpOnly is set to false so we can also clear it from client-side on logout
+      document.cookie = `access_token=${data.access_token}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Strict`
 
       // Force redirect to dashboard
       window.location.href = '/app'

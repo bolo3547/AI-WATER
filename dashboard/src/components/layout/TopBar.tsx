@@ -69,6 +69,8 @@ export function TopBar({ utilityName = 'LWSC' }: TopBarProps) {
     if (typeof window !== 'undefined') {
       localStorage.removeItem('access_token')
       localStorage.removeItem('user')
+      // Also clear the cookie for server-side middleware
+      document.cookie = 'access_token=; path=/; max-age=0; SameSite=Strict'
       window.location.href = '/login'
     }
   }

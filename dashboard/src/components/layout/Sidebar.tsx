@@ -57,6 +57,7 @@ const adminNavigation = [
   { name: 'Satellite/Drone', href: '/satellite', icon: Satellite, badge: 'New' },
   { name: 'Autonomous Ops', href: '/autonomous', icon: Bot, badge: 'AI' },
   { name: 'Work Orders', href: '/work-orders', icon: Wrench, badge: '5' },
+  { name: 'Public Reports', href: '/lwsc-zambia/public-reports', icon: Users, badge: 'Live' },
   { name: 'Field Crews', href: '/field', icon: UserCheck, badge: '6' },
   { name: 'Smart Meters', href: '/smart-meters', icon: Gauge, badge: 'Live' },
   { name: 'Water Quality', href: '/water-quality', icon: Droplets, badge: 'Live' },
