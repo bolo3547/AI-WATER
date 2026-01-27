@@ -13,12 +13,16 @@ import { SystemStatusBanner } from '@/components/SystemStatus'
 
 export function ClientLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
-  const isLoginPage = pathname === '/login'
+  const isStaffLoginPage = pathname === '/staff/login'
+  const isOldLoginPage = pathname === '/login'
   const isPortalPage = pathname === '/portal'
-  const isPublicReportPage = pathname === '/report-leak' // Public leak reporting
+  const isPublicReportPage = pathname === '/report-leak' || pathname === '/report'
   const isPublicLanding = pathname === '/' || pathname === '/public'
-  const isPublicUtilityPages = pathname === '/report' || pathname === '/track' || pathname === '/share'
-  const isPublicPage = isLoginPage || isPortalPage || isPublicReportPage || isPublicLanding || isPublicUtilityPages
+  const isTicketPage = pathname === '/ticket' || pathname.startsWith('/ticket/')
+  const isNewsPage = pathname === '/news' || pathname.startsWith('/news/')
+  const isTrackPage = pathname === '/track' || pathname.startsWith('/track/')
+  const isSharePage = pathname === '/share' || pathname.startsWith('/share/')
+  const isPublicPage = isStaffLoginPage || isOldLoginPage || isPortalPage || isPublicReportPage || isPublicLanding || isTicketPage || isNewsPage || isTrackPage || isSharePage
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null)
   const [sidebarExpanded, setSidebarExpanded] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
@@ -50,9 +54,9 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
       const token = localStorage.getItem('access_token')
       setIsAuthenticated(!!token)
 
-      // Redirect to login if not authenticated and not on public page
+      // Redirect to staff login if not authenticated and not on public page
       if (!token && !isPublicPage) {
-        window.location.href = '/login'
+        window.location.href = '/staff/login'
       }
       
       // Check if mobile
@@ -101,13 +105,13 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
     )
   }
 
-  // Login page - no sidebar/topbar
-  if (isLoginPage) {
+  // Staff login page - no sidebar/topbar
+  if (isStaffLoginPage || isOldLoginPage) {
     return <>{children}</>
   }
 
-  // Public pages (portal, report-leak) - no auth required, standalone layout
-  if (isPortalPage || isPublicReportPage) {
+  // Public pages - no auth required, standalone layout
+  if (isPublicPage) {
     return <>{children}</>
   }
 
@@ -117,26 +121,21 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
   }
 
   // Calculate sidebar width based on state and device
-  // On mobile, sidebar is a slide-out menu, so no margin needed
-  const sidebarWidth = isMobile 
-    ? 0  // Mobile: hamburger menu, no sidebar margin
-    : (sidebarExpanded ? 256 : 64)  // Desktop: normal sidebar
+  // Now using hamburger menu on all devices - no sidebar margin needed
+  const sidebarWidth = 0  // Menu slides over content
 
   // Dashboard pages - with sidebar/topbar and notifications
   return (
     <SystemStatusProvider>
       <NotificationProvider>
         <div className="flex min-h-screen">
-          {/* Sidebar - Desktop: always visible. Mobile: hamburger menu */}
+          {/* Sidebar - Hamburger menu on all devices */}
           <Sidebar isExpanded={sidebarExpanded} onToggle={handleSidebarToggle} isMobile={isMobile} />
           
-          {/* Main Content Area - Adjusts margin based on sidebar state */}
-          <div 
-            className="flex-1 min-w-0 transition-all duration-300"
-            style={{ marginLeft: `${sidebarWidth}px` }}
-          >
+          {/* Main Content Area - Full width since sidebar is overlay */}
+          <div className="flex-1 min-w-0">
             {/* System Status Banner - Shows when data is stale/offline */}
-            <div className="fixed top-0 right-0 z-50" style={{ left: `${sidebarWidth}px` }}>
+            <div className="fixed top-0 left-0 right-0 z-30">
               <SystemStatusBanner />
             </div>
             
@@ -144,7 +143,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
             <TopBar />
             
             {/* Page Content - tighter padding on mobile, account for government banner */}
-            <main className="mt-[76px] sm:mt-[86px] p-2 sm:p-4 lg:p-6">
+            <main className="mt-[76px] sm:mt-[86px] p-2 sm:p-4 lg:p-6 pl-14 sm:pl-16">
               {children}
             </main>
           </div>
