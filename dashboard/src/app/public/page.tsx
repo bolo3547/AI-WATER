@@ -25,16 +25,16 @@ export default function PublicLandingPage() {
           </div>
           <div className="flex items-center gap-4">
             <Link 
-              href="/track" 
+              href="/news" 
               className="text-slate-300 hover:text-white transition-colors hidden sm:block"
             >
-              Track Report
+              News
             </Link>
-            <Link
-              href="/login"
+            <Link 
+              href="/ticket" 
               className="text-slate-300 hover:text-white transition-colors hidden sm:block"
             >
-              Operator Login
+              My Ticket
             </Link>
             <Link
               href="/report"
@@ -343,8 +343,8 @@ export default function PublicLandingPage() {
               <h4 className="font-semibold text-white mb-4">Quick Links</h4>
               <ul className="space-y-2 text-slate-400 text-sm">
                 <li><Link href="/report" className="hover:text-white">Report Issue</Link></li>
-                <li><Link href="/track" className="hover:text-white">Track Report</Link></li>
-                <li><Link href="/r" className="hover:text-white">Quick Report</Link></li>
+                <li><Link href="/ticket" className="hover:text-white">Track Report</Link></li>
+                <li><Link href="/news" className="hover:text-white">News & Updates</Link></li>
               </ul>
             </div>
             <div>
@@ -365,8 +365,17 @@ export default function PublicLandingPage() {
               </p>
             </div>
           </div>
-          <div className="pt-8 border-t border-slate-800 text-center text-slate-500 text-sm">
+          <div className="pt-8 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4 text-slate-500 text-sm">
             <p>© 2026 AquaWatch NRW Detection System. All rights reserved.</p>
+            {/* Hidden staff access - clicking the droplet icon opens staff login */}
+            <Link 
+              href="/staff/login" 
+              className="flex items-center gap-1.5 text-slate-600 hover:text-slate-400 transition-colors"
+              title="Staff Portal"
+            >
+              <Droplets className="w-4 h-4" />
+              <span className="text-xs">Staff</span>
+            </Link>
           </div>
         </div>
       </footer>

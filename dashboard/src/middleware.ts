@@ -1,39 +1,59 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
-// Routes that are publicly accessible (no login required)
+// =============================================================================
+// ROUTE CONFIGURATION
+// =============================================================================
+
+// PUBLIC ROUTES - Accessible to everyone (citizens/public)
 const publicRoutes = [
-  '/',
-  '/login',
-  '/portal',
-  '/report',
-  '/report-leak',
-  '/track',
-  '/share',
-  '/public',
-  '/r',  // Public referral/share links
+  '/',              // Landing page with news
+  '/report',        // Report water issues
+  '/report-leak',   // Alternative report route
+  '/track',         // Track ticket status
+  '/ticket',        // View ticket and chat with team
+  '/news',          // Public news/updates
+  '/public',        // Public information pages
 ]
 
-// API routes that don't require authentication
+// BACK-OFFICE ROUTES - Only for team workers (requires login)
+// Access via /staff/login - not visible to public
+const backofficeLoginRoute = '/staff/login'
+
+// API routes accessible to public
 const publicApiRoutes = [
-  '/api/public',
-  '/api/auth',
-  '/api/report-leak',
+  '/api/public',      // Public APIs
+  '/api/report-leak', // Submit reports
+  '/api/ticket',      // Ticket operations (view, chat)
+  '/api/news',        // News feed
 ]
 
-// Check if a path matches any of the public routes
+// API routes for authentication
+const authApiRoutes = [
+  '/api/auth',
+]
+
+// =============================================================================
+// ROUTE MATCHING HELPERS
+// =============================================================================
+
 function isPublicRoute(pathname: string): boolean {
-  // Exact match or starts with public route prefix
   return publicRoutes.some(route => 
     pathname === route || 
-    pathname.startsWith(`${route}/`) ||
-    pathname.startsWith('/public/')
+    pathname.startsWith(`${route}/`)
   )
 }
 
-// Check if it's a public API route
 function isPublicApiRoute(pathname: string): boolean {
   return publicApiRoutes.some(route => pathname.startsWith(route))
+}
+
+function isAuthApiRoute(pathname: string): boolean {
+  return authApiRoutes.some(route => pathname.startsWith(route))
+}
+
+function isBackofficeLogin(pathname: string): boolean {
+  return pathname === backofficeLoginRoute || pathname.startsWith(`${backofficeLoginRoute}/`)
 }
 
 // Check if it's a static file or Next.js internal route
@@ -68,19 +88,32 @@ export function middleware(request: NextRequest) {
     return NextResponse.next()
   }
 
-  // For protected routes, check for authentication token
-  // Note: In Next.js middleware, we check cookies (not localStorage)
+  // Allow auth API routes
+  if (isAuthApiRoute(pathname)) {
+    return NextResponse.next()
+  }
+
+  // Allow back-office login page (team workers access this directly)
+  if (isBackofficeLogin(pathname)) {
+    return NextResponse.next()
+  }
+
+  // Block old /login route - redirect to staff login
+  if (pathname === '/login') {
+    return NextResponse.redirect(new URL('/staff/login', request.url))
+  }
+
+  // For all other routes (back-office), check for authentication token
   const token = request.cookies.get('access_token')?.value
 
-  // If no token and trying to access protected route, redirect to login
+  // If no token and trying to access back-office, redirect to staff login
   if (!token) {
-    const loginUrl = new URL('/login', request.url)
+    const loginUrl = new URL('/staff/login', request.url)
     loginUrl.searchParams.set('redirect', pathname)
     return NextResponse.redirect(loginUrl)
   }
 
-  // Token exists, allow access
-  // Note: For production, you should validate the JWT token here
+  // Token exists, allow access to back-office
   return NextResponse.next()
 }
 
