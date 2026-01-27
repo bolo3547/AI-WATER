@@ -1,13 +1,16 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import useSWR from 'swr'
 import { 
   Shield, Key, Lock, Eye, EyeOff, AlertTriangle, CheckCircle, Clock,
   Copy, RefreshCw, Trash2, Plus, User, MapPin, Monitor, Smartphone,
   Globe, Activity, Ban, Unlock, Settings, Download, Filter, Search,
   ChevronDown, MoreVertical, XCircle, ShieldCheck, ShieldAlert,
-  Fingerprint, Mail, Bell, Save, RotateCcw
+  Fingerprint, Mail, Bell, Save, RotateCcw, Loader2
 } from 'lucide-react'
+
+const fetcher = (url: string) => fetch(url).then(res => res.json());
 
 interface ApiKey {
   id: string
@@ -63,6 +66,11 @@ interface SecuritySettings {
 }
 
 export default function SecurityPage() {
+  // Fetch real data from API
+  const { data: securityData, error, isLoading, mutate } = useSWR('/api/admin/security', fetcher, {
+    refreshInterval: 30000
+  });
+
   const [activeTab, setActiveTab] = useState<'overview' | 'apikeys' | 'sessions' | 'audit' | 'settings'>('overview')
   const [showApiKey, setShowApiKey] = useState<string | null>(null)
   const [isGeneratingKey, setIsGeneratingKey] = useState(false)
@@ -75,128 +83,91 @@ export default function SecurityPage() {
   const [isSaving, setIsSaving] = useState(false)
   const [saveSuccess, setSaveSuccess] = useState(false)
 
-  // API Keys
-  const [apiKeys, setApiKeys] = useState<ApiKey[]>([
-    {
-      id: 'key-1',
-      name: 'Production API',
-      key: 'aqw_sk_live_7x8k2m9n4p5q6r3s1t0u',
-      status: 'active',
-      createdAt: '2026-01-01T08:00:00Z',
-      lastUsed: new Date().toISOString(),
-      permissions: ['read', 'write', 'admin'],
-      usageCount: 15420
-    },
-    {
-      id: 'key-2',
-      name: 'Dashboard Integration',
-      key: 'aqw_sk_live_3a4b5c6d7e8f9g0h1i2j',
-      status: 'active',
-      createdAt: '2026-01-10T10:30:00Z',
-      lastUsed: new Date(Date.now() - 3600000).toISOString(),
-      permissions: ['read'],
-      usageCount: 8934
-    },
-    {
-      id: 'key-3',
-      name: 'Mobile App (Legacy)',
-      key: 'aqw_sk_live_9z8y7x6w5v4u3t2s1r0q',
-      status: 'revoked',
-      createdAt: '2025-06-15T14:20:00Z',
-      lastUsed: '2025-12-01T09:15:00Z',
-      permissions: ['read', 'write'],
-      usageCount: 45231
-    }
-  ])
+  // Extract data from API
+  const apiKeys: ApiKey[] = securityData?.data?.apiKeys || [];
+  const auditLogs: AuditLog[] = securityData?.data?.auditLogs || [];
+  const activeSessions: ActiveSession[] = securityData?.data?.sessions || [];
+  const apiSettings = securityData?.data?.settings;
+  const apiStats = securityData?.data?.stats;
 
-  // Audit Logs
-  const [auditLogs, setAuditLogs] = useState<AuditLog[]>([
-    { id: '1', user: 'admin', role: 'Administrator', action: 'Login', resource: 'Auth', ip: '192.168.8.100', location: 'Lusaka, ZM', device: 'Chrome/Windows', timestamp: new Date().toISOString(), status: 'success' },
-    { id: '2', user: 'operator', role: 'Operator', action: 'View Dashboard', resource: 'Dashboard', ip: '192.168.8.101', location: 'Lusaka, ZM', device: 'Firefox/Linux', timestamp: new Date(Date.now() - 300000).toISOString(), status: 'success' },
-    { id: '3', user: 'unknown', role: 'Unknown', action: 'Login Attempt', resource: 'Auth', ip: '45.33.12.99', location: 'Unknown', device: 'Bot/Unknown', timestamp: new Date(Date.now() - 900000).toISOString(), status: 'failed', details: 'Invalid credentials (attempt 3/5)' },
-    { id: '4', user: 'admin', role: 'Administrator', action: 'API Key Generated', resource: 'Security', ip: '192.168.8.100', location: 'Lusaka, ZM', device: 'Chrome/Windows', timestamp: new Date(Date.now() - 1800000).toISOString(), status: 'success' },
-    { id: '5', user: 'technician', role: 'Technician', action: 'Work Order Updated', resource: 'Work Orders', ip: '192.168.8.105', location: 'Kabulonga, ZM', device: 'Safari/iOS', timestamp: new Date(Date.now() - 3600000).toISOString(), status: 'success' },
-    { id: '6', user: 'system', role: 'System', action: 'Backup Completed', resource: 'Database', ip: '127.0.0.1', location: 'Local', device: 'System', timestamp: new Date(Date.now() - 7200000).toISOString(), status: 'success' },
-    { id: '7', user: 'unknown', role: 'Unknown', action: 'Brute Force Detected', resource: 'Auth', ip: '185.220.101.45', location: 'Russia', device: 'Unknown', timestamp: new Date(Date.now() - 10800000).toISOString(), status: 'failed', details: 'IP blocked for 24 hours' },
-    { id: '8', user: 'operator', role: 'Operator', action: 'Export Data', resource: 'Reports', ip: '192.168.8.101', location: 'Lusaka, ZM', device: 'Firefox/Linux', timestamp: new Date(Date.now() - 14400000).toISOString(), status: 'warning', details: 'Large data export (>100MB)' },
-  ])
-
-  // Active Sessions
-  const [activeSessions, setActiveSessions] = useState<ActiveSession[]>([
-    { id: 'sess-1', user: 'admin', role: 'Administrator', device: 'Desktop', browser: 'Chrome 120', ip: '192.168.8.100', location: 'Lusaka, ZM', loginTime: new Date(Date.now() - 3600000).toISOString(), lastActivity: new Date().toISOString(), current: true },
-    { id: 'sess-2', user: 'admin', role: 'Administrator', device: 'Mobile', browser: 'Safari iOS', ip: '192.168.8.150', location: 'Lusaka, ZM', loginTime: new Date(Date.now() - 86400000).toISOString(), lastActivity: new Date(Date.now() - 1800000).toISOString(), current: false },
-    { id: 'sess-3', user: 'operator', role: 'Operator', device: 'Desktop', browser: 'Firefox 121', ip: '192.168.8.101', location: 'Lusaka, ZM', loginTime: new Date(Date.now() - 7200000).toISOString(), lastActivity: new Date(Date.now() - 300000).toISOString(), current: false },
-  ])
-
-  // Security Settings
+  // Security Settings (from API or defaults)
   const [settings, setSettings] = useState<SecuritySettings>({
     sessionTimeout: 30,
     maxFailedAttempts: 5,
     lockoutDuration: 15,
-    requireTwoFactor: true,
+    requireTwoFactor: false,
     passwordMinLength: 8,
     requireUppercase: true,
     requireNumbers: true,
-    requireSpecialChars: true,
+    requireSpecialChars: false,
     passwordExpiry: 90,
-    ipWhitelist: ['192.168.8.0/24'],
+    ipWhitelist: [],
     alertOnFailedLogin: true,
     alertOnNewDevice: true
-  })
+  });
 
-  // Stats
-  const securityStats = {
+  // Update settings when API data loads
+  useEffect(() => {
+    if (apiSettings) {
+      setSettings(apiSettings);
+    }
+  }, [apiSettings]);
+
+  // Stats (from API or calculated)
+  const securityStats = apiStats || {
     status: 'secure',
     activeKeys: apiKeys.filter(k => k.status === 'active').length,
     failedLogins24h: auditLogs.filter(l => l.status === 'failed' && l.action.includes('Login')).length,
     activeSessions: activeSessions.length,
     blockedIPs: 3,
     lastScan: new Date(Date.now() - 1800000).toISOString()
-  }
+  };
 
-  const generateApiKey = () => {
+  // API action helper
+  const handleApiAction = async (action: string, data?: any) => {
+    try {
+      const response = await fetch('/api/admin/security', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action, ...data })
+      });
+      const result = await response.json();
+      if (result.success) {
+        mutate(); // Refresh data
+        return result;
+      }
+    } catch (error) {
+      console.error('Action failed:', error);
+    }
+    return null;
+  };
+
+  const generateApiKey = async () => {
     if (!newKeyName.trim()) return
     
     setIsGeneratingKey(true)
     
-    // Simulate API call
-    setTimeout(() => {
-      const chars = 'abcdefghijklmnopqrstuvwxyz0123456789'
-      let keyPart = ''
-      for (let i = 0; i < 20; i++) {
-        keyPart += chars.charAt(Math.floor(Math.random() * chars.length))
-      }
-      
-      const newKey: ApiKey = {
-        id: `key-${Date.now()}`,
-        name: newKeyName,
-        key: `aqw_sk_live_${keyPart}`,
-        status: 'active',
-        createdAt: new Date().toISOString(),
-        lastUsed: null,
-        permissions: newKeyPermissions,
-        usageCount: 0
-      }
-      
-      setApiKeys(prev => [newKey, ...prev])
-      setIsGeneratingKey(false)
-      setShowNewKeyModal(false)
-      setNewKeyName('')
-      setNewKeyPermissions(['read'])
-      
-      // Show the new key
-      setShowApiKey(newKey.id)
-    }, 1500)
+    const result = await handleApiAction('generate_api_key', {
+      name: newKeyName,
+      permissions: newKeyPermissions
+    });
+    
+    if (result?.apiKey) {
+      setShowApiKey(result.apiKey.id);
+    }
+    
+    setIsGeneratingKey(false)
+    setShowNewKeyModal(false)
+    setNewKeyName('')
+    setNewKeyPermissions(['read'])
   }
 
-  const revokeApiKey = (keyId: string) => {
-    setApiKeys(prev => prev.map(k => 
-      k.id === keyId ? { ...k, status: 'revoked' as const } : k
-    ))
+  const revokeApiKey = async (keyId: string) => {
+    await handleApiAction('revoke_api_key', { keyId });
   }
 
-  const terminateSession = (sessionId: string) => {
-    setActiveSessions(prev => prev.filter(s => s.id !== sessionId))
+  const terminateSession = async (sessionId: string) => {
+    await handleApiAction('terminate_session', { sessionId });
   }
 
   const copyToClipboard = (text: string, keyId: string) => {
@@ -205,13 +176,12 @@ export default function SecurityPage() {
     setTimeout(() => setCopiedKey(null), 2000)
   }
 
-  const saveSettings = () => {
+  const saveSettings = async () => {
     setIsSaving(true)
-    setTimeout(() => {
-      setIsSaving(false)
-      setSaveSuccess(true)
-      setTimeout(() => setSaveSuccess(false), 3000)
-    }, 1000)
+    await handleApiAction('update_settings', { settings });
+    setIsSaving(false)
+    setSaveSuccess(true)
+    setTimeout(() => setSaveSuccess(false), 3000)
   }
 
   const formatTime = (timestamp: string) => {
@@ -244,6 +214,36 @@ export default function SecurityPage() {
     const matchesFilter = !filterStatus || log.status === filterStatus
     return matchesSearch && matchesFilter
   })
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 animate-spin text-blue-600 mx-auto mb-4" />
+          <p className="text-slate-600">Loading security data...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <AlertTriangle className="w-8 h-8 text-red-500 mx-auto mb-4" />
+          <p className="text-slate-800 font-medium">Failed to load security data</p>
+          <button 
+            onClick={() => mutate()}
+            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700"
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4 sm:space-y-6">
@@ -507,7 +507,12 @@ export default function SecurityPage() {
           <div className="flex items-center justify-between">
             <p className="text-sm text-slate-500">{activeSessions.length} active sessions</p>
             <button
-              onClick={() => setActiveSessions(prev => prev.filter(s => s.current))}
+              onClick={async () => {
+                // Terminate all non-current sessions
+                for (const session of activeSessions.filter(s => !s.current)) {
+                  await terminateSession(session.id);
+                }
+              }}
               className="flex items-center gap-2 px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors text-sm font-medium"
             >
               <Ban className="w-4 h-4" />

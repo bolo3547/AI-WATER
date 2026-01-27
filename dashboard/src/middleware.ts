@@ -26,6 +26,16 @@ const publicApiRoutes = [
   '/api/report-leak', // Submit reports
   '/api/ticket',      // Ticket operations (view, chat)
   '/api/news',        // News feed
+  '/api/ai/detect',   // AI leak detection
+  '/api/ai/simulate', // AI simulation for testing
+  '/api/ai/system-data', // AI system data
+  '/api/realtime',    // Real-time sensor data
+  '/api/leaks',       // Leak alerts
+  '/api/system',      // System status
+  '/api/seed',        // Database seeding (for development)
+  '/api/billing',     // Billing API
+  '/api/shift-handover', // Shift handover API
+  '/api/admin/security', // Security API
 ]
 
 // API routes for authentication

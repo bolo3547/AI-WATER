@@ -1,12 +1,16 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
+import useSWR from 'swr';
 import { 
   CreditCard, DollarSign, TrendingUp, TrendingDown, Users,
   Search, Filter, Download, Send, AlertTriangle, CheckCircle,
   Clock, Calendar, MoreVertical, Phone, Mail, MapPin, FileText,
-  ArrowUpRight, ArrowDownRight, PieChart, BarChart3, RefreshCw
+  ArrowUpRight, ArrowDownRight, PieChart, BarChart3, RefreshCw,
+  Loader2
 } from 'lucide-react';
+
+const fetcher = (url: string) => fetch(url).then(res => res.json());
 
 type BillingStatus = 'current' | 'overdue' | 'disconnected' | 'pending';
 type PaymentMethod = 'mtn-momo' | 'airtel' | 'zamtel' | 'bank' | 'cash';
@@ -57,179 +61,6 @@ interface Payment {
   timestamp: string;
 }
 
-// Sample data
-const initialCustomers: Customer[] = [
-  {
-    id: 'CUS-001',
-    accountNumber: 'LWSC-2024-00145',
-    name: 'Peter Tembo',
-    phone: '+260 97 123 4567',
-    email: 'peter.tembo@email.com',
-    address: 'Plot 45, Leopards Hill Road, Kabulonga',
-    dma: 'Kabulonga',
-    meterNumber: 'ZM-R-KAB-00123',
-    tariffClass: 'residential',
-    status: 'current',
-    currentBalance: 0,
-    lastPayment: { amount: 450, date: '2026-01-15', method: 'mtn-momo' },
-    lastReading: { value: 12456, date: '2026-01-18' },
-    avgMonthlyUsage: 15.2,
-    connectionDate: '2022-03-15'
-  },
-  {
-    id: 'CUS-002',
-    accountNumber: 'LWSC-2024-00289',
-    name: 'Mwila Trading Ltd',
-    phone: '+260 96 555 7890',
-    email: 'accounts@mwilatrading.co.zm',
-    address: 'Plot 78, Cairo Road, City Centre',
-    dma: 'CBD',
-    meterNumber: 'ZM-C-CBD-00456',
-    tariffClass: 'commercial',
-    status: 'overdue',
-    currentBalance: 2850,
-    lastPayment: { amount: 1500, date: '2025-12-10', method: 'bank' },
-    lastReading: { value: 45678, date: '2026-01-17' },
-    avgMonthlyUsage: 125.8,
-    connectionDate: '2019-08-22'
-  },
-  {
-    id: 'CUS-003',
-    accountNumber: 'LWSC-2024-00567',
-    name: 'Grace Banda',
-    phone: '+260 95 234 5678',
-    email: 'grace.banda@gmail.com',
-    address: 'House 23, Twin Palm Road, Roma',
-    dma: 'Roma',
-    meterNumber: 'ZM-R-ROM-00789',
-    tariffClass: 'residential',
-    status: 'pending',
-    currentBalance: 380,
-    lastPayment: null,
-    lastReading: { value: 8934, date: '2026-01-16' },
-    avgMonthlyUsage: 12.5,
-    connectionDate: '2025-01-10'
-  },
-  {
-    id: 'CUS-004',
-    accountNumber: 'LWSC-2024-00891',
-    name: 'University of Zambia',
-    phone: '+260 21 129 5000',
-    email: 'estates@unza.zm',
-    address: 'Great East Road Campus',
-    dma: 'UNZA',
-    meterNumber: 'ZM-I-UNZ-00001',
-    tariffClass: 'institutional',
-    status: 'current',
-    currentBalance: 0,
-    lastPayment: { amount: 45000, date: '2026-01-12', method: 'bank' },
-    lastReading: { value: 987654, date: '2026-01-18' },
-    avgMonthlyUsage: 2500,
-    connectionDate: '1965-07-12'
-  },
-  {
-    id: 'CUS-005',
-    accountNumber: 'LWSC-2024-00234',
-    name: 'Joseph Mumba',
-    phone: '+260 97 987 6543',
-    email: 'jmumba@yahoo.com',
-    address: 'Plot 12, Matero Main Road',
-    dma: 'Matero',
-    meterNumber: 'ZM-R-MAT-00567',
-    tariffClass: 'residential',
-    status: 'disconnected',
-    currentBalance: 1250,
-    lastPayment: { amount: 200, date: '2025-10-25', method: 'cash' },
-    lastReading: { value: 5678, date: '2025-11-15' },
-    avgMonthlyUsage: 8.3,
-    connectionDate: '2021-05-20'
-  },
-];
-
-const initialInvoices: Invoice[] = [
-  {
-    id: 'INV-2026-0145',
-    customerId: 'CUS-001',
-    customerName: 'Peter Tembo',
-    accountNumber: 'LWSC-2024-00145',
-    period: 'January 2026',
-    dueDate: '2026-02-15',
-    consumption: 14.5,
-    waterCharge: 362.50,
-    sewerCharge: 72.50,
-    arrears: 0,
-    total: 435,
-    status: 'unpaid',
-    paymentDate: null
-  },
-  {
-    id: 'INV-2026-0289',
-    customerId: 'CUS-002',
-    customerName: 'Mwila Trading Ltd',
-    accountNumber: 'LWSC-2024-00289',
-    period: 'January 2026',
-    dueDate: '2026-02-15',
-    consumption: 132.4,
-    waterCharge: 3310,
-    sewerCharge: 662,
-    arrears: 2850,
-    total: 6822,
-    status: 'overdue',
-    paymentDate: null
-  },
-  {
-    id: 'INV-2025-0145',
-    customerId: 'CUS-001',
-    customerName: 'Peter Tembo',
-    accountNumber: 'LWSC-2024-00145',
-    period: 'December 2025',
-    dueDate: '2026-01-15',
-    consumption: 15.8,
-    waterCharge: 395,
-    sewerCharge: 79,
-    arrears: 0,
-    total: 474,
-    status: 'paid',
-    paymentDate: '2026-01-15'
-  },
-];
-
-const initialPayments: Payment[] = [
-  {
-    id: 'PAY-001',
-    customerId: 'CUS-001',
-    customerName: 'Peter Tembo',
-    accountNumber: 'LWSC-2024-00145',
-    amount: 450,
-    method: 'mtn-momo',
-    reference: 'MTN-789456123',
-    status: 'completed',
-    timestamp: '2026-01-15T10:30:00'
-  },
-  {
-    id: 'PAY-002',
-    customerId: 'CUS-004',
-    customerName: 'University of Zambia',
-    accountNumber: 'LWSC-2024-00891',
-    amount: 45000,
-    method: 'bank',
-    reference: 'ZNBS-2026-0112',
-    status: 'completed',
-    timestamp: '2026-01-12T14:22:00'
-  },
-  {
-    id: 'PAY-003',
-    customerId: 'CUS-002',
-    customerName: 'Mwila Trading Ltd',
-    accountNumber: 'LWSC-2024-00289',
-    amount: 2000,
-    method: 'bank',
-    reference: 'ZNBS-2026-0119',
-    status: 'pending',
-    timestamp: '2026-01-19T09:15:00'
-  },
-];
-
 // Tariff rates (ZMW per m³)
 const tariffRates = {
   residential: { water: 25, sewer: 5 },
@@ -239,13 +70,21 @@ const tariffRates = {
 };
 
 export default function BillingPage() {
-  const [customers] = useState<Customer[]>(initialCustomers);
-  const [invoices] = useState<Invoice[]>(initialInvoices);
-  const [payments] = useState<Payment[]>(initialPayments);
+  // Fetch real data from API
+  const { data: billingData, error, isLoading, mutate } = useSWR('/api/billing', fetcher, {
+    refreshInterval: 30000 // Refresh every 30 seconds
+  });
+
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [activeTab, setActiveTab] = useState<'customers' | 'invoices' | 'payments' | 'collection'>('customers');
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<BillingStatus | 'all'>('all');
+
+  // Extract data from API response
+  const customers: Customer[] = billingData?.data?.customers || [];
+  const invoices: Invoice[] = billingData?.data?.invoices || [];
+  const payments: Payment[] = billingData?.data?.payments || [];
+  const apiStats = billingData?.data?.stats;
 
   const filteredCustomers = customers
     .filter(c => statusFilter === 'all' || c.status === statusFilter)
@@ -254,7 +93,8 @@ export default function BillingPage() {
       c.accountNumber.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-  const stats = {
+  // Use API stats or calculate from data
+  const stats = apiStats || {
     totalCustomers: customers.length,
     totalRevenue: payments.filter(p => p.status === 'completed').reduce((sum, p) => sum + p.amount, 0),
     totalOutstanding: customers.reduce((sum, c) => sum + c.currentBalance, 0),
@@ -262,6 +102,36 @@ export default function BillingPage() {
     disconnected: customers.filter(c => c.status === 'disconnected').length,
     collectionRate: 87.5, // percentage
   };
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 animate-spin text-[#198038] mx-auto mb-4" />
+          <p className="text-gray-600">Loading billing data...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+        <div className="text-center">
+          <AlertTriangle className="w-8 h-8 text-red-500 mx-auto mb-4" />
+          <p className="text-gray-800 font-medium">Failed to load billing data</p>
+          <button 
+            onClick={() => mutate()}
+            className="mt-4 px-4 py-2 bg-[#198038] text-white rounded-lg text-sm hover:bg-[#166a2e]"
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-ZM', { 

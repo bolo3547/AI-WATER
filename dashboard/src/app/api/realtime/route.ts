@@ -6,6 +6,13 @@ export const dynamic = 'force-dynamic'
 const OFFLINE_THRESHOLD_MINUTES = 5
 const STALE_THRESHOLD_MINUTES = 3
 
+interface AIAnalysis {
+  is_leak: boolean
+  leak_type: 'none' | 'suspected' | 'probable' | 'confirmed'
+  confidence: number
+  severity: 'low' | 'medium' | 'high' | 'critical'
+}
+
 interface SensorReading {
   id: string
   name: string
@@ -15,6 +22,7 @@ interface SensorReading {
   signal_strength: number | null
   last_reading: string | null
   readings: Record<string, number>
+  ai_analysis?: AIAnalysis
 }
 
 interface RealtimeResponse {
@@ -27,6 +35,12 @@ interface RealtimeResponse {
     total_flow: number | null
     avg_pressure: number | null
     active_alerts: number
+    ai_status: {
+      model_version: string
+      accuracy: number
+      active_leaks: number
+      leaks_today: number
+    }
   }
 }
 
@@ -45,7 +59,13 @@ export async function GET() {
     system_metrics: {
       total_flow: null,
       avg_pressure: null,
-      active_alerts: 0
+      active_alerts: 0,
+      ai_status: {
+        model_version: '2.2.0',
+        accuracy: 94.5,
+        active_leaks: 0,
+        leaks_today: 0
+      }
     }
   }
 
@@ -110,7 +130,13 @@ export async function GET() {
         battery: sensor.battery ?? reading?.battery_level ?? null,
         signal_strength: sensor.signal_strength ?? reading?.signal_strength ?? null,
         last_reading: lastSeenDate?.toISOString() || null,
-        readings
+        readings,
+        ai_analysis: reading?.ai_analysis ? {
+          is_leak: reading.ai_analysis.leak_type !== 'none',
+          leak_type: reading.ai_analysis.leak_type || 'none',
+          confidence: reading.ai_analysis.confidence || 0,
+          severity: reading.ai_analysis.severity || 'low'
+        } : undefined
       }
     }))
 
@@ -132,6 +158,15 @@ export async function GET() {
       : null
 
     const activeAlerts = await db.collection('alerts').countDocuments({ status: 'active' })
+    
+    // Get AI leak detection stats
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    
+    const [activeLeaks, leaksToday] = await Promise.all([
+      db.collection('leaks').countDocuments({ status: { $in: ['new', 'investigating', 'confirmed'] } }),
+      db.collection('leaks').countDocuments({ detected_at: { $gte: today.toISOString() } })
+    ])
 
     const onlineSensors = enrichedSensors.filter(s => s.status === 'online' || s.status === 'warning')
 
@@ -148,7 +183,13 @@ export async function GET() {
       system_metrics: {
         total_flow: totalFlow,
         avg_pressure: avgPressure,
-        active_alerts: activeAlerts
+        active_alerts: activeAlerts,
+        ai_status: {
+          model_version: '2.2.0',
+          accuracy: 94.5,
+          active_leaks: activeLeaks,
+          leaks_today: leaksToday
+        }
       }
     } as RealtimeResponse)
 

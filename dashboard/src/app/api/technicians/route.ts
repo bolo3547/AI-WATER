@@ -62,6 +62,68 @@ export async function GET(request: NextRequest) {
       completed_today: tech.completed_today || 0,
       location: tech.location || null
     }))
+
+    // If no technicians found, provide demo data
+    if (enrichedTechnicians.length === 0) {
+      const demoTechnicians = [
+        {
+          _id: 'demo-1',
+          user_id: 'TECH-001',
+          name: 'Bwalya Mulenga',
+          phone: '+260 971 234 567',
+          role: 'senior_technician',
+          status: 'available',
+          skills: ['leak_detection', 'pipe_repair', 'pressure_systems'],
+          current_work_order: null,
+          completed_today: 3,
+          location: 'Lusaka Central'
+        },
+        {
+          _id: 'demo-2',
+          user_id: 'TECH-002',
+          name: 'Chanda Mutale',
+          phone: '+260 965 432 109',
+          role: 'technician',
+          status: 'available',
+          skills: ['general_maintenance', 'meter_reading'],
+          current_work_order: null,
+          completed_today: 2,
+          location: 'Woodlands'
+        },
+        {
+          _id: 'demo-3',
+          user_id: 'TECH-003',
+          name: 'Musonda Banda',
+          phone: '+260 977 654 321',
+          role: 'field_crew',
+          status: 'busy',
+          skills: ['excavation', 'pipe_installation'],
+          current_work_order: 'WO-2024-001',
+          completed_today: 1,
+          location: 'Matero'
+        },
+        {
+          _id: 'demo-4',
+          user_id: 'TECH-004',
+          name: 'Chilufya Tembo',
+          phone: '+260 968 111 222',
+          role: 'engineer',
+          status: 'available',
+          skills: ['water_quality', 'system_design', 'pressure_management'],
+          current_work_order: null,
+          completed_today: 0,
+          location: 'Head Office'
+        }
+      ]
+      
+      return NextResponse.json({
+        success: true,
+        technicians: demoTechnicians,
+        total: demoTechnicians.length,
+        hasData: true,
+        isDemo: true
+      })
+    }
     
     return NextResponse.json({
       success: true,

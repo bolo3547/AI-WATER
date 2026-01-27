@@ -1,11 +1,15 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import useSWR from 'swr';
 import { 
   FileText, Clock, User, Users, CheckCircle, AlertTriangle,
   ChevronRight, Calendar, MapPin, Droplets, Wrench, AlertCircle,
-  MessageSquare, Send, Download, Plus, CheckSquare, Square, Edit
+  MessageSquare, Send, Download, Plus, CheckSquare, Square, Edit,
+  Loader2
 } from 'lucide-react';
+
+const fetcher = (url: string) => fetch(url).then(res => res.json());
 
 interface ShiftHandover {
   id: string;
@@ -46,130 +50,71 @@ const shiftChecklist = [
   'Chemical stock levels adequate',
 ];
 
-const initialHandovers: ShiftHandover[] = [
-  {
-    id: 'SH-2847',
-    shiftType: 'day',
-    date: '2026-01-20',
-    startTime: '06:00',
-    endTime: '18:00',
-    outgoingOperator: 'John Mwale',
-    incomingOperator: 'Grace Banda',
-    status: 'completed',
-    systemStatus: {
-      pumpsOperational: 8,
-      pumpsTotal: 10,
-      reservoirLevels: [
-        { name: 'Matero', level: 72 },
-        { name: 'Kabulonga', level: 85 },
-        { name: 'Chilenje', level: 65 },
-      ],
-      activeAlerts: 3,
-      activeLeaks: 2,
-      ongoingWorks: 4,
-    },
-    checklist: shiftChecklist.map((item, i) => ({ 
-      item, 
-      checked: true, 
-      notes: i === 1 ? 'Matero slightly low due to high demand' : '' 
-    })),
-    incidents: [
-      { 
-        time: '09:30', 
-        description: 'Pump #3 at Iolanda tripped due to power fluctuation', 
-        action: 'Reset manually, monitoring closely', 
-        resolved: true 
-      },
-      { 
-        time: '14:15', 
-        description: 'Customer complaint - low pressure Garden area', 
-        action: 'Dispatched crew to investigate PRV', 
-        resolved: false 
-      },
-    ],
-    notes: 'Pump #2 showing minor vibration - scheduled for maintenance next week. Overall smooth shift with no major incidents.',
-    criticalItems: ['Monitor Pump #3 closely', 'Garden PRV investigation ongoing'],
-    pendingTasks: [
-      { task: 'Follow up on Garden pressure issue', priority: 'high' },
-      { task: 'Complete Matero leak repair paperwork', priority: 'medium' },
-    ],
-    submittedAt: '2026-01-20T17:45:00',
-    acknowledgedAt: '2026-01-20T18:05:00',
-  },
-  {
-    id: 'SH-2848',
-    shiftType: 'night',
-    date: '2026-01-20',
-    startTime: '18:00',
-    endTime: '06:00',
-    outgoingOperator: 'Grace Banda',
-    incomingOperator: null,
-    status: 'in-progress',
-    systemStatus: {
-      pumpsOperational: 8,
-      pumpsTotal: 10,
-      reservoirLevels: [
-        { name: 'Matero', level: 68 },
-        { name: 'Kabulonga', level: 82 },
-        { name: 'Chilenje', level: 71 },
-      ],
-      activeAlerts: 2,
-      activeLeaks: 2,
-      ongoingWorks: 1,
-    },
-    checklist: shiftChecklist.map((item, i) => ({ 
-      item, 
-      checked: i < 6, 
-      notes: '' 
-    })),
-    incidents: [],
-    notes: '',
-    criticalItems: ['Garden PRV still under investigation'],
-    pendingTasks: [
-      { task: 'Follow up on Garden pressure issue', priority: 'high' },
-    ],
-    submittedAt: null,
-    acknowledgedAt: null,
-  },
-];
-
 export default function ShiftHandoverPage() {
-  const [handovers, setHandovers] = useState<ShiftHandover[]>(initialHandovers);
-  const [selectedHandover, setSelectedHandover] = useState<ShiftHandover | null>(initialHandovers[1]);
+  // Fetch real data from API
+  const { data: handoverData, error, isLoading, mutate } = useSWR('/api/shift-handover', fetcher, {
+    refreshInterval: 30000
+  });
+
+  const [selectedHandover, setSelectedHandover] = useState<ShiftHandover | null>(null);
   const [activeTab, setActiveTab] = useState<'current' | 'history'>('current');
+
+  // Extract data from API
+  const handovers: ShiftHandover[] = handoverData?.data?.handovers || [];
+  const currentSystemStatus = handoverData?.data?.currentSystemStatus;
+
+  // Set initial selection when data loads
+  useEffect(() => {
+    if (handovers.length > 0 && !selectedHandover) {
+      const current = handovers.find(h => h.status === 'in-progress') || handovers[0];
+      setSelectedHandover(current);
+    }
+  }, [handovers, selectedHandover]);
 
   const currentShift = handovers.find(h => h.status === 'in-progress');
 
-  const updateChecklist = (index: number, checked: boolean) => {
-    if (!selectedHandover || selectedHandover.status !== 'in-progress') return;
-    
-    setHandovers(prev => prev.map(h => {
-      if (h.id === selectedHandover.id) {
-        const newChecklist = [...h.checklist];
-        newChecklist[index] = { ...newChecklist[index], checked };
-        return { ...h, checklist: newChecklist };
+  // API action helper
+  const handleApiAction = async (action: string, data?: any) => {
+    try {
+      const response = await fetch('/api/shift-handover', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action, ...data })
+      });
+      if (response.ok) {
+        mutate(); // Refresh data
       }
-      return h;
-    }));
-    
-    setSelectedHandover(prev => {
-      if (!prev) return prev;
-      const newChecklist = [...prev.checklist];
-      newChecklist[index] = { ...newChecklist[index], checked };
-      return { ...prev, checklist: newChecklist };
-    });
+    } catch (error) {
+      console.error('Action failed:', error);
+    }
   };
 
-  const updateNotes = (notes: string) => {
+  const updateChecklist = async (index: number, checked: boolean) => {
     if (!selectedHandover || selectedHandover.status !== 'in-progress') return;
     
-    setHandovers(prev => prev.map(h => 
-      h.id === selectedHandover.id ? { ...h, notes } : h
-    ));
+    const newChecklist = [...selectedHandover.checklist];
+    newChecklist[index] = { ...newChecklist[index], checked };
+    
+    await handleApiAction('update', {
+      handoverId: selectedHandover.id,
+      updates: { checklist: newChecklist }
+    });
+    
+    setSelectedHandover(prev => prev ? { ...prev, checklist: newChecklist } : prev);
+  };
+
+  const updateNotes = async (notes: string) => {
+    if (!selectedHandover || selectedHandover.status !== 'in-progress') return;
+    
+    await handleApiAction('update', {
+      handoverId: selectedHandover.id,
+      updates: { notes }
+    });
+    
     setSelectedHandover(prev => prev ? { ...prev, notes } : prev);
   };
 
-  const addIncident = () => {
+  const addIncident = async () => {
     if (!selectedHandover || selectedHandover.status !== 'in-progress') return;
     
     const newIncident = {
@@ -179,22 +124,23 @@ export default function ShiftHandoverPage() {
       resolved: false
     };
     
-    setHandovers(prev => prev.map(h => 
-      h.id === selectedHandover.id ? { ...h, incidents: [...h.incidents, newIncident] } : h
-    ));
+    await handleApiAction('add_incident', {
+      handoverId: selectedHandover.id,
+      incident: newIncident
+    });
+    
     setSelectedHandover(prev => 
       prev ? { ...prev, incidents: [...prev.incidents, newIncident] } : prev
     );
   };
 
-  const submitHandover = () => {
+  const submitHandover = async () => {
     if (!selectedHandover) return;
     
-    setHandovers(prev => prev.map(h => 
-      h.id === selectedHandover.id 
-        ? { ...h, status: 'pending-review', submittedAt: new Date().toISOString() } 
-        : h
-    ));
+    await handleApiAction('submit', {
+      handoverId: selectedHandover.id
+    });
+    
     setSelectedHandover(prev => 
       prev ? { ...prev, status: 'pending-review', submittedAt: new Date().toISOString() } : prev
     );
@@ -202,6 +148,36 @@ export default function ShiftHandoverPage() {
 
   const completedCount = selectedHandover?.checklist.filter(c => c.checked).length || 0;
   const totalCount = selectedHandover?.checklist.length || 0;
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 animate-spin text-[#198038] mx-auto mb-4" />
+          <p className="text-gray-600">Loading shift handover data...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+        <div className="text-center">
+          <AlertTriangle className="w-8 h-8 text-red-500 mx-auto mb-4" />
+          <p className="text-gray-800 font-medium">Failed to load shift data</p>
+          <button 
+            onClick={() => mutate()}
+            className="mt-4 px-4 py-2 bg-[#198038] text-white rounded-lg text-sm hover:bg-[#166a2e]"
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-100 p-4 lg:p-6">

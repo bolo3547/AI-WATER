@@ -115,22 +115,22 @@ export function TopBar({ utilityName = 'LWSC' }: TopBarProps) {
       <div className="h-full px-2 sm:px-4 lg:px-6 flex items-center justify-between">
         {/* Left: Logo on mobile (with space for hamburger), Breadcrumb on desktop */}
         <div className="flex items-center gap-2 sm:gap-4">
-          {/* Spacer for hamburger menu on mobile */}
-          <div className="w-12 md:hidden" />
+          {/* Spacer for hamburger menu - matches button width + padding */}
+          <div className="w-14 sm:w-16" />
           
           {/* Logo - only on mobile */}
           <div className="flex md:hidden items-center gap-2">
             <img src="/lwsc-logo.png" alt="LWSC" className="w-8 h-8 object-contain" />
             <div>
-              <h2 className="text-sm font-bold text-slate-900">LWSC</h2>
-              <p className="text-[9px] text-slate-500 uppercase tracking-wider">NRW System</p>
+              <h2 className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>LWSC</h2>
+              <p className="text-[9px] uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>NRW System</p>
             </div>
           </div>
           
           {/* Desktop breadcrumb */}
           <div className="hidden md:block">
-            <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Control Room</p>
-            <h2 className="text-sm font-semibold text-slate-900">
+            <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>Control Room</p>
+            <h2 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
               {utilityName}
             </h2>
           </div>

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Shield, Eye, EyeOff, Lock, CheckCircle2 } from 'lucide-react'
+import { AppLoader } from '@/components/loader'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -11,6 +12,7 @@ export default function LoginPage() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
+  const [showLoader, setShowLoader] = useState(false)
 
   // Check if already logged in
   useEffect(() => {
@@ -26,6 +28,7 @@ export default function LoginPage() {
     e.preventDefault()
     setError('')
     setLoading(true)
+    setShowLoader(true)
 
     try {
       // Call MongoDB-backed login API
@@ -38,6 +41,7 @@ export default function LoginPage() {
       const data = await response.json()
 
       if (!response.ok) {
+        setShowLoader(false)
         throw new Error(data.error || 'Login failed')
       }
 
@@ -53,13 +57,23 @@ export default function LoginPage() {
       window.location.href = '/app'
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed')
+      setShowLoader(false)
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 flex flex-col">
+    <>
+      {/* Premium Hippo Loading Animation */}
+      <AppLoader 
+        isLoading={showLoader} 
+        state="authenticating"
+        checkLiveStatus={true}
+        minDisplayTime={1200}
+      />
+      
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 flex flex-col">
       {/* Official Government Header Banner */}
       <div className="bg-gradient-to-r from-green-700 via-green-600 to-orange-500 text-white py-2 px-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
@@ -241,5 +255,6 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+    </>
   )
 }
