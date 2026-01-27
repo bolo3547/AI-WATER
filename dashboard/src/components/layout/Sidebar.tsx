@@ -40,7 +40,8 @@ import {
   ClipboardCheck,
   Globe,
   QrCode,
-  ExternalLink
+  ExternalLink,
+  Ticket
 } from 'lucide-react'
 
 // Role-based navigation
@@ -57,6 +58,7 @@ const adminNavigation = [
   { name: 'Satellite/Drone', href: '/satellite', icon: Satellite, badge: 'New' },
   { name: 'Autonomous Ops', href: '/autonomous', icon: Bot, badge: 'AI' },
   { name: 'Work Orders', href: '/work-orders', icon: Wrench, badge: '5' },
+  { name: 'Support Tickets', href: '/tickets', icon: Ticket, badge: 'New' },
   { name: 'Public Reports', href: '/lwsc-zambia/public-reports', icon: Users, badge: 'Live' },
   { name: 'Field Crews', href: '/field', icon: UserCheck, badge: '6' },
   { name: 'Smart Meters', href: '/smart-meters', icon: Gauge, badge: 'Live' },
@@ -87,6 +89,7 @@ const operatorNavigation = [
   { name: 'Control Room', href: '/', icon: LayoutDashboard, badge: null },
   { name: 'Executive View', href: '/executive', icon: Briefcase, badge: 'New' },
   { name: 'Notifications', href: '/notifications', icon: Bell, badge: 'New' },
+  { name: 'Support Tickets', href: '/tickets', icon: Ticket, badge: 'New' },
   { name: 'Network Map', href: '/map', icon: MapPin, badge: 'New' },
   { name: 'DMA Monitoring', href: '/dma', icon: Map, badge: '12' },
   { name: 'Active Alerts', href: '/actions', icon: Bell, badge: '3' },

@@ -187,12 +187,36 @@ export const smsTemplates = {
   serviceRestored: (area: string) =>
     `LWSC UPDATE: Water service has been restored in ${area}. Thank you for your patience.`,
   
-  // Customer Reports
+  // Customer Reports - Basic
   reportReceived: (reportId: string) =>
     `LWSC: Thank you for your report. Reference: ${reportId}. We'll investigate and update you soon.`,
   
   reportResolved: (reportId: string) =>
-    `LWSC: Your report ${reportId} has been resolved. Thank you for helping improve our service.`
+    `LWSC: Your report ${reportId} has been resolved. Thank you for helping improve our service.`,
+
+  // Customer Reports - Detailed Status Updates
+  publicReport: {
+    received: (ticket: string, category: string) =>
+      `LWSC AquaWatch: Your ${category} report received! Ticket: ${ticket}. Track at lwsc.co.zm/ticket?id=${ticket}. Thank you for reporting!`,
+    
+    underReview: (ticket: string) =>
+      `LWSC Update [${ticket}]: Your report is now under review by our team. We'll update you on progress.`,
+    
+    technicianAssigned: (ticket: string) =>
+      `LWSC Update [${ticket}]: Great news! A technician has been assigned to investigate your reported issue.`,
+    
+    inProgress: (ticket: string) =>
+      `LWSC Update [${ticket}]: Work is now in progress to resolve your issue. We appreciate your patience.`,
+    
+    resolved: (ticket: string) =>
+      `LWSC Update [${ticket}]: Your reported issue has been RESOLVED. Thank you for helping improve water services in Lusaka!`,
+    
+    closed: (ticket: string) =>
+      `LWSC Update [${ticket}]: Your report has been closed. For new issues, report at lwsc.co.zm/report. Thank you!`,
+    
+    staffResponse: (ticket: string) =>
+      `LWSC [${ticket}]: You have a new message from our team. View at lwsc.co.zm/ticket?id=${ticket}`
+  }
 }
 
 // Bulk SMS for area notifications
@@ -235,4 +259,94 @@ export async function notifyDMACustomers(
   }
   
   return sendBulkSMS(customerPhones, message)
+}
+
+// Category display names
+const categoryDisplayNames: Record<string, string> = {
+  'leak': 'water leak',
+  'burst': 'burst pipe',
+  'no_water': 'no water supply',
+  'low_pressure': 'low pressure',
+  'illegal_connection': 'illegal connection',
+  'overflow': 'overflow/flooding',
+  'contamination': 'water quality',
+  'other': 'water issue'
+}
+
+/**
+ * Send SMS notification when a public report is submitted
+ */
+export async function notifyReportSubmission(
+  phone: string,
+  ticket: string,
+  category: string
+): Promise<SMSResponse> {
+  if (!phone) {
+    return { success: false, status: 'skipped', error: 'No phone number provided' }
+  }
+
+  const categoryName = categoryDisplayNames[category] || category
+  const message = smsTemplates.publicReport.received(ticket, categoryName)
+  
+  console.log(`[SMS] Sending report confirmation to ${phone} for ticket ${ticket}`)
+  return sendSMS({ to: phone, message, type: 'general' })
+}
+
+/**
+ * Send SMS notification when report status changes
+ */
+export async function notifyReportStatusChange(
+  phone: string,
+  ticket: string,
+  status: string,
+  customMessage?: string
+): Promise<SMSResponse> {
+  if (!phone) {
+    return { success: false, status: 'skipped', error: 'No phone number provided' }
+  }
+
+  let message: string
+
+  switch (status) {
+    case 'under_review':
+      message = smsTemplates.publicReport.underReview(ticket)
+      break
+    case 'technician_assigned':
+      message = smsTemplates.publicReport.technicianAssigned(ticket)
+      break
+    case 'in_progress':
+      message = smsTemplates.publicReport.inProgress(ticket)
+      break
+    case 'resolved':
+      message = smsTemplates.publicReport.resolved(ticket)
+      break
+    case 'closed':
+      message = smsTemplates.publicReport.closed(ticket)
+      break
+    case 'staff_response':
+      message = smsTemplates.publicReport.staffResponse(ticket)
+      break
+    default:
+      message = customMessage || `LWSC Update [${ticket}]: Your report status has been updated to ${status}.`
+  }
+
+  console.log(`[SMS] Sending status update to ${phone} for ticket ${ticket}: ${status}`)
+  return sendSMS({ to: phone, message, type: 'general' })
+}
+
+/**
+ * Send SMS when staff responds to a ticket
+ */
+export async function notifyStaffResponse(
+  phone: string,
+  ticket: string
+): Promise<SMSResponse> {
+  if (!phone) {
+    return { success: false, status: 'skipped', error: 'No phone number provided' }
+  }
+
+  const message = smsTemplates.publicReport.staffResponse(ticket)
+  
+  console.log(`[SMS] Sending staff response notification to ${phone} for ticket ${ticket}`)
+  return sendSMS({ to: phone, message, type: 'general' })
 }

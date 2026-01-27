@@ -26,34 +26,43 @@ export async function GET(
     }
 
     const cleanTicket = ticket.toUpperCase()
+    console.log(`[TrackReport] Looking up ticket: ${cleanTicket}`)
 
     // Connect to MongoDB
     const client = await clientPromise
     const db = client.db('lwsc')
     const collection = db.collection('public_reports')
 
-    // Find the report by ticket
-    const report = await collection.findOne({ ticket: cleanTicket })
+    // Find the report by ticket_number (can also try 'ticket' for backwards compatibility)
+    let report = await collection.findOne({ ticket_number: cleanTicket })
+    
+    // Fallback: try 'ticket' field for older records
+    if (!report) {
+      report = await collection.findOne({ ticket: cleanTicket })
+    }
 
     if (!report) {
+      console.log(`[TrackReport] Ticket not found: ${cleanTicket}`)
       return NextResponse.json(
         { error: 'Report not found' },
         { status: 404 }
       )
     }
 
-    // Return tracking data
+    console.log(`[TrackReport] Found ticket ${cleanTicket} - status: ${report.status}`)
+
+    // Return tracking data (handle both field names)
     return NextResponse.json({
-      ticket: report.ticket,
-      status: report.status,
-      status_label: STATUS_LABELS[report.status] || report.status,
+      ticket: report.ticket_number || report.ticket,
+      status: report.status || 'received',
+      status_label: STATUS_LABELS[report.status] || report.status || 'Received',
       category: report.category,
-      area: report.area_text || 'Location not specified',
+      area: report.area_text || report.area || 'Location not specified',
       description: report.description,
       severity: report.severity || 'medium',
-      timeline: report.timeline || [],
+      timeline: report.timeline || report.status_history || [],
       created_at: report.created_at,
-      last_updated: report.updated_at,
+      last_updated: report.updated_at || report.created_at,
       resolved_at: report.status === 'resolved' ? report.updated_at : null,
     })
 

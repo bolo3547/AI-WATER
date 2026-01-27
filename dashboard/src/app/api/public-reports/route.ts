@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { v4 as uuidv4 } from 'uuid'
 import clientPromise from '@/lib/mongodb'
+import { notifyReportSubmission } from '@/lib/sms'
 
 // Types
 interface PublicReport {
@@ -160,6 +161,21 @@ export async function POST(request: NextRequest) {
     await collection.insertOne(report)
 
     console.log(`[PublicReport] Created: ${ticket} (category=${body.category}, source=${body.source || 'web'})`)
+
+    // Send SMS confirmation to reporter if phone number provided
+    if (body.reporter_phone) {
+      try {
+        const smsResult = await notifyReportSubmission(body.reporter_phone, ticket, body.category)
+        if (smsResult.success) {
+          console.log(`[PublicReport] SMS confirmation sent to ${body.reporter_phone} for ${ticket}`)
+        } else {
+          console.log(`[PublicReport] SMS failed for ${ticket}: ${smsResult.error || smsResult.status}`)
+        }
+      } catch (smsError) {
+        // Don't fail the report if SMS fails
+        console.error(`[PublicReport] SMS error for ${ticket}:`, smsError)
+      }
+    }
 
     return NextResponse.json({
       success: true,
