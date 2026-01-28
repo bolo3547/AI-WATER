@@ -114,7 +114,7 @@ export default function ExecutiveDashboard() {
   const monthlyRevenue = [720000, 780000, 845000, 892500]
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-2 xs:p-3 sm:p-4 md:p-6">
+    <div className="bg-gradient-to-br from-slate-50 to-slate-100">
       {/* Header */}
       <div className="mb-3 sm:mb-4 md:mb-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3">

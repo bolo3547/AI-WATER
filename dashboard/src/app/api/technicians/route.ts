@@ -151,37 +151,151 @@ export async function POST(request: NextRequest) {
     const db = client.db('lwsc_nrw')
     const body = await request.json()
     
-    if (!body.name || !body.email) {
+    if (!body.name) {
       return NextResponse.json({
         success: false,
-        error: 'Name and email are required'
+        error: 'Name is required'
       }, { status: 400 })
     }
     
+    // Generate unique ID
+    const techId = `TECH-${Date.now()}-${Math.random().toString(36).substring(2, 7).toUpperCase()}`
+    
     const newTechnician = {
-      user_id: `TECH-${Date.now()}`,
+      user_id: techId,
       name: body.name,
-      email: body.email,
+      email: body.email || '',
       phone: body.phone || '',
       role: body.role || 'technician',
       status: 'available',
       skills: body.skills || ['general_maintenance'],
+      location: body.location || '',
       completed_today: 0,
-      created_at: new Date().toISOString()
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
     }
     
     const result = await db.collection('technicians').insertOne(newTechnician)
     
+    console.log(`[Technicians] Added new team member: ${body.name} (${techId})`)
+    
     return NextResponse.json({
       success: true,
       data: { ...newTechnician, _id: result.insertedId },
-      message: 'Technician added successfully'
+      message: 'Team member added successfully'
     }, { status: 201 })
   } catch (error) {
     console.error('POST technician error:', error)
     return NextResponse.json({
       success: false,
-      error: 'Failed to add technician'
+      error: 'Failed to add team member'
+    }, { status: 500 })
+  }
+}
+
+// PUT - Update a team member
+export async function PUT(request: NextRequest) {
+  try {
+    const client = await clientPromise
+    const db = client.db('lwsc_nrw')
+    const body = await request.json()
+    
+    if (!body.user_id && !body._id) {
+      return NextResponse.json({
+        success: false,
+        error: 'Team member ID is required'
+      }, { status: 400 })
+    }
+    
+    const filter = body._id 
+      ? { _id: new (await import('mongodb')).ObjectId(body._id) }
+      : { user_id: body.user_id }
+    
+    const updateData: Record<string, any> = {
+      updated_at: new Date().toISOString()
+    }
+    
+    // Only update provided fields
+    if (body.name) updateData.name = body.name
+    if (body.email !== undefined) updateData.email = body.email
+    if (body.phone !== undefined) updateData.phone = body.phone
+    if (body.role) updateData.role = body.role
+    if (body.status) updateData.status = body.status
+    if (body.skills) updateData.skills = body.skills
+    if (body.location !== undefined) updateData.location = body.location
+    
+    const result = await db.collection('technicians').updateOne(
+      filter,
+      { $set: updateData }
+    )
+    
+    if (result.matchedCount === 0) {
+      return NextResponse.json({
+        success: false,
+        error: 'Team member not found'
+      }, { status: 404 })
+    }
+    
+    console.log(`[Technicians] Updated team member: ${body.user_id || body._id}`)
+    
+    return NextResponse.json({
+      success: true,
+      message: 'Team member updated successfully'
+    })
+  } catch (error) {
+    console.error('PUT technician error:', error)
+    return NextResponse.json({
+      success: false,
+      error: 'Failed to update team member'
+    }, { status: 500 })
+  }
+}
+
+// DELETE - Remove a team member
+export async function DELETE(request: NextRequest) {
+  try {
+    const client = await clientPromise
+    const db = client.db('lwsc_nrw')
+    
+    const { searchParams } = new URL(request.url)
+    const userId = searchParams.get('user_id')
+    const id = searchParams.get('id')
+    
+    if (!userId && !id) {
+      return NextResponse.json({
+        success: false,
+        error: 'Team member ID is required'
+      }, { status: 400 })
+    }
+    
+    let filter: Record<string, any>
+    if (id) {
+      const { ObjectId } = await import('mongodb')
+      filter = { _id: new ObjectId(id) }
+    } else {
+      filter = { user_id: userId }
+    }
+    
+    const result = await db.collection('technicians').deleteOne(filter)
+    
+    if (result.deletedCount === 0) {
+      return NextResponse.json({
+        success: false,
+        error: 'Team member not found'
+      }, { status: 404 })
+    }
+    
+    console.log(`[Technicians] Deleted team member: ${userId || id}`)
+    
+    return NextResponse.json({
+      success: true,
+      message: 'Team member removed successfully'
+    })
+  } catch (error) {
+    console.error('DELETE technician error:', error)
+    return NextResponse.json({
+      success: false,
+      error: 'Failed to remove team member'
     }, { status: 500 })
   }
 }

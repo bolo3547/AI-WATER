@@ -294,7 +294,7 @@ export default function WaterQualityPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 p-4 lg:p-6">
+    <div className="bg-gray-100">
       {/* Header */}
       <div className="mb-6">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">

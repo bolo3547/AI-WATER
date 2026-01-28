@@ -7,6 +7,7 @@ import { notifyReportSubmission } from '@/lib/sms'
 interface PublicReport {
   id: string
   ticket: string
+  ticket_number: string  // Alias for consistency
   tenant_id: string
   category: string
   description: string | null
@@ -124,6 +125,7 @@ export async function POST(request: NextRequest) {
     const report: PublicReport = {
       id: uuidv4(),
       ticket,
+      ticket_number: ticket,  // Store both for compatibility
       tenant_id: body.tenant_id || 'lwsc-zambia',
       category: body.category,
       description: body.description || null,
@@ -180,6 +182,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       ticket,
+      ticket_number: ticket,  // Include both for compatibility
       message: 'Your report has been submitted successfully.',
       tracking_url: `/track/${ticket}`,
     })

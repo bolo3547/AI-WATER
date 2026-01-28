@@ -302,7 +302,7 @@ export default function SmartMetersPage() {
   };
   
   return (
-    <div className="min-h-screen bg-gray-900 text-white p-6">
+    <div className="bg-gray-900 text-white">
       {/* Disconnected Overlay */}
       {!isConnected && !isLoading && renderDisconnectedOverlay()}
       

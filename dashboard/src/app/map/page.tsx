@@ -284,7 +284,7 @@ export default function MapPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-2 sm:p-3 md:p-4 lg:p-6">
+    <div className="bg-gradient-to-br from-slate-50 to-slate-100">
       {/* Header */}
       <div className="mb-2 sm:mb-3 md:mb-4 lg:mb-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3">

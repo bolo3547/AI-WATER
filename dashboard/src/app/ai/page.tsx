@@ -244,38 +244,38 @@ export default function AIInsightsPage() {
         })}
       </div>
 
-      <div className="bg-gradient-to-r from-slate-900 via-purple-900 to-slate-900 rounded-2xl p-6 text-white">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-2xl bg-white/10 flex items-center justify-center">
-              <Brain className="w-8 h-8 text-purple-300" />
+      <div className="bg-gradient-to-r from-slate-900 via-purple-900 to-slate-900 rounded-2xl p-4 sm:p-6 text-white">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 lg:gap-6">
+          <div className="flex items-center gap-3 sm:gap-4">
+            <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl bg-white/10 flex items-center justify-center flex-shrink-0">
+              <Brain className="w-6 h-6 sm:w-8 sm:h-8 text-purple-300" />
             </div>
             <div>
-              <h3 className="text-xl font-bold">LWSC Neural Network Engine</h3>
-              <p className="text-purple-200 text-sm">Deep learning models for water network analysis</p>
+              <h3 className="text-base sm:text-xl font-bold">LWSC Neural Network Engine</h3>
+              <p className="text-purple-200 text-xs sm:text-sm">Deep learning models for water network analysis</p>
             </div>
           </div>
-          <div className="grid grid-cols-4 gap-8">
-            <div className="text-center">
-              <p className="text-3xl font-bold text-emerald-400">98.2%</p>
-              <p className="text-xs text-purple-200">Model Accuracy</p>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-6 lg:gap-8">
+            <div className="text-center bg-white/5 rounded-xl p-3 sm:p-0 sm:bg-transparent">
+              <p className="text-xl sm:text-3xl font-bold text-emerald-400">98.2%</p>
+              <p className="text-[10px] sm:text-xs text-purple-200">Model Accuracy</p>
             </div>
-            <div className="text-center">
-              <p className="text-3xl font-bold text-blue-400">156</p>
-              <p className="text-xs text-purple-200">Data Sources</p>
+            <div className="text-center bg-white/5 rounded-xl p-3 sm:p-0 sm:bg-transparent">
+              <p className="text-xl sm:text-3xl font-bold text-blue-400">156</p>
+              <p className="text-[10px] sm:text-xs text-purple-200">Data Sources</p>
             </div>
-            <div className="text-center">
-              <p className="text-3xl font-bold text-yellow-400">2.4M</p>
-              <p className="text-xs text-purple-200">Data Points/Day</p>
+            <div className="text-center bg-white/5 rounded-xl p-3 sm:p-0 sm:bg-transparent">
+              <p className="text-xl sm:text-3xl font-bold text-yellow-400">2.4M</p>
+              <p className="text-[10px] sm:text-xs text-purple-200">Data Points/Day</p>
             </div>
-            <div className="text-center">
-              <p className="text-3xl font-bold text-cyan-400">&lt; 50ms</p>
-              <p className="text-xs text-purple-200">Response Time</p>
+            <div className="text-center bg-white/5 rounded-xl p-3 sm:p-0 sm:bg-transparent">
+              <p className="text-xl sm:text-3xl font-bold text-cyan-400">&lt; 50ms</p>
+              <p className="text-[10px] sm:text-xs text-purple-200">Response Time</p>
             </div>
           </div>
         </div>
 
-        <div className="mt-6 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3">
+        <div className="mt-4 sm:mt-6 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3">
           {[
             { name: 'Leak Predictor', status: 'active', accuracy: 94 },
             { name: 'Anomaly Detector', status: 'active', accuracy: 92 },
@@ -283,22 +283,22 @@ export default function AIInsightsPage() {
             { name: 'Pipe Health Model', status: 'active', accuracy: 87 },
             { name: 'NRW Optimizer', status: 'training', accuracy: 85 },
           ].map((model) => (
-            <div key={model.name} className="bg-white/10 rounded-xl p-3">
-              <div className="flex items-center justify-between mb-2">
+            <div key={model.name} className="bg-white/10 rounded-xl p-2.5 sm:p-3 hover:bg-white/15 transition-colors">
+              <div className="flex items-center justify-between mb-1.5 sm:mb-2">
                 <span className={`w-2 h-2 rounded-full ${
                   model.status === 'active' ? 'bg-emerald-400' : 'bg-yellow-400 animate-pulse'
                 }`} />
-                <span className="text-xs text-purple-200">{model.accuracy}%</span>
+                <span className="text-[10px] sm:text-xs text-purple-200">{model.accuracy}%</span>
               </div>
-              <p className="text-sm font-medium">{model.name}</p>
-              <p className="text-xs text-purple-300 capitalize">{model.status}</p>
+              <p className="text-xs sm:text-sm font-medium truncate">{model.name}</p>
+              <p className="text-[10px] sm:text-xs text-purple-300 capitalize">{model.status}</p>
             </div>
           ))}
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
-        <div className="lg:col-span-2">
+        <div className="lg:col-span-2 order-2 lg:order-1">
           <AIInsightsPanel 
             type="nrw_insights"
             title="AI System Analysis"
@@ -311,7 +311,7 @@ export default function AIInsightsPage() {
           />
         </div>
 
-        <div className="space-y-4">
+        <div className="space-y-4 order-1 lg:order-2">
           <div className="bg-white rounded-xl border border-slate-200 p-4">
             <h3 className="font-semibold text-slate-900 mb-3 flex items-center gap-2">
               <Zap className="w-5 h-5 text-yellow-500" />

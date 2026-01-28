@@ -305,7 +305,7 @@ export default function LeakDetailPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-[60vh] flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
           <Loader2 className="w-8 h-8 animate-spin text-primary" />
           <p className="text-muted-foreground">Loading leak details...</p>
@@ -316,7 +316,7 @@ export default function LeakDetailPage() {
 
   if (error || !leak) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-[60vh] flex items-center justify-center">
         <div className="text-center">
           <AlertTriangle className="w-12 h-12 text-amber-500 mx-auto mb-4" />
           <h1 className="text-xl font-semibold mb-2">Leak Not Found</h1>
@@ -331,7 +331,7 @@ export default function LeakDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-muted/30 p-4 sm:p-6 lg:p-8">
+    <div className="bg-muted/30">
       {/* Header */}
       <div className="max-w-7xl mx-auto mb-6">
         <div className="flex items-center gap-4 mb-4">

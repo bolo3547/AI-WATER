@@ -669,8 +669,8 @@ export default function WorkOrdersPage() {
 
   if (!systemLoading && systemStatus && !systemStatus.database_connected) {
     return (
-      <div className="min-h-screen bg-slate-50 p-4 sm:p-6 lg:p-8">
-        <div className="max-w-7xl mx-auto">
+      <div className="bg-slate-50">
+        <div className="max-w-full">
           <ErrorState 
             error="Unable to connect to the database. Please check your connection."
             onRetry={() => mutate()}
@@ -681,8 +681,8 @@ export default function WorkOrdersPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 p-4 sm:p-6 lg:p-8">
-      <div className="max-w-7xl mx-auto space-y-6">
+    <div className="bg-slate-50">
+      <div className="max-w-full space-y-4 sm:space-y-6">
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
@@ -744,26 +744,61 @@ export default function WorkOrdersPage() {
         {!isLoading && !workOrdersError && (
           <>
             {/* Stats */}
-            <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
-              <div className="bg-white rounded-xl border border-slate-200 p-4">
-                <div className="text-2xl font-bold text-slate-900">{hasData ? stats.total : '--'}</div>
-                <div className="text-sm text-slate-500">Total</div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
+              <div className="bg-white rounded-xl border border-slate-200 p-3 sm:p-4">
+                <div className="flex items-center gap-2 sm:block">
+                  <div className="w-8 h-8 sm:hidden rounded-lg bg-slate-100 flex items-center justify-center">
+                    <ClipboardList className="w-4 h-4 text-slate-600" />
+                  </div>
+                  <div>
+                    <div className="text-xl sm:text-2xl font-bold text-slate-900">{hasData ? stats.total : '--'}</div>
+                    <div className="text-xs sm:text-sm text-slate-500">Total</div>
+                  </div>
+                </div>
               </div>
-              <div className="bg-slate-50 rounded-xl border border-slate-200 p-4">
-                <div className="text-2xl font-bold text-slate-600">{hasData ? stats.pending : '--'}</div>
-                <div className="text-sm text-slate-500">Pending</div>
+              <div className="bg-slate-50 rounded-xl border border-slate-200 p-3 sm:p-4">
+                <div className="flex items-center gap-2 sm:block">
+                  <div className="w-8 h-8 sm:hidden rounded-lg bg-slate-200 flex items-center justify-center">
+                    <Clock className="w-4 h-4 text-slate-600" />
+                  </div>
+                  <div>
+                    <div className="text-xl sm:text-2xl font-bold text-slate-600">{hasData ? stats.pending : '--'}</div>
+                    <div className="text-xs sm:text-sm text-slate-500">Pending</div>
+                  </div>
+                </div>
               </div>
-              <div className="bg-blue-50 rounded-xl border border-blue-200 p-4">
-                <div className="text-2xl font-bold text-blue-600">{hasData ? stats.assigned : '--'}</div>
-                <div className="text-sm text-blue-600">Assigned</div>
+              <div className="bg-blue-50 rounded-xl border border-blue-200 p-3 sm:p-4">
+                <div className="flex items-center gap-2 sm:block">
+                  <div className="w-8 h-8 sm:hidden rounded-lg bg-blue-100 flex items-center justify-center">
+                    <User className="w-4 h-4 text-blue-600" />
+                  </div>
+                  <div>
+                    <div className="text-xl sm:text-2xl font-bold text-blue-600">{hasData ? stats.assigned : '--'}</div>
+                    <div className="text-xs sm:text-sm text-blue-600">Assigned</div>
+                  </div>
+                </div>
               </div>
-              <div className="bg-amber-50 rounded-xl border border-amber-200 p-4">
-                <div className="text-2xl font-bold text-amber-600">{hasData ? stats.inProgress : '--'}</div>
-                <div className="text-sm text-amber-600">In Progress</div>
+              <div className="bg-amber-50 rounded-xl border border-amber-200 p-3 sm:p-4">
+                <div className="flex items-center gap-2 sm:block">
+                  <div className="w-8 h-8 sm:hidden rounded-lg bg-amber-100 flex items-center justify-center">
+                    <Play className="w-4 h-4 text-amber-600" />
+                  </div>
+                  <div>
+                    <div className="text-xl sm:text-2xl font-bold text-amber-600">{hasData ? stats.inProgress : '--'}</div>
+                    <div className="text-xs sm:text-sm text-amber-600">In Progress</div>
+                  </div>
+                </div>
               </div>
-              <div className="bg-emerald-50 rounded-xl border border-emerald-200 p-4">
-                <div className="text-2xl font-bold text-emerald-600">{hasData ? stats.completed : '--'}</div>
-                <div className="text-sm text-emerald-600">Completed</div>
+              <div className="bg-emerald-50 rounded-xl border border-emerald-200 p-3 sm:p-4 col-span-2 sm:col-span-1">
+                <div className="flex items-center gap-2 sm:block">
+                  <div className="w-8 h-8 sm:hidden rounded-lg bg-emerald-100 flex items-center justify-center">
+                    <CheckCircle className="w-4 h-4 text-emerald-600" />
+                  </div>
+                  <div>
+                    <div className="text-xl sm:text-2xl font-bold text-emerald-600">{hasData ? stats.completed : '--'}</div>
+                    <div className="text-xs sm:text-sm text-emerald-600">Completed</div>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -825,29 +860,29 @@ export default function WorkOrdersPage() {
                     key={wo._id || wo.id}
                     className="bg-white rounded-xl border border-slate-200 hover:shadow-md hover:border-slate-300 transition-all"
                   >
-                    <div className="p-4">
-                      <div className="flex items-start gap-4">
+                    <div className="p-3 sm:p-4">
+                      <div className="flex items-start gap-2 sm:gap-4">
                         {/* Priority */}
-                        <div className={`w-1 self-stretch rounded-full ${getPriorityColor(wo.priority)}`} />
+                        <div className={`w-1 self-stretch rounded-full flex-shrink-0 ${getPriorityColor(wo.priority)}`} />
                         
                         {/* Content */}
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap mb-1">
-                            <span className="font-semibold text-slate-900">{wo.id}</span>
-                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${getStatusColor(wo.status)}`}>
+                          <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap mb-1">
+                            <span className="font-semibold text-slate-900 text-sm sm:text-base">{wo.id}</span>
+                            <span className={`inline-flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-medium ${getStatusColor(wo.status)}`}>
                               {getStatusIcon(wo.status)}
                               <span className="capitalize">{wo.status.replace('_', ' ')}</span>
                             </span>
-                            <span className="px-2 py-0.5 bg-slate-100 text-slate-600 rounded-full text-xs font-medium">
+                            <span className="px-1.5 sm:px-2 py-0.5 bg-slate-100 text-slate-600 rounded-full text-[10px] sm:text-xs font-medium hidden sm:inline">
                               {getTypeLabel(wo.type)}
                             </span>
                           </div>
                           
-                          <p className="font-medium text-slate-800 mb-1">{wo.title}</p>
+                          <p className="font-medium text-slate-800 mb-1 text-sm sm:text-base line-clamp-1">{wo.title}</p>
                           
-                          <div className="flex items-center gap-4 text-sm text-slate-500">
+                          <div className="flex items-center gap-2 sm:gap-4 text-xs sm:text-sm text-slate-500 flex-wrap">
                             <span className="flex items-center gap-1">
-                              <Building2 className="w-3 h-3" />
+                              <Building2 className="w-3 h-3 flex-shrink-0" />
                               {wo.dma}
                             </span>
                             {wo.assignee && (
@@ -863,12 +898,12 @@ export default function WorkOrdersPage() {
                           </div>
 
                           {/* Actions */}
-                          <div className="flex items-center gap-2 mt-3">
+                          <div className="flex items-center gap-1.5 sm:gap-2 mt-2 sm:mt-3 flex-wrap">
                             {wo.status === 'pending' && (
                               <button
                                 onClick={() => setShowAssignModal(wo.id)}
                                 disabled={actionLoading === wo.id}
-                                className="flex items-center gap-1 px-3 py-1.5 bg-blue-100 text-blue-700 rounded-lg text-xs font-medium hover:bg-blue-200 disabled:opacity-50"
+                                className="flex items-center gap-1 px-2 sm:px-3 py-1 sm:py-1.5 bg-blue-100 text-blue-700 rounded-lg text-[10px] sm:text-xs font-medium hover:bg-blue-200 disabled:opacity-50 transition-colors"
                               >
                                 {actionLoading === wo.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <User className="w-3 h-3" />}
                                 Assign
@@ -878,17 +913,17 @@ export default function WorkOrdersPage() {
                               <button
                                 onClick={() => handleStart(wo.id)}
                                 disabled={actionLoading === wo.id}
-                                className="flex items-center gap-1 px-3 py-1.5 bg-amber-100 text-amber-700 rounded-lg text-xs font-medium hover:bg-amber-200 disabled:opacity-50"
+                                className="flex items-center gap-1 px-2 sm:px-3 py-1 sm:py-1.5 bg-amber-100 text-amber-700 rounded-lg text-[10px] sm:text-xs font-medium hover:bg-amber-200 disabled:opacity-50 transition-colors"
                               >
                                 {actionLoading === wo.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Play className="w-3 h-3" />}
-                                Start Work
+                                Start
                               </button>
                             )}
                             {(wo.status === 'in_progress' || wo.status === 'in-progress') && (
                               <button
                                 onClick={() => handleComplete(wo.id)}
                                 disabled={actionLoading === wo.id}
-                                className="flex items-center gap-1 px-3 py-1.5 bg-emerald-100 text-emerald-700 rounded-lg text-xs font-medium hover:bg-emerald-200 disabled:opacity-50"
+                                className="flex items-center gap-1 px-2 sm:px-3 py-1 sm:py-1.5 bg-emerald-100 text-emerald-700 rounded-lg text-[10px] sm:text-xs font-medium hover:bg-emerald-200 disabled:opacity-50 transition-colors"
                               >
                                 {actionLoading === wo.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
                                 Complete
@@ -898,7 +933,7 @@ export default function WorkOrdersPage() {
                               <button
                                 onClick={() => handleCancel(wo.id)}
                                 disabled={actionLoading === wo.id}
-                                className="flex items-center gap-1 px-3 py-1.5 bg-slate-100 text-slate-600 rounded-lg text-xs font-medium hover:bg-slate-200 disabled:opacity-50"
+                                className="flex items-center gap-1 px-2 sm:px-3 py-1 sm:py-1.5 bg-slate-100 text-slate-600 rounded-lg text-[10px] sm:text-xs font-medium hover:bg-slate-200 disabled:opacity-50 transition-colors"
                               >
                                 <XCircle className="w-3 h-3" />
                                 Cancel
@@ -908,7 +943,7 @@ export default function WorkOrdersPage() {
                         </div>
 
                         {/* Meta */}
-                        <div className="text-right text-sm">
+                        <div className="text-right text-xs sm:text-sm flex-shrink-0 hidden sm:block">
                           <div className="font-medium text-slate-700 capitalize">{wo.priority}</div>
                           <div className="text-xs text-slate-500">
                             {wo.due_date ? formatDate(wo.due_date) : '--'}

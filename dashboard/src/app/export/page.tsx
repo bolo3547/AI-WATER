@@ -114,7 +114,7 @@ export default function ExportPage() {
   ]
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-2 sm:p-3 md:p-4 lg:p-6">
+    <div className="bg-gradient-to-br from-slate-50 to-slate-100">
       {/* Header */}
       <div className="mb-2 sm:mb-3 md:mb-4 lg:mb-6">
         <h1 className="text-base sm:text-lg md:text-xl lg:text-3xl font-bold text-slate-900">Data Export</h1>

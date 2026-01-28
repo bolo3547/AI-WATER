@@ -152,7 +152,7 @@ export default function ShiftHandoverPage() {
   // Loading state
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+      <div className="min-h-[60vh] bg-gray-100 flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="w-8 h-8 animate-spin text-[#198038] mx-auto mb-4" />
           <p className="text-gray-600">Loading shift handover data...</p>
@@ -164,7 +164,7 @@ export default function ShiftHandoverPage() {
   // Error state
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+      <div className="min-h-[60vh] bg-gray-100 flex items-center justify-center">
         <div className="text-center">
           <AlertTriangle className="w-8 h-8 text-red-500 mx-auto mb-4" />
           <p className="text-gray-800 font-medium">Failed to load shift data</p>
@@ -180,7 +180,7 @@ export default function ShiftHandoverPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 p-4 lg:p-6">
+    <div className="bg-gray-100">
       {/* Header */}
       <div className="mb-6">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
