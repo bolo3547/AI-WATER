@@ -370,12 +370,19 @@ export async function POST(request: NextRequest) {
     }
     
     // 6. Get other sensor readings for correlation (weight: 0.15)
-    const recentReadings = await db.collection('sensor_readings')
+    const recentReadingsRaw = await db.collection('sensor_readings')
       .find({
         dma_id: dma_id || 'DMA-001',
         timestamp: { $gte: new Date(now.getTime() - 5 * 60 * 1000).toISOString() }
       })
       .toArray()
+    
+    // Map to typed format for correlation function
+    const recentReadings = recentReadingsRaw.map(r => ({
+      sensor_id: r.sensor_id as string || 'unknown',
+      pressure: r.pressure as number | undefined,
+      flow_rate: r.flow_rate as number | undefined
+    }))
     
     const correlationResult = multiSensorCorrelation(recentReadings)
     if (correlationResult.correlated) {

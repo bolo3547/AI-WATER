@@ -167,19 +167,18 @@ export async function POST(request: NextRequest) {
     }
     
     if (action === 'add_incident') {
-      await db.collection('shift_handovers').updateOne(
-        { id: body.id },
-        {
-          $push: {
-            incidents: {
-              time: body.incident.time || new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
-              description: body.incident.description,
-              action: body.incident.action,
-              resolved: body.incident.resolved || false
-            }
+      const incidentUpdate = {
+        $push: {
+          incidents: {
+            time: body.incident.time || new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
+            description: body.incident.description,
+            action: body.incident.action,
+            resolved: body.incident.resolved || false
           }
         }
-      )
+      }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await db.collection('shift_handovers').updateOne({ id: body.id }, incidentUpdate as any)
       
       return NextResponse.json({ success: true })
     }

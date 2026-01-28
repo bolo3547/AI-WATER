@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import clientPromise from '@/lib/mongodb'
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
-)
+// Force dynamic rendering
+export const dynamic = 'force-dynamic'
 
 export async function GET(request: NextRequest) {
   try {
+    const client = await clientPromise
+    const db = client.db('lwsc_nrw')
+    
     const now = new Date()
     const fiveMinutesAgo = new Date(now.getTime() - 5 * 60 * 1000)
 
@@ -18,52 +19,43 @@ export async function GET(request: NextRequest) {
 
     try {
       // Try to get most recent sensor reading
-      const { data: sensorData, error: sensorError } = await supabase
-        .from('sensor_readings')
-        .select('timestamp')
-        .order('timestamp', { ascending: false })
-        .limit(1)
-        .single()
+      const sensorData = await db.collection('sensor_readings')
+        .findOne({}, { sort: { timestamp: -1 } })
 
-      if (!sensorError && sensorData) {
+      if (sensorData?.timestamp) {
         lastSensorSeenAt = sensorData.timestamp
         dataFresh = new Date(sensorData.timestamp) > fiveMinutesAgo
       }
     } catch (e) {
-      // Sensor readings table might not exist
+      // Sensor readings collection might not exist
     }
 
-    // Check sensor count
+    // Check active sensor count
     try {
-      const { count } = await supabase
-        .from('sensors')
-        .select('*', { count: 'exact', head: true })
-        .eq('status', 'active')
-
-      sensorCount = count || 0
+      sensorCount = await db.collection('sensors')
+        .countDocuments({ status: 'active' })
     } catch (e) {
-      // Sensors table might not exist
+      // Sensors collection might not exist
     }
 
     // For now, assume MQTT is connected if we have recent data
     // In production, this would check actual MQTT broker status
     const mqttConnected = dataFresh || sensorCount > 0
 
-    // Get system health
+    // Get system health based on active alerts
     let systemHealth = 'healthy'
     try {
-      const { data: alerts } = await supabase
-        .from('alerts')
-        .select('severity')
-        .eq('status', 'active')
-        .in('severity', ['critical', 'high'])
-        .limit(1)
+      const criticalAlerts = await db.collection('alerts')
+        .countDocuments({ 
+          status: 'active',
+          severity: { $in: ['critical', 'high'] }
+        })
 
-      if (alerts && alerts.length > 0) {
+      if (criticalAlerts > 0) {
         systemHealth = 'warning'
       }
     } catch (e) {
-      // Alerts table might not exist
+      // Alerts collection might not exist
     }
 
     return NextResponse.json({
@@ -71,6 +63,7 @@ export async function GET(request: NextRequest) {
       data_fresh: dataFresh,
       last_sensor_seen_at: lastSensorSeenAt,
       sensor_count: sensorCount,
+      active_sensors: sensorCount,
       system_health: systemHealth,
       timestamp: now.toISOString(),
       status: 'ok'
@@ -85,6 +78,7 @@ export async function GET(request: NextRequest) {
       data_fresh: true,
       last_sensor_seen_at: null,
       sensor_count: 0,
+      active_sensors: 0,
       system_health: 'unknown',
       timestamp: new Date().toISOString(),
       status: 'error',

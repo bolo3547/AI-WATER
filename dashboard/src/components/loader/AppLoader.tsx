@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import HippoSplash from './HippoSplash'
+import LWSCLogoLoader, { LoaderStatus } from './LWSCLogoLoader'
 
 export type LoaderState = 
   | 'authenticating'
@@ -16,6 +16,7 @@ interface LiveStatus {
   mqtt_connected: boolean
   data_fresh: boolean
   last_sensor_seen_at: string | null
+  active_sensors?: number
 }
 
 interface AppLoaderProps {
@@ -51,9 +52,10 @@ export default function AppLoader({
   const [shouldShow, setShouldShow] = useState(false)
   const [canHide, setCanHide] = useState(false)
   const [liveStatus, setLiveStatus] = useState<LiveStatus>({
-    mqtt_connected: true,
-    data_fresh: true,
-    last_sensor_seen_at: null
+    mqtt_connected: false,
+    data_fresh: false,
+    last_sensor_seen_at: null,
+    active_sensors: 0
   })
   const [startTime, setStartTime] = useState<number | null>(null)
 
@@ -70,13 +72,16 @@ export default function AppLoader({
       if (response.ok) {
         const data = await response.json()
         setLiveStatus({
-          mqtt_connected: data.mqtt_connected ?? true,
-          data_fresh: data.data_fresh ?? true,
-          last_sensor_seen_at: data.last_sensor_seen_at ?? null
+          mqtt_connected: data.mqtt_connected ?? false,
+          data_fresh: data.data_fresh ?? false,
+          last_sensor_seen_at: data.last_sensor_seen_at ?? null,
+          active_sensors: data.active_sensors ?? 0
         })
       }
     } catch (error) {
       console.warn('[AppLoader] Failed to fetch live status:', error)
+      // On error, set to offline state
+      setLiveStatus(prev => ({ ...prev, mqtt_connected: false }))
     }
   }, [checkLiveStatus, tenantId])
 
@@ -147,6 +152,15 @@ export default function AppLoader({
   const message = customMessage || stateMessages[state]
   const isVisible = shouldShow && (isLoading || !canHide)
 
+  // Map LoaderState to LoaderStatus
+  const getLoaderStatus = (): LoaderStatus => {
+    if (state === 'authenticating') return 'auth_required'
+    if (!liveStatus.mqtt_connected) return 'offline'
+    if (liveStatus.active_sensors === 0) return 'no_data_yet'
+    if (!liveStatus.data_fresh) return 'stale_data'
+    return 'live_data'
+  }
+
   return (
     <AnimatePresence>
       {isVisible && (
@@ -157,9 +171,11 @@ export default function AppLoader({
           exit={{ opacity: 0 }}
           transition={{ duration: 0.4, ease: "easeOut" }}
         >
-          <HippoSplash
-            isOnline={liveStatus.mqtt_connected}
+          <LWSCLogoLoader
+            status={getLoaderStatus()}
+            mqttConnected={liveStatus.mqtt_connected}
             dataFresh={liveStatus.data_fresh}
+            activeSensors={liveStatus.active_sensors || 0}
             message={message}
             onComplete={handleComplete}
           />
