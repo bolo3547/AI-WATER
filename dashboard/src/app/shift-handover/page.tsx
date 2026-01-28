@@ -180,9 +180,9 @@ export default function ShiftHandoverPage() {
   }
 
   return (
-    <div className="bg-gray-100">
+    <div className="bg-gray-100 min-h-[calc(100vh-120px)]">
       {/* Header */}
-      <div className="mb-6">
+      <div className="mb-4 sm:mb-6">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">

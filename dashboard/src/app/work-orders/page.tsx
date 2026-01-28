@@ -681,33 +681,33 @@ export default function WorkOrdersPage() {
   }
 
   return (
-    <div className="bg-slate-50">
-      <div className="max-w-full space-y-4 sm:space-y-6">
+    <div className="bg-slate-50 min-h-[calc(100vh-120px)]">
+      <div className="max-w-full space-y-3 sm:space-y-4 lg:space-y-6">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div>
-            <h1 className="text-2xl font-bold text-slate-900">Work Orders</h1>
-            <p className="text-slate-500">
+        <div className="flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-center">
+          <div className="min-w-0">
+            <h1 className="text-xl sm:text-2xl font-bold text-slate-900 truncate">Work Orders</h1>
+            <p className="text-sm text-slate-500 truncate">
               {hasData 
                 ? `${stats.total} total • ${stats.inProgress} in progress`
                 : 'No work orders yet'}
             </p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 w-full sm:w-auto">
             <button 
               onClick={() => mutate()}
               disabled={isLoading}
-              className="flex items-center gap-2 px-4 py-2 border border-slate-200 text-slate-700 rounded-lg hover:bg-slate-50 disabled:opacity-50"
+              className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-3 py-2 border border-slate-200 text-slate-700 rounded-lg hover:bg-slate-50 disabled:opacity-50 text-sm"
             >
               <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
-              Refresh
+              <span className="hidden xs:inline">Refresh</span>
             </button>
             <button 
               onClick={() => setShowCreateModal(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm"
             >
               <Plus className="w-4 h-4" />
-              New Work Order
+              <span>New Order</span>
             </button>
           </div>
         </div>
@@ -744,67 +744,67 @@ export default function WorkOrdersPage() {
         {!isLoading && !workOrdersError && (
           <>
             {/* Stats */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
-              <div className="bg-white rounded-xl border border-slate-200 p-3 sm:p-4">
+            <div className="grid grid-cols-2 xs:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3">
+              <div className="bg-white rounded-lg sm:rounded-xl border border-slate-200 p-2.5 sm:p-4">
                 <div className="flex items-center gap-2 sm:block">
-                  <div className="w-8 h-8 sm:hidden rounded-lg bg-slate-100 flex items-center justify-center">
-                    <ClipboardList className="w-4 h-4 text-slate-600" />
+                  <div className="w-7 h-7 sm:w-8 sm:h-8 sm:hidden rounded-lg bg-slate-100 flex items-center justify-center flex-shrink-0">
+                    <ClipboardList className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-600" />
                   </div>
-                  <div>
-                    <div className="text-xl sm:text-2xl font-bold text-slate-900">{hasData ? stats.total : '--'}</div>
-                    <div className="text-xs sm:text-sm text-slate-500">Total</div>
+                  <div className="min-w-0">
+                    <div className="text-lg sm:text-2xl font-bold text-slate-900">{hasData ? stats.total : '--'}</div>
+                    <div className="text-[10px] sm:text-sm text-slate-500">Total</div>
                   </div>
                 </div>
               </div>
-              <div className="bg-slate-50 rounded-xl border border-slate-200 p-3 sm:p-4">
+              <div className="bg-slate-50 rounded-lg sm:rounded-xl border border-slate-200 p-2.5 sm:p-4">
                 <div className="flex items-center gap-2 sm:block">
-                  <div className="w-8 h-8 sm:hidden rounded-lg bg-slate-200 flex items-center justify-center">
-                    <Clock className="w-4 h-4 text-slate-600" />
+                  <div className="w-7 h-7 sm:w-8 sm:h-8 sm:hidden rounded-lg bg-slate-200 flex items-center justify-center flex-shrink-0">
+                    <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-600" />
                   </div>
-                  <div>
-                    <div className="text-xl sm:text-2xl font-bold text-slate-600">{hasData ? stats.pending : '--'}</div>
-                    <div className="text-xs sm:text-sm text-slate-500">Pending</div>
+                  <div className="min-w-0">
+                    <div className="text-lg sm:text-2xl font-bold text-slate-600">{hasData ? stats.pending : '--'}</div>
+                    <div className="text-[10px] sm:text-sm text-slate-500">Pending</div>
                   </div>
                 </div>
               </div>
-              <div className="bg-blue-50 rounded-xl border border-blue-200 p-3 sm:p-4">
+              <div className="bg-blue-50 rounded-lg sm:rounded-xl border border-blue-200 p-2.5 sm:p-4">
                 <div className="flex items-center gap-2 sm:block">
-                  <div className="w-8 h-8 sm:hidden rounded-lg bg-blue-100 flex items-center justify-center">
-                    <User className="w-4 h-4 text-blue-600" />
+                  <div className="w-7 h-7 sm:w-8 sm:h-8 sm:hidden rounded-lg bg-blue-100 flex items-center justify-center flex-shrink-0">
+                    <User className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-600" />
                   </div>
-                  <div>
-                    <div className="text-xl sm:text-2xl font-bold text-blue-600">{hasData ? stats.assigned : '--'}</div>
-                    <div className="text-xs sm:text-sm text-blue-600">Assigned</div>
+                  <div className="min-w-0">
+                    <div className="text-lg sm:text-2xl font-bold text-blue-600">{hasData ? stats.assigned : '--'}</div>
+                    <div className="text-[10px] sm:text-sm text-blue-600">Assigned</div>
                   </div>
                 </div>
               </div>
-              <div className="bg-amber-50 rounded-xl border border-amber-200 p-3 sm:p-4">
+              <div className="bg-amber-50 rounded-lg sm:rounded-xl border border-amber-200 p-2.5 sm:p-4">
                 <div className="flex items-center gap-2 sm:block">
-                  <div className="w-8 h-8 sm:hidden rounded-lg bg-amber-100 flex items-center justify-center">
-                    <Play className="w-4 h-4 text-amber-600" />
+                  <div className="w-7 h-7 sm:w-8 sm:h-8 sm:hidden rounded-lg bg-amber-100 flex items-center justify-center flex-shrink-0">
+                    <Play className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-600" />
                   </div>
-                  <div>
-                    <div className="text-xl sm:text-2xl font-bold text-amber-600">{hasData ? stats.inProgress : '--'}</div>
-                    <div className="text-xs sm:text-sm text-amber-600">In Progress</div>
+                  <div className="min-w-0">
+                    <div className="text-lg sm:text-2xl font-bold text-amber-600">{hasData ? stats.inProgress : '--'}</div>
+                    <div className="text-[10px] sm:text-sm text-amber-600">In Progress</div>
                   </div>
                 </div>
               </div>
-              <div className="bg-emerald-50 rounded-xl border border-emerald-200 p-3 sm:p-4 col-span-2 sm:col-span-1">
+              <div className="bg-emerald-50 rounded-lg sm:rounded-xl border border-emerald-200 p-2.5 sm:p-4 col-span-2 xs:col-span-1">
                 <div className="flex items-center gap-2 sm:block">
-                  <div className="w-8 h-8 sm:hidden rounded-lg bg-emerald-100 flex items-center justify-center">
-                    <CheckCircle className="w-4 h-4 text-emerald-600" />
+                  <div className="w-7 h-7 sm:w-8 sm:h-8 sm:hidden rounded-lg bg-emerald-100 flex items-center justify-center flex-shrink-0">
+                    <CheckCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-600" />
                   </div>
-                  <div>
-                    <div className="text-xl sm:text-2xl font-bold text-emerald-600">{hasData ? stats.completed : '--'}</div>
-                    <div className="text-xs sm:text-sm text-emerald-600">Completed</div>
+                  <div className="min-w-0">
+                    <div className="text-lg sm:text-2xl font-bold text-emerald-600">{hasData ? stats.completed : '--'}</div>
+                    <div className="text-[10px] sm:text-sm text-emerald-600">Completed</div>
                   </div>
                 </div>
               </div>
             </div>
 
             {/* Filters */}
-            <div className="bg-white rounded-xl border border-slate-200 p-4">
-              <div className="flex flex-col sm:flex-row gap-4">
+            <div className="bg-white rounded-lg sm:rounded-xl border border-slate-200 p-3 sm:p-4">
+              <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
                 <div className="flex-1 relative">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                   <input 

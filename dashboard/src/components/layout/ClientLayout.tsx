@@ -143,7 +143,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
             <TopBar />
             
             {/* Page Content - proper padding to avoid hamburger menu */}
-            <main className="mt-[76px] sm:mt-[86px] p-3 sm:p-4 lg:p-6 pl-[70px] sm:pl-[76px]">
+            <main className="mt-[72px] sm:mt-[80px] p-2 sm:p-3 lg:p-4 pl-[62px] sm:pl-[70px] overflow-x-hidden">
               {children}
             </main>
           </div>

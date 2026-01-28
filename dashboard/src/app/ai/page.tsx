@@ -187,8 +187,8 @@ export default function AIInsightsPage() {
   }
 
   return (
-    <div className="space-y-4 sm:space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
+    <div className="space-y-3 sm:space-y-4 lg:space-y-6 min-h-[calc(100vh-120px)]">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center justify-between">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-slate-900 flex items-center gap-2 sm:gap-3">
             <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-purple-600 to-blue-600 flex items-center justify-center">
