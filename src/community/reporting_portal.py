@@ -523,23 +523,19 @@ class CommunityPortalService:
                 if user.phone:
                     channels.append(NotificationChannel.SMS)
                 
-                loop = asyncio.new_event_loop()
-                try:
-                    loop.run_until_complete(notification_service.send(
-                        tenant_id="community",
-                        user_id=report.user_id,
-                        title="Report Received",
-                        message=message,
-                        severity=NotificationSeverity.INFO,
-                        channels=channels,
-                        category="report_acknowledgment",
-                        source_type="community_report",
-                        source_id=report_id,
-                        recipient_phone=user.phone,
-                        recipient_name=user.name,
-                    ))
-                finally:
-                    loop.close()
+                asyncio.run(notification_service.send(
+                    tenant_id="community",
+                    user_id=report.user_id,
+                    title="Report Received",
+                    message=message,
+                    severity=NotificationSeverity.INFO,
+                    channels=channels,
+                    category="report_acknowledgment",
+                    source_type="community_report",
+                    source_id=report_id,
+                    recipient_phone=user.phone,
+                    recipient_name=user.name,
+                ))
                     
                 logger.info(f"Acknowledgment notification sent to {user.name}")
             except Exception as e:

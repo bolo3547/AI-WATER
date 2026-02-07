@@ -543,23 +543,19 @@ AI Recommendation: Investigate and repair if leak confirmed.
                 
                 severity = NotificationSeverity.CRITICAL if wo.priority in (Priority.CRITICAL, Priority.EMERGENCY) else NotificationSeverity.WARNING
                 
-                loop = asyncio.new_event_loop()
-                try:
-                    loop.run_until_complete(notification_service.send(
-                        tenant_id=wo.zone_id or "default",
-                        user_id=technician_id,
-                        title=f"Work Order Assigned: {wo.title}",
-                        message=f"You have been assigned work order {work_order_id}. Priority: {wo.priority.value}. Location: {wo.location.address if wo.location else 'N/A'}",
-                        severity=severity,
-                        channels=[NotificationChannel.IN_APP, NotificationChannel.SMS],
-                        category="work_order",
-                        source_type="work_order",
-                        source_id=work_order_id,
-                        recipient_phone=tech.phone,
-                        recipient_name=tech.name,
-                    ))
-                finally:
-                    loop.close()
+                asyncio.run(notification_service.send(
+                    tenant_id=wo.zone_id or "default",
+                    user_id=technician_id,
+                    title=f"Work Order Assigned: {wo.title}",
+                    message=f"You have been assigned work order {work_order_id}. Priority: {wo.priority.value}. Location: {wo.location.address if wo.location else 'N/A'}",
+                    severity=severity,
+                    channels=[NotificationChannel.IN_APP, NotificationChannel.SMS],
+                    category="work_order",
+                    source_type="work_order",
+                    source_id=work_order_id,
+                    recipient_phone=tech.phone,
+                    recipient_name=tech.name,
+                ))
                     
                 logger.info(f"Notification sent to {tech.name} for {work_order_id}")
             except Exception as e:
@@ -790,9 +786,8 @@ AI Recommendation: Investigate and repair if leak confirmed.
             from src.notifications.notification_service import notification_service, NotificationSeverity, NotificationChannel
             import asyncio
             
-            loop = asyncio.new_event_loop()
-            try:
-                loop.run_until_complete(notification_service.send(
+            async def _send_escalation_notifications():
+                await notification_service.send(
                     tenant_id=wo.zone_id or "default",
                     user_id="supervisors",
                     title=f"⚠️ Work Order Escalated: {wo.work_order_id}",
@@ -802,16 +797,12 @@ AI Recommendation: Investigate and repair if leak confirmed.
                     category="escalation",
                     source_type="work_order",
                     source_id=wo.work_order_id,
-                ))
-            finally:
-                loop.close()
+                )
                 
-            # Notify assigned technician if applicable
-            if wo.assigned_to and wo.assigned_to in self.technicians:
-                tech = self.technicians[wo.assigned_to]
-                loop = asyncio.new_event_loop()
-                try:
-                    loop.run_until_complete(notification_service.send(
+                # Notify assigned technician if applicable
+                if wo.assigned_to and wo.assigned_to in self.technicians:
+                    tech = self.technicians[wo.assigned_to]
+                    await notification_service.send(
                         tenant_id=wo.zone_id or "default",
                         user_id=wo.assigned_to,
                         title=f"Work Order Escalated: {wo.work_order_id}",
@@ -823,9 +814,9 @@ AI Recommendation: Investigate and repair if leak confirmed.
                         source_id=wo.work_order_id,
                         recipient_phone=tech.phone,
                         recipient_name=tech.name,
-                    ))
-                finally:
-                    loop.close()
+                    )
+            
+            asyncio.run(_send_escalation_notifications())
                     
             logger.info(f"Escalation notifications sent for {wo.work_order_id}")
         except Exception as e:
