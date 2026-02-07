@@ -255,7 +255,7 @@ export default function WeatherPage() {
                     {corr.correlation > 0 ? '+' : ''}{(corr.correlation * 100).toFixed(0)}%
                   </span>
                 </div>
-                <div className="grid grid-cols-4 gap-2 text-center text-xs">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-xs">
                   <div>
                     <p className="font-semibold text-slate-700">{(corr.avgDemand / 1000).toFixed(0)}K</p>
                     <p className="text-slate-500">m³/day</p>
@@ -298,7 +298,7 @@ export default function WeatherPage() {
                   </div>
                   <span className="text-xs text-slate-500">{forecast.weather}</span>
                 </div>
-                <div className="grid grid-cols-3 gap-2 text-center mb-2">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-center mb-2">
                   <div className="bg-white rounded p-2">
                     <p className="text-lg font-bold text-slate-900">{(forecast.predictedDemand / 1000).toFixed(0)}K</p>
                     <p className="text-[10px] text-slate-500">m³ demand</p>

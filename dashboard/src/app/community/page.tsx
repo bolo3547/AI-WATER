@@ -320,7 +320,7 @@ export default function CommunityReportingPage() {
 
       <main className="max-w-4xl mx-auto px-4 py-6 space-y-6">
         {/* Stats Cards */}
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-100 text-center">
             <CheckCircle className="w-6 h-6 text-green-500 mx-auto mb-1" />
             <p className="text-xl sm:text-2xl font-bold text-slate-900">{stats.resolved}</p>

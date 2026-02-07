@@ -82,7 +82,7 @@ export default function PublicLandingPage() {
           </div>
 
           {/* Quick Stats */}
-          <div className="grid grid-cols-3 gap-4 max-w-lg mx-auto">
+          <div className="grid grid-cols-1 xs:grid-cols-3 gap-4 max-w-lg mx-auto">
             <div className="p-4 bg-slate-800/50 rounded-xl border border-slate-700">
               <p className="text-2xl md:text-3xl font-bold text-blue-400">1,284</p>
               <p className="text-xs md:text-sm text-slate-400">Reports This Month</p>

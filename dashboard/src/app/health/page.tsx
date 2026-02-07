@@ -409,7 +409,7 @@ export default function SystemHealthPage() {
       
       {/* AI Engine Details */}
       <SectionCard title="AI Engine Status" subtitle="Machine learning model performance and metrics">
-        <div className="grid grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
           <div>
             <p className="text-label text-text-tertiary uppercase mb-1">Model Version</p>
             <p className="text-body font-semibold text-text-primary">{aiEngine?.model_version || 'v2.4.1'}</p>
@@ -434,7 +434,7 @@ export default function SystemHealthPage() {
         
         <div className="mt-6 pt-6 border-t border-surface-border">
           <h4 className="text-body font-semibold text-text-primary mb-3">Detection Methods Active</h4>
-          <div className="grid grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {(aiEngine?.methods_active || ['Flow Analysis', 'Night Flow Detection', 'Acoustic Analysis', 'Pressure Transients']).map(method => (
               <div key={method} className="flex items-center gap-2">
                 <CheckCircle className="w-4 h-4 text-status-green" />

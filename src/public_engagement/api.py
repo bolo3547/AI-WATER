@@ -373,7 +373,7 @@ def create_public_engagement_api() -> APIRouter:
     async def create_report(
         tenant_id: str = Path(..., description="Tenant identifier"),
         body: ReportCreateSchema = Body(...),
-        request: Optional[Request] = None,
+        request: Request = None,
     ):
         """
         Create a new public report.
@@ -467,7 +467,7 @@ def create_public_engagement_api() -> APIRouter:
         tenant_id: str = Path(..., description="Tenant identifier"),
         ticket: str = Path(..., description="Ticket ID"),
         file: UploadFile = File(..., description="Photo or video file"),
-        request: Optional[Request] = None,
+        request: Request = None,
     ):
         """
         Upload media attachment to a report.

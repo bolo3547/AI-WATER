@@ -532,7 +532,7 @@ export default function SatellitePage() {
                   <p className="text-[10px] text-slate-400 mt-0.5 line-clamp-1">{analysis.source}</p>
 
                   {analysis.analysisStatus === 'complete' && (
-                    <div className="mt-2 sm:mt-3 grid grid-cols-4 gap-1 sm:gap-2">
+                    <div className="mt-2 sm:mt-3 grid grid-cols-2 sm:grid-cols-4 gap-1 sm:gap-2">
                       <div className="text-center p-1.5 sm:p-2 bg-red-50 rounded-lg">
                         <p className="text-sm sm:text-lg font-bold text-red-600">{analysis.leaksDetected}</p>
                         <p className="text-[8px] sm:text-[10px] text-red-500">Leaks</p>

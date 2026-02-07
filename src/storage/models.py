@@ -1312,7 +1312,7 @@ class Notification(Base):
     action_url = Column(String(500))
     
     # Metadata
-    metadata = Column(JSONB, default={})  # Additional context data
+    notification_metadata = Column("metadata", JSONB, default={})  # Additional context data
     
     # Timing
     created_at = Column(DateTime(timezone=True), server_default=func.now())

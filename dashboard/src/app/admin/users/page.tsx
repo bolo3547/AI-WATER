@@ -488,7 +488,7 @@ export default function UserManagementPage() {
                       <label className="block text-sm font-medium text-slate-700 mb-1">
                         Role <span className="text-red-500">*</span>
                       </label>
-                      <div className="grid grid-cols-3 gap-2">
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                         <button
                           type="button"
                           onClick={() => setNewUserForm({...newUserForm, role: 'operator'})}

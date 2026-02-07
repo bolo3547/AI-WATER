@@ -364,7 +364,7 @@ export function NotificationBell({
           {/* Panel */}
           <div 
             className={clsx(
-              'absolute top-full mt-2 w-[400px] bg-white rounded-2xl shadow-2xl border border-slate-200 z-50 overflow-hidden',
+              'absolute top-full mt-2 w-[calc(100vw-2rem)] sm:w-[400px] bg-white rounded-2xl shadow-2xl border border-slate-200 z-50 overflow-hidden',
               position === 'right' ? 'right-0' : 'left-0'
             )}
           >

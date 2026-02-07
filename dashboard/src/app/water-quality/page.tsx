@@ -429,7 +429,7 @@ export default function WaterQualityPage() {
                   </div>
                   
                   {/* Quick Parameters */}
-                  <div className="grid grid-cols-4 gap-3 mt-3">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 mt-3">
                     <div className="text-center p-2 bg-gray-50 rounded-lg">
                       <p className="text-xs text-gray-500">pH</p>
                       <p className={`text-sm font-semibold ${

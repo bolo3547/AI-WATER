@@ -314,7 +314,7 @@ export default function SmartMeterPage() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-3 gap-2 text-center text-xs mb-3">
+                  <div className="grid grid-cols-3 gap-1 sm:gap-2 text-center text-xs mb-3">
                     <div className="bg-slate-50 rounded p-2">
                       <div className="flex items-center justify-center gap-1">
                         <Battery className={`w-3 h-3 ${meter.battery > 50 ? 'text-green-500' : meter.battery > 20 ? 'text-yellow-500' : 'text-red-500'}`} />
@@ -396,7 +396,7 @@ export default function SmartMeterPage() {
                     <p className="font-semibold text-slate-900 mt-1">{anomaly.customerName}</p>
                     <p className="text-sm text-slate-600 mt-1 capitalize">{anomaly.anomalyType.replace('_', ' ')}</p>
                   </div>
-                  <div className="grid grid-cols-3 gap-4 text-center">
+                  <div className="grid grid-cols-3 gap-2 sm:gap-4 text-center">
                     <div>
                       <p className="text-sm font-semibold text-slate-900">{anomaly.currentConsumption.toFixed(1)}</p>
                       <p className="text-xs text-slate-500">Actual</p>
@@ -517,7 +517,7 @@ export default function SmartMeterPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div className="text-center p-3 bg-slate-50 rounded-lg">
                   <Battery className={`w-5 h-5 mx-auto ${selectedMeter.battery > 50 ? 'text-green-500' : 'text-red-500'}`} />
                   <p className="text-sm font-semibold mt-1">{selectedMeter.battery}%</p>

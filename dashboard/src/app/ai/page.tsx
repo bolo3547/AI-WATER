@@ -662,7 +662,7 @@ export default function AIInsightsPage() {
                 </div>
               ) : optimizedRoute ? (
                 <div className="space-y-6">
-                  <div className="grid grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div className="bg-purple-50 rounded-xl p-4 text-center">
                       <p className="text-3xl font-bold text-purple-700">{optimizedRoute.distance} km</p>
                       <p className="text-sm text-purple-600">Total Distance</p>
