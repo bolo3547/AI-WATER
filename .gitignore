@@ -28,3 +28,17 @@ Thumbs.db
 .env.local
 .vercel
 .env*.local
+
+# Node.js
+node_modules/
+dashboard/node_modules/
+
+# Build artifacts
+dist/
+build/
+*.egg-info/
+
+# Coverage reports
+htmlcov/
+.coverage
+coverage.xml
