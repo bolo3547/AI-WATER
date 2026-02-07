@@ -164,7 +164,7 @@ class CommunityReport:
         return {
             "report_id": self.report_id,
             "tracking_code": self.tracking_code,
-            "tracking_url": f"/track/{self.tracking_code}" if self.tracking_code else None,
+            "tracking_url": f"{TRACKING_URL_PATH}/{self.tracking_code}" if self.tracking_code else None,
             "type": self.report_type.value,
             "status": self.status.value,
             "location": {
@@ -282,6 +282,9 @@ LEVEL_THRESHOLDS = {
     4: 700,
     5: 1500
 }
+
+# Tracking URL base path
+TRACKING_URL_PATH = "/track"
 
 
 # =============================================================================
@@ -506,7 +509,7 @@ class CommunityPortalService:
                 "report_received",
                 user.language,
                 report_id=report_id,
-                tracking_url=f"/track/{report.tracking_code}"
+                tracking_url=f"{TRACKING_URL_PATH}/{report.tracking_code}"
             )
             # TODO: Send SMS/notification
             logger.info(f"Would send to {user.phone}: {message}")

@@ -8,6 +8,7 @@ from src.community.reporting_portal import (
     CommunityReport,
     ReportType,
     ReportStatus,
+    TRACKING_URL_PATH,
 )
 
 
@@ -50,7 +51,6 @@ class TestTrackingCodeGeneration:
             longitude=28.2833,
             description="Water leaking from pipe",
         )
-        assert report.tracking_code != ""
         assert report.tracking_code.startswith("TRK-")
         assert len(report.tracking_code) == 10
 
@@ -67,7 +67,7 @@ class TestTrackingCodeGeneration:
         assert "tracking_code" in report_dict
         assert "tracking_url" in report_dict
         assert report_dict["tracking_code"] == report.tracking_code
-        assert report_dict["tracking_url"] == f"/track/{report.tracking_code}"
+        assert report_dict["tracking_url"] == f"{TRACKING_URL_PATH}/{report.tracking_code}"
 
     def test_to_dict_tracking_url_none_when_no_code(self):
         """Verify tracking_url is None if tracking_code is empty."""
