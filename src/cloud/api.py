@@ -641,12 +641,61 @@ def create_api() -> 'FastAPI':
     
     @app.get("/v1/health", tags=["System"])
     async def health_check():
-        """Health check for load balancers and monitoring."""
-        return {
-            "status": "healthy",
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-            "version": "1.0.0"
-        }
+        """Basic health check for load balancers and monitoring."""
+        try:
+            from src.core.health_monitor import get_dashboard_health
+            health = get_dashboard_health()
+            return {
+                "status": health.get("status", "unknown"),
+                "message": health.get("message", ""),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "version": "1.0.0",
+                "active_alerts": health.get("active_alerts", 0),
+            }
+        except Exception:
+            return {
+                "status": "healthy",
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "version": "1.0.0"
+            }
+    
+    @app.get("/v1/health/components", tags=["System"])
+    async def health_components(current_user: dict = Depends(get_current_user)):
+        """
+        Detailed component health status.
+        
+        Returns health status for each system component (database, MQTT, AI engine, etc.).
+        Requires authentication.
+        """
+        try:
+            from src.core.health_monitor import get_health_monitor
+            monitor = get_health_monitor()
+            report = monitor.get_full_report()
+            
+            components = {}
+            for name, comp in report.components.items():
+                components[name] = {
+                    "status": comp.status.value,
+                    "message": comp.message,
+                    "last_check": comp.last_check.isoformat() if comp.last_check else None,
+                    "consecutive_failures": comp.consecutive_failures,
+                }
+            
+            return {
+                "overall_status": report.overall_status.value,
+                "components": components,
+                "metrics": report.metrics,
+                "active_alerts": report.alerts,
+                "timestamp": report.timestamp.isoformat(),
+            }
+        except Exception as e:
+            logger.error(f"Health components check failed: {e}")
+            return {
+                "overall_status": "unknown",
+                "components": {},
+                "error": str(e),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            }
     
     return app
 

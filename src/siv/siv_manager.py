@@ -1151,11 +1151,107 @@ class SIVManager:
             }
         }
         
-        # TODO: Implement interpolation/aggregation to align data
-        # For now, return placeholder structure
+        # Collect SIV records for this DMA in the time range
+        siv_records = sorted(
+            [r for r in self._siv_records
+             if r.source_id in [s.source_id for s in connected_sources]
+             and start_date <= r.timestamp <= end_date],
+            key=lambda r: r.timestamp
+        )
         
-        logger.info(f"Aligned {len(timestamps)} timestamps for DMA {dma_id}")
+        # Collect inlet records for this DMA in the time range
+        inlet_records = sorted(
+            [r for r in self._inlet_records
+             if r.dma_id == dma_id
+             and start_date <= r.timestamp <= end_date],
+            key=lambda r: r.timestamp
+        )
+        
+        # Interpolate SIV data onto the time grid
+        siv_matched = 0
+        for target_ts in timestamps:
+            value = self._interpolate_value(siv_records, target_ts, interval)
+            aligned_data["siv_m3"].append(round(value, 3) if value is not None else None)
+            if value is not None:
+                siv_matched += 1
+        
+        # Interpolate inlet data onto the time grid
+        inlet_matched = 0
+        for target_ts in timestamps:
+            value = self._interpolate_value(inlet_records, target_ts, interval)
+            aligned_data["inlet_m3"].append(round(value, 3) if value is not None else None)
+            if value is not None:
+                inlet_matched += 1
+        
+        # Calculate data quality
+        total_points = len(timestamps)
+        if total_points > 0:
+            aligned_data["data_quality"]["siv_completeness"] = round(siv_matched / total_points * 100, 1)
+            aligned_data["data_quality"]["inlet_completeness"] = round(inlet_matched / total_points * 100, 1)
+        
+        logger.info(f"Aligned {len(timestamps)} timestamps for DMA {dma_id} "
+                     f"(SIV: {aligned_data['data_quality']['siv_completeness']}%, "
+                     f"Inlet: {aligned_data['data_quality']['inlet_completeness']}%)")
         return aligned_data
+    
+    def _interpolate_value(
+        self,
+        records: list,
+        target_ts: datetime,
+        max_gap: timedelta
+    ) -> Optional[float]:
+        """
+        Interpolate a volume value at a target timestamp from nearby records.
+        
+        Uses linear interpolation between the two nearest records.
+        Returns None if no records exist within max_gap of the target.
+        """
+        if not records:
+            return None
+        
+        # Find bracketing records
+        before = None
+        after = None
+        
+        for record in records:
+            if record.timestamp <= target_ts:
+                before = record
+            elif record.timestamp > target_ts and after is None:
+                after = record
+                break
+        
+        # Exact match
+        if before and before.timestamp == target_ts:
+            return before.volume_m3
+        
+        # Interpolate between before and after
+        if before and after:
+            gap_before = (target_ts - before.timestamp).total_seconds()
+            gap_after = (after.timestamp - target_ts).total_seconds()
+            total_gap = gap_before + gap_after
+            
+            if total_gap > max_gap.total_seconds() * 2:
+                return None
+            
+            # Linear interpolation
+            weight = gap_before / total_gap
+            return before.volume_m3 + weight * (after.volume_m3 - before.volume_m3)
+        
+        # Only before exists and is close enough
+        if before:
+            gap = (target_ts - before.timestamp).total_seconds()
+            if gap <= max_gap.total_seconds():
+                return before.volume_m3
+            return None
+        
+        # Only after exists and is close enough
+        if after:
+            gap = (after.timestamp - target_ts).total_seconds()
+            if gap <= max_gap.total_seconds():
+                return after.volume_m3
+            return None
+        
+        return None
     
     # =========================================================================
     # DATA VALIDATION
