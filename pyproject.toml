@@ -6,6 +6,9 @@ requires-python = ">=3.9"
 [tool.pytest.ini_options]
 pythonpath = ["."]
 testpaths = ["tests"]
+markers = [
+    "integration: marks tests as integration tests (may require database)",
+]
 
 [tool.black]
 line-length = 100

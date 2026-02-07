@@ -42,3 +42,6 @@ build/
 htmlcov/
 .coverage
 coverage.xml
+
+# Pytest
+.pytest_cache/
