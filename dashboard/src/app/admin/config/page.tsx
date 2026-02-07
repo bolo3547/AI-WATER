@@ -167,7 +167,7 @@ export default function SystemConfigPage() {
       {/* Connected Devices */}
       <div className="bg-white rounded-xl border border-slate-200 p-6">
         <h2 className="text-lg font-semibold text-slate-900 mb-4">Connected ESP32 Devices</h2>
-        <div className="grid grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {['ESP32_001', 'ESP32_002', 'ESP32_003', 'ESP32_004'].map((device, i) => (
             <div key={device} className="p-4 bg-slate-50 rounded-xl border border-slate-200">
               <div className="flex items-center justify-between mb-2">

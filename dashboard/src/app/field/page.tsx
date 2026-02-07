@@ -457,7 +457,7 @@ export default function FieldCrewPage() {
                   )}
 
                   {/* Stats */}
-                  <div className="grid grid-cols-3 gap-2 text-center">
+                  <div className="grid grid-cols-3 gap-1 sm:gap-2 text-center">
                     <div className="bg-slate-50 rounded-lg p-2">
                       <p className="text-lg font-bold text-slate-900">{selectedCrew.completedToday}</p>
                       <p className="text-xs text-slate-500">Today</p>

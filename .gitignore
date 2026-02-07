@@ -37,6 +37,8 @@ dashboard/node_modules/
 dist/
 build/
 *.egg-info/
+.next/
+dashboard/.next/
 
 # Coverage reports
 htmlcov/
