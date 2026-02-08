@@ -522,7 +522,7 @@ class HealthMonitor:
                 HealthStatus.UNKNOWN: 'Status Unknown'
             }.get(overall, 'Unknown'),
             'active_alerts': len(self._active_alerts),
-            'last_check': self.metrics.get('last_full_check', datetime.utcnow()).isoformat()
+            'last_check': (self.metrics.get('last_full_check') or datetime.utcnow()).isoformat()
         }
     
     def clear_alerts(self):

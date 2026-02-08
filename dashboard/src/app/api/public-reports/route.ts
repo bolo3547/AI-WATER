@@ -1,34 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { v4 as uuidv4 } from 'uuid'
-import clientPromise from '@/lib/mongodb'
 import { notifyReportSubmission } from '@/lib/sms'
+import { inMemoryReports, getMongoCollection } from '@/lib/report-store'
+import type { PublicReport } from '@/lib/report-store'
 
 // Types
-interface PublicReport {
-  id: string
-  ticket: string
-  ticket_number: string  // Alias for consistency
-  tenant_id: string
-  category: string
-  description: string | null
-  latitude: number | null
-  longitude: number | null
-  area_text: string | null
-  source: string
-  severity: string
-  reporter_name: string | null
-  reporter_phone: string | null
-  reporter_email: string | null
-  reporter_consent: boolean
-  status: string
-  verification: string
-  spam_flag: boolean
-  quarantine: boolean
-  created_at: string
-  updated_at: string
-  timeline: TimelineEntry[]
-}
-
 interface TimelineEntry {
   status: string
   message: string
@@ -106,17 +82,22 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Connect to MongoDB
-    const client = await clientPromise
-    const db = client.db('lwsc')
-    const collection = db.collection('public_reports')
+    // Try MongoDB, fall back to in-memory
+    const collection = await getMongoCollection()
 
     // Generate unique ticket
     let ticket = generateTicket()
     let attempts = 0
-    while (await collection.findOne({ ticket }) && attempts < 10) {
-      ticket = generateTicket()
-      attempts++
+    if (collection) {
+      while (await collection.findOne({ ticket }) && attempts < 10) {
+        ticket = generateTicket()
+        attempts++
+      }
+    } else {
+      while (inMemoryReports.has(ticket) && attempts < 10) {
+        ticket = generateTicket()
+        attempts++
+      }
     }
 
     const now = new Date().toISOString()
@@ -159,10 +140,14 @@ export async function POST(request: NextRequest) {
       report.quarantine = true
     }
 
-    // Store report in MongoDB
-    await collection.insertOne(report)
-
-    console.log(`[PublicReport] Created: ${ticket} (category=${body.category}, source=${body.source || 'web'})`)
+    // Store report
+    if (collection) {
+      await collection.insertOne(report)
+      console.log(`[PublicReport] Created in MongoDB: ${ticket} (category=${body.category}, source=${body.source || 'web'})`)
+    } else {
+      inMemoryReports.set(ticket, report)
+      console.log(`[PublicReport] Created in memory: ${ticket} (category=${body.category}, source=${body.source || 'web'}) [MongoDB unavailable]`)
+    }
 
     // Send SMS confirmation to reporter if phone number provided
     if (body.reporter_phone) {
@@ -206,41 +191,60 @@ export async function GET(request: NextRequest) {
     const page = parseInt(searchParams.get('page') || '1')
     const pageSize = parseInt(searchParams.get('page_size') || '20')
 
-    // Connect to MongoDB
-    const client = await clientPromise
-    const db = client.db('lwsc')
-    const collection = db.collection('public_reports')
+    // Try MongoDB, fall back to in-memory
+    const collection = await getMongoCollection()
 
-    // Build query
-    const query: Record<string, unknown> = { tenant_id: tenantId }
-    
-    if (status) {
-      query.status = status
+    if (collection) {
+      // Build query
+      const query: Record<string, unknown> = { tenant_id: tenantId }
+      
+      if (status) {
+        query.status = status
+      }
+      
+      if (category) {
+        query.category = category
+      }
+
+      // Get total count
+      const total = await collection.countDocuments(query)
+
+      // Get paginated results
+      const reports = await collection
+        .find(query)
+        .sort({ created_at: -1 })
+        .skip((page - 1) * pageSize)
+        .limit(pageSize)
+        .toArray()
+
+      const totalPages = Math.ceil(total / pageSize)
+
+      return NextResponse.json({
+        items: reports,
+        total,
+        page,
+        page_size: pageSize,
+        total_pages: totalPages,
+      })
     }
+
+    // Fallback: return from in-memory store
+    let reports = Array.from(inMemoryReports.values())
+      .filter(r => r.tenant_id === tenantId)
     
-    if (category) {
-      query.category = category
-    }
-
-    // Get total count
-    const total = await collection.countDocuments(query)
-
-    // Get paginated results
-    const reports = await collection
-      .find(query)
-      .sort({ created_at: -1 })
-      .skip((page - 1) * pageSize)
-      .limit(pageSize)
-      .toArray()
-
-    const totalPages = Math.ceil(total / pageSize)
+    if (status) reports = reports.filter(r => r.status === status)
+    if (category) reports = reports.filter(r => r.category === category)
+    
+    reports.sort((a, b) => b.created_at.localeCompare(a.created_at))
+    const total = reports.length
+    const paged = reports.slice((page - 1) * pageSize, page * pageSize)
 
     return NextResponse.json({
-      items: reports,
+      items: paged,
       total,
       page,
       page_size: pageSize,
-      total_pages: totalPages,
+      total_pages: Math.ceil(total / pageSize),
     })
   } catch (error) {
     console.error('[PublicReport] GET Error:', error)

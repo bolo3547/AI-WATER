@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import clientPromise from '@/lib/mongodb'
 import { notifyReportStatusChange } from '@/lib/sms'
+import { inMemoryReports, getMongoCollection } from '@/lib/report-store'
 
 // Status messages for timeline
 const STATUS_MESSAGES: Record<string, string> = {
@@ -27,11 +27,21 @@ export async function GET(
       )
     }
 
-    const client = await clientPromise
-    const db = client.db('lwsc')
-    const collection = db.collection('public_reports')
+    // Try MongoDB
+    const collection = await getMongoCollection()
+    let report: Record<string, unknown> | null = null
 
-    const report = await collection.findOne({ ticket })
+    if (collection) {
+      report = await collection.findOne({ ticket })
+    }
+
+    // Fallback: check in-memory store
+    if (!report) {
+      const memReport = inMemoryReports.get(ticket)
+      if (memReport) {
+        report = memReport as unknown as Record<string, unknown>
+      }
+    }
 
     if (!report) {
       return NextResponse.json(
@@ -67,12 +77,23 @@ export async function PATCH(
       )
     }
 
-    const client = await clientPromise
-    const db = client.db('lwsc')
-    const collection = db.collection('public_reports')
+    // Try MongoDB
+    const collection = await getMongoCollection()
+    let report: Record<string, unknown> | null = null
 
-    // Find the report
-    const report = await collection.findOne({ ticket })
+    if (collection) {
+      report = await collection.findOne({ ticket })
+    }
+
+    // Fallback: check in-memory store
+    let isInMemory = false
+    if (!report) {
+      const memReport = inMemoryReports.get(ticket)
+      if (memReport) {
+        report = memReport as unknown as Record<string, unknown>
+        isInMemory = true
+      }
+    }
 
     if (!report) {
       return NextResponse.json(
@@ -128,26 +149,37 @@ export async function PATCH(
       updated_by: body.updated_by || 'staff'
     } : null
 
-    // Perform the update
-    const updateQuery: Record<string, unknown> = { $set: updates }
-    if (timelineEntry) {
-      updateQuery.$push = { timeline: timelineEntry }
+    if (collection && !isInMemory) {
+      // Perform MongoDB update
+      const updateQuery: Record<string, unknown> = { $set: updates }
+      if (timelineEntry) {
+        updateQuery.$push = { timeline: timelineEntry }
+      }
+      await collection.updateOne({ ticket }, updateQuery)
+    } else if (isInMemory) {
+      // Update in-memory report
+      const memReport = inMemoryReports.get(ticket)
+      if (memReport) {
+        Object.assign(memReport, updates)
+        if (timelineEntry) {
+          memReport.timeline.push(timelineEntry)
+        }
+      }
     }
-
-    await collection.updateOne({ ticket }, updateQuery)
 
     console.log(`[PublicReport] Updated ${ticket}: ${JSON.stringify(updates)}`)
 
     // Send SMS notification to reporter if status changed and phone exists
-    if (body.status && report.reporter_phone) {
+    const reporterPhone = report.reporter_phone as string | null
+    if (body.status && reporterPhone) {
       try {
         const smsResult = await notifyReportStatusChange(
-          report.reporter_phone,
+          reporterPhone,
           ticket,
           body.status
         )
         if (smsResult.success) {
-          console.log(`[PublicReport] SMS notification sent to ${report.reporter_phone} for ${ticket} status: ${body.status}`)
+          console.log(`[PublicReport] SMS notification sent to ${reporterPhone} for ${ticket} status: ${body.status}`)
         } else {
           console.log(`[PublicReport] SMS failed for ${ticket}: ${smsResult.error || smsResult.status}`)
         }
@@ -161,7 +193,7 @@ export async function PATCH(
       success: true,
       message: 'Report updated successfully',
       ticket,
-      sms_sent: body.status && report.reporter_phone ? true : false
+      sms_sent: body.status && reporterPhone ? true : false
     })
 
   } catch (error) {
@@ -188,22 +220,42 @@ export async function DELETE(
       )
     }
 
-    const client = await clientPromise
-    const db = client.db('lwsc')
-    const collection = db.collection('public_reports')
+    // Try MongoDB
+    const collection = await getMongoCollection()
 
-    const result = await collection.deleteOne({ ticket })
+    if (collection) {
+      const result = await collection.deleteOne({ ticket })
 
-    if (result.deletedCount === 0) {
-      return NextResponse.json(
-        { success: false, message: 'Report not found' },
-        { status: 404 }
-      )
+      if (result.deletedCount === 0) {
+        // Check in-memory before returning 404
+        if (inMemoryReports.delete(ticket)) {
+          return NextResponse.json({ success: true, message: 'Report deleted successfully' })
+        }
+        return NextResponse.json(
+          { success: false, message: 'Report not found' },
+          { status: 404 }
+        )
+      }
+
+      // Also delete associated messages
+      try {
+        const { default: clientPromise } = await import('@/lib/mongodb')
+        const client = await clientPromise
+        const db = client.db('lwsc')
+        const messagesCollection = db.collection('ticket_messages')
+        await messagesCollection.deleteMany({ ticket_id: ticket })
+      } catch {
+        // ignore message cleanup failure
+      }
+    } else {
+      // In-memory fallback
+      if (!inMemoryReports.delete(ticket)) {
+        return NextResponse.json(
+          { success: false, message: 'Report not found' },
+          { status: 404 }
+        )
+      }
     }
-
-    // Also delete associated messages
-    const messagesCollection = db.collection('ticket_messages')
-    await messagesCollection.deleteMany({ ticket_id: ticket })
 
     console.log(`[PublicReport] Deleted ${ticket}`)
 

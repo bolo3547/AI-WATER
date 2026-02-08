@@ -422,7 +422,7 @@ export default function AutonomousPage() {
                 </span>
               </div>
 
-              <div className="grid grid-cols-3 gap-2 text-center text-xs mb-3">
+              <div className="grid grid-cols-3 gap-1 sm:gap-2 text-center text-xs mb-3">
                 <div className="bg-slate-50 rounded-lg p-2">
                   <p className="font-semibold text-slate-900">{valve.pressure.toFixed(1)}</p>
                   <p className="text-slate-500">bar</p>
@@ -671,7 +671,7 @@ export default function AutonomousPage() {
               </div>
 
               {/* Quick Actions */}
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-3 gap-1 sm:gap-2">
                 <Button 
                   variant="secondary" 
                   disabled={selectedValve.autoMode || actionLoading === selectedValve.id}

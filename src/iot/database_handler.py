@@ -7,6 +7,7 @@ Implements time-series optimizations for water network data.
 """
 
 import logging
+import os
 from datetime import datetime
 from typing import Optional, List, Dict, Any
 from dataclasses import dataclass
@@ -22,14 +23,24 @@ except ImportError:
 logger = logging.getLogger(__name__)
 
 
+def _parse_port(default: str = "5432") -> int:
+    """Parse DB_PORT from environment with validation."""
+    raw = os.getenv("DB_PORT", default)
+    try:
+        return int(raw)
+    except ValueError:
+        logger.warning(f"Invalid DB_PORT '{raw}', using default {default}")
+        return int(default)
+
+
 @dataclass  
 class DatabaseConfig:
     """Database configuration."""
-    host: str = "localhost"
-    port: int = 5432
-    database: str = "aquawatch"
-    user: str = "aquawatch"
-    password: str = "aquawatch_secure_password"
+    host: str = os.getenv("DB_HOST", "localhost")
+    port: int = _parse_port()
+    database: str = os.getenv("DB_NAME", "aquawatch")
+    user: str = os.getenv("DB_USER", "aquawatch")
+    password: str = os.getenv("DB_PASSWORD", "")
     schema: str = "nrw"
 
 
@@ -376,10 +387,10 @@ if __name__ == "__main__":
     
     # Create database handler
     config = DatabaseConfig(
-        host="localhost",
-        database="aquawatch",
-        user="postgres",
-        password="password"
+        host=os.getenv("DB_HOST", "localhost"),
+        database=os.getenv("DB_NAME", "aquawatch"),
+        user=os.getenv("DB_USER", "postgres"),
+        password=os.getenv("DB_PASSWORD", "")
     )
     
     db = TimescaleDBHandler(config)

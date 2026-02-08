@@ -347,7 +347,7 @@ export function AdminDashboard() {
       </div>
       
       {/* Second row of quick actions */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <Link href="/reports" className="bg-white rounded-lg sm:rounded-xl p-3 sm:p-5 border border-slate-200 hover:shadow-md hover:border-emerald-200 transition-all group">
           <div className="flex items-center gap-2 sm:gap-3">
             <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl bg-emerald-100 flex items-center justify-center group-hover:bg-emerald-200 transition-colors flex-shrink-0">

@@ -28,3 +28,25 @@ Thumbs.db
 .env.local
 .vercel
 .env*.local
+
+# Node.js
+node_modules/
+dashboard/node_modules/
+
+# Build artifacts
+dist/
+build/
+*.egg-info/
+.next/
+dashboard/.next/
+
+# Coverage reports
+htmlcov/
+.coverage
+coverage.xml
+
+# Pytest
+.pytest_cache/
+
+# Generated demo data
+demo_data.json

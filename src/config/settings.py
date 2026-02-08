@@ -505,6 +505,59 @@ def get_utility_config(utility_id: str) -> UtilityConfig:
 
 
 # =============================================================================
+# STARTUP VALIDATION
+# =============================================================================
+
+def validate_config(config: Optional[SystemConfig] = None) -> List[str]:
+    """
+    Validate configuration at startup.
+    
+    Returns a list of warnings/errors. Critical issues raise RuntimeError.
+    """
+    if config is None:
+        config = get_config()
+    
+    warnings: List[str] = []
+    is_production = config.environment == Environment.PRODUCTION
+    
+    # JWT Secret validation
+    if not config.security.jwt_secret:
+        msg = "JWT_SECRET is not set - authentication will not work"
+        if is_production:
+            raise RuntimeError(f"CRITICAL: {msg}")
+        warnings.append(f"WARNING: {msg}")
+    elif len(config.security.jwt_secret) < 32:
+        msg = "JWT_SECRET is too short (minimum 32 characters recommended)"
+        if is_production:
+            raise RuntimeError(f"CRITICAL: {msg}")
+        warnings.append(f"WARNING: {msg}")
+    
+    # Encryption key validation
+    if not config.security.encryption_key:
+        msg = "ENCRYPTION_KEY is not set - data-at-rest encryption disabled"
+        if is_production:
+            warnings.append(f"CRITICAL: {msg}")
+        else:
+            warnings.append(f"WARNING: {msg}")
+    
+    # Database password
+    if not config.database.password:
+        msg = "Database password is empty"
+        if is_production:
+            raise RuntimeError(f"CRITICAL: {msg}")
+        warnings.append(f"WARNING: {msg}")
+    
+    # Log all warnings
+    for warning in warnings:
+        logger.warning(f"[CONFIG] {warning}")
+    
+    if not warnings:
+        logger.info("[CONFIG] Configuration validation passed")
+    
+    return warnings
+
+
+# =============================================================================
 # DEMO
 # =============================================================================
 

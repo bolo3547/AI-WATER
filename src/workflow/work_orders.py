@@ -535,7 +535,31 @@ AI Recommendation: Investigate and repair if leak confirmed.
         
         logger.info(f"Assigned {work_order_id} to {tech.name}")
         
-        # TODO: Send notification if notify=True
+        # Send notification to assigned technician
+        if notify:
+            try:
+                from src.notifications.notification_service import notification_service, NotificationSeverity, NotificationChannel
+                import asyncio
+                
+                severity = NotificationSeverity.CRITICAL if wo.priority in (Priority.CRITICAL, Priority.EMERGENCY) else NotificationSeverity.WARNING
+                
+                asyncio.run(notification_service.send(
+                    tenant_id=wo.zone_id or "default",
+                    user_id=technician_id,
+                    title=f"Work Order Assigned: {wo.title}",
+                    message=f"You have been assigned work order {work_order_id}. Priority: {wo.priority.value}. Location: {wo.location.address if wo.location else 'N/A'}",
+                    severity=severity,
+                    channels=[NotificationChannel.IN_APP, NotificationChannel.SMS],
+                    category="work_order",
+                    source_type="work_order",
+                    source_id=work_order_id,
+                    recipient_phone=tech.phone,
+                    recipient_name=tech.name,
+                ))
+                    
+                logger.info(f"Notification sent to {tech.name} for {work_order_id}")
+            except Exception as e:
+                logger.error(f"Failed to send assignment notification: {e}")
         
         return True
     
@@ -757,7 +781,46 @@ AI Recommendation: Investigate and repair if leak confirmed.
         
         logger.warning(f"Escalated {wo.work_order_id}: {reason}")
         
-        # TODO: Send escalation notifications
+        # Send escalation notifications to supervisors
+        try:
+            from src.notifications.notification_service import notification_service, NotificationSeverity, NotificationChannel
+            import asyncio
+            
+            async def _send_escalation_notifications():
+                await notification_service.send(
+                    tenant_id=wo.zone_id or "default",
+                    user_id="supervisors",
+                    title=f"⚠️ Work Order Escalated: {wo.work_order_id}",
+                    message=f"Work order '{wo.title}' has been escalated. Reason: {reason}. Priority: {wo.priority.value}.",
+                    severity=NotificationSeverity.CRITICAL,
+                    channels=[NotificationChannel.IN_APP],
+                    category="escalation",
+                    source_type="work_order",
+                    source_id=wo.work_order_id,
+                )
+                
+                # Notify assigned technician if applicable
+                if wo.assigned_to and wo.assigned_to in self.technicians:
+                    tech = self.technicians[wo.assigned_to]
+                    await notification_service.send(
+                        tenant_id=wo.zone_id or "default",
+                        user_id=wo.assigned_to,
+                        title=f"Work Order Escalated: {wo.work_order_id}",
+                        message=f"Your work order '{wo.title}' has been escalated: {reason}",
+                        severity=NotificationSeverity.WARNING,
+                        channels=[NotificationChannel.IN_APP, NotificationChannel.SMS],
+                        category="escalation",
+                        source_type="work_order",
+                        source_id=wo.work_order_id,
+                        recipient_phone=tech.phone,
+                        recipient_name=tech.name,
+                    )
+            
+            asyncio.run(_send_escalation_notifications())
+                    
+            logger.info(f"Escalation notifications sent for {wo.work_order_id}")
+        except Exception as e:
+            logger.error(f"Failed to send escalation notifications: {e}")
     
     # =========================================================================
     # QUERIES & REPORTING

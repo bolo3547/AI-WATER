@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import clientPromise from '@/lib/mongodb'
+import { inMemoryReports, getMongoCollection } from '@/lib/report-store'
 
 // Status labels
 const STATUS_LABELS: Record<string, string> = {
@@ -28,17 +28,26 @@ export async function GET(
     const cleanTicket = ticket.toUpperCase()
     console.log(`[TrackReport] Looking up ticket: ${cleanTicket}`)
 
-    // Connect to MongoDB
-    const client = await clientPromise
-    const db = client.db('lwsc')
-    const collection = db.collection('public_reports')
+    // Try MongoDB first
+    const collection = await getMongoCollection()
+    let report: Record<string, unknown> | null = null
 
-    // Find the report by ticket_number (can also try 'ticket' for backwards compatibility)
-    let report = await collection.findOne({ ticket_number: cleanTicket })
-    
-    // Fallback: try 'ticket' field for older records
+    if (collection) {
+      // Find the report by ticket_number (can also try 'ticket' for backwards compatibility)
+      report = await collection.findOne({ ticket_number: cleanTicket })
+      
+      // Fallback: try 'ticket' field for older records
+      if (!report) {
+        report = await collection.findOne({ ticket: cleanTicket })
+      }
+    }
+
+    // Fallback: check in-memory store
     if (!report) {
-      report = await collection.findOne({ ticket: cleanTicket })
+      const memReport = inMemoryReports.get(cleanTicket)
+      if (memReport) {
+        report = memReport as unknown as Record<string, unknown>
+      }
     }
 
     if (!report) {
@@ -51,19 +60,21 @@ export async function GET(
 
     console.log(`[TrackReport] Found ticket ${cleanTicket} - status: ${report.status}`)
 
+    const status = (report.status as string) || 'received'
+
     // Return tracking data (handle both field names)
     return NextResponse.json({
-      ticket: report.ticket_number || report.ticket,
-      status: report.status || 'received',
-      status_label: STATUS_LABELS[report.status] || report.status || 'Received',
+      ticket: (report.ticket_number as string) || (report.ticket as string),
+      status,
+      status_label: STATUS_LABELS[status] || status,
       category: report.category,
-      area: report.area_text || report.area || 'Location not specified',
+      area: (report.area_text as string) || (report.area as string) || 'Location not specified',
       description: report.description,
       severity: report.severity || 'medium',
       timeline: report.timeline || report.status_history || [],
       created_at: report.created_at,
       last_updated: report.updated_at || report.created_at,
-      resolved_at: report.status === 'resolved' ? report.updated_at : null,
+      resolved_at: status === 'resolved' ? report.updated_at : null,
     })
 
   } catch (error) {

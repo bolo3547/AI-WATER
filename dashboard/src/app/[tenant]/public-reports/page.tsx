@@ -606,7 +606,7 @@ export default function PublicReportsPage() {
                 {/* Expanded details */}
                 {expandedReport === report.id && (
                   <div className="px-4 py-4 bg-slate-800/30 border-t border-slate-800">
-                    <div className="grid grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
                       {/* Details */}
                       <div className="space-y-3">
                         <h4 className="font-medium text-slate-200">Details</h4>

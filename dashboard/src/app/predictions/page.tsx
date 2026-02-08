@@ -145,7 +145,7 @@ export default function PredictionsPage() {
               <p className="text-purple-200 text-sm">Deep learning on 10 years of failure data</p>
             </div>
           </div>
-          <div className="grid grid-cols-4 gap-4 sm:gap-6">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-6">
             <div className="text-center">
               <p className="text-2xl font-bold text-yellow-300">{stats.critical}</p>
               <p className="text-xs text-purple-200">Critical</p>
@@ -351,7 +351,7 @@ export default function PredictionsPage() {
                   <p className="text-4xl font-bold">{selectedPipe.failureProbability}%</p>
                   <p className="text-purple-200 text-sm">Failure Probability</p>
                 </div>
-                <div className="flex-1 grid grid-cols-3 gap-4 text-center">
+                <div className="flex-1 grid grid-cols-3 gap-2 sm:gap-4 text-center">
                   <div>
                     <p className="text-xl font-bold">{selectedPipe.pipeAge}</p>
                     <p className="text-purple-200 text-xs">Years Old</p>

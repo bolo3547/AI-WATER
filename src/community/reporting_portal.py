@@ -19,6 +19,8 @@ import os
 import logging
 import uuid
 import hashlib
+import secrets
+import string
 from datetime import datetime, timezone, timedelta
 from typing import Dict, List, Optional, Any
 from dataclasses import dataclass, field
@@ -152,12 +154,17 @@ class CommunityReport:
     user_rating: Optional[int] = None  # 1-5
     user_feedback: str = ""
     
+    # Tracking
+    tracking_code: str = ""
+    
     # Rewards
     points_awarded: int = 0
     
     def to_dict(self) -> Dict:
         return {
             "report_id": self.report_id,
+            "tracking_code": self.tracking_code,
+            "tracking_url": f"{TRACKING_URL_PATH}/{self.tracking_code}" if self.tracking_code else None,
             "type": self.report_type.value,
             "status": self.status.value,
             "location": {
@@ -275,6 +282,9 @@ LEVEL_THRESHOLDS = {
     4: 700,
     5: 1500
 }
+
+# Tracking URL base path
+TRACKING_URL_PATH = "/track"
 
 
 # =============================================================================
@@ -418,6 +428,7 @@ class CommunityPortalService:
             raise ValueError("User not registered")
         
         report_id = f"CR-{datetime.now().strftime('%Y%m%d')}-{str(uuid.uuid4())[:6].upper()}"
+        tracking_code = self._generate_tracking_code()
         
         report = CommunityReport(
             report_id=report_id,
@@ -430,7 +441,8 @@ class CommunityPortalService:
             address=address,
             landmark=landmark,
             urgency=urgency,
-            photos=photos or []
+            photos=photos or [],
+            tracking_code=tracking_code,
         )
         
         self.reports[report_id] = report
@@ -457,7 +469,7 @@ class CommunityPortalService:
         # Check for badges
         self._check_badges(user)
         
-        logger.info(f"Report submitted: {report_id} by {user_id}")
+        logger.info(f"Report submitted: {report_id} by {user_id} (tracking: {tracking_code})")
         
         return report
     
@@ -497,10 +509,37 @@ class CommunityPortalService:
                 "report_received",
                 user.language,
                 report_id=report_id,
-                tracking_url=f"https://aquawatch.zm/track/{report_id}"
+                tracking_url=f"{TRACKING_URL_PATH}/{report.tracking_code}"
             )
             # TODO: Send SMS/notification
             logger.info(f"Would send to {user.phone}: {message}")
+            
+            # Send notification via notification service
+            try:
+                from src.notifications.notification_service import notification_service, NotificationSeverity, NotificationChannel
+                import asyncio
+                
+                channels = [NotificationChannel.IN_APP]
+                if user.phone:
+                    channels.append(NotificationChannel.SMS)
+                
+                asyncio.run(notification_service.send(
+                    tenant_id="community",
+                    user_id=report.user_id,
+                    title="Report Received",
+                    message=message,
+                    severity=NotificationSeverity.INFO,
+                    channels=channels,
+                    category="report_acknowledgment",
+                    source_type="community_report",
+                    source_id=report_id,
+                    recipient_phone=user.phone,
+                    recipient_name=user.name,
+                ))
+                    
+                logger.info(f"Acknowledgment notification sent to {user.name}")
+            except Exception as e:
+                logger.error(f"Failed to send report acknowledgment notification: {e}")
         
         return True
     
@@ -614,6 +653,16 @@ class CommunityPortalService:
         user = self.users.get(report.user_id)
         if user:
             self._award_points(user, POINTS_CONFIG["feedback_provided"], "Feedback provided")
+    
+    # =========================================================================
+    # TRACKING CODE GENERATION
+    # =========================================================================
+    
+    def _generate_tracking_code(self) -> str:
+        """Generate a unique tracking code for a report. Format: TRK-XXXXXX."""
+        chars = string.ascii_uppercase + string.digits
+        random_part = ''.join(secrets.choice(chars) for _ in range(6))
+        return f"TRK-{random_part}"
     
     # =========================================================================
     # GAMIFICATION

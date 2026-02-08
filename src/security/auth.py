@@ -18,6 +18,7 @@ Security Principles:
 
 import hashlib
 import hmac
+import os
 import secrets
 import base64
 import json
@@ -789,7 +790,7 @@ def demo_security():
     print("=" * 60)
     
     # Initialize
-    auth_service = AuthenticationService(jwt_secret="super-secret-key-change-in-production")
+    auth_service = AuthenticationService(jwt_secret=os.getenv("JWT_SECRET", "demo-only-not-for-production"))
     
     # Register user
     print("\n1. Registering user...")
