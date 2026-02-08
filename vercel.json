@@ -1,20 +1,6 @@
 {
-  "version": 2,
-  "builds": [
-    {
-      "src": "dashboard/package.json",
-      "use": "@vercel/next",
-      "config": {
-        "projectSettings": {
-          "rootDirectory": "dashboard"
-        }
-      }
-    }
-  ],
-  "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "dashboard/$1"
-    }
-  ]
+  "buildCommand": "npm run build",
+  "outputDirectory": ".next",
+  "framework": "nextjs",
+  "installCommand": "npm install"
 }
