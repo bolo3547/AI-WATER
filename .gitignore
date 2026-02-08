@@ -47,3 +47,6 @@ coverage.xml
 
 # Pytest
 .pytest_cache/
+
+# Generated demo data
+demo_data.json

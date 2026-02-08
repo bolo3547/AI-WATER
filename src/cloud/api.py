@@ -11,6 +11,7 @@ Authentication:
 - API Key (X-API-Key header) for devices
 """
 
+from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from typing import List, Optional
 import logging
@@ -180,12 +181,36 @@ def create_api() -> 'FastAPI':
     if not FASTAPI_AVAILABLE:
         raise RuntimeError("FastAPI not installed")
     
+    # -------------------------------------------------------------------------
+    # LIFECYCLE (modern lifespan pattern)
+    # -------------------------------------------------------------------------
+    
+    @asynccontextmanager
+    async def lifespan(app):
+        """Manage startup and shutdown lifecycle."""
+        # Startup
+        logger.info("AquaWatch NRW API starting up...")
+        try:
+            from src.config.settings import validate_config
+            warnings = validate_config()
+            for w in warnings:
+                logger.warning(w)
+        except Exception as e:
+            logger.warning(f"Config validation skipped: {e}")
+        logger.info("AquaWatch NRW API ready")
+        
+        yield  # Application runs here
+        
+        # Shutdown
+        logger.info("AquaWatch NRW API shutting down...")
+    
     app = FastAPI(
         title="AquaWatch NRW API",
         description="Remote API for Non-Revenue Water Detection System",
         version="1.0.0",
         docs_url="/docs",
-        redoc_url="/redoc"
+        redoc_url="/redoc",
+        lifespan=lifespan,
     )
     
     # CORS for remote access
@@ -196,6 +221,37 @@ def create_api() -> 'FastAPI':
         allow_methods=["*"],
         allow_headers=["*"],
     )
+    
+    # -------------------------------------------------------------------------
+    # ERROR HANDLING
+    # -------------------------------------------------------------------------
+    
+    @app.exception_handler(HTTPException)
+    async def http_exception_handler(request, exc):
+        """Standardized HTTP error responses."""
+        return JSONResponse(
+            status_code=exc.status_code,
+            content={
+                "error": True,
+                "status_code": exc.status_code,
+                "message": exc.detail,
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            }
+        )
+    
+    @app.exception_handler(Exception)
+    async def general_exception_handler(request, exc):
+        """Catch-all error handler to prevent raw tracebacks in responses."""
+        logger.error(f"Unhandled exception: {exc}", exc_info=True)
+        return JSONResponse(
+            status_code=500,
+            content={
+                "error": True,
+                "status_code": 500,
+                "message": "Internal server error",
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            }
+        )
     
     # -------------------------------------------------------------------------
     # AUTHENTICATION ENDPOINTS
